@@ -37,6 +37,10 @@ pub struct App {
     previous_mode: Option<TriggerMode>,
     /// Immagine automatica chiesta con `H6022_SCREENSHOT`: percorso e istante di scatto.
     auto_screenshot: Option<(Instant, String)>,
+    /// Server MCP e WebSocket nello stesso processo, se attivo.
+    server: Option<h6022_server::ServerHandle>,
+    /// Indirizzo del server o motivo per cui non è partito.
+    server_status: String,
 }
 
 impl App {
@@ -85,6 +89,22 @@ impl App {
             auto_screenshot: std::env::var("H6022_SCREENSHOT")
                 .ok()
                 .map(|path| (Instant::now() + SCREENSHOT_DELAY, path)),
+            server: None,
+            server_status: "MCP spento".to_string(),
+        }
+    }
+
+    /// Avvia il server MCP e WebSocket sul motore dell'app. Un errore resta visibile nella barra.
+    pub fn start_server(&mut self, source: &'static str, port: u16) {
+        let config = h6022_server::ServerConfig {
+            addr: std::net::SocketAddr::from(([127, 0, 0, 1], port)),
+        };
+        match h6022_server::spawn(self.engine.clone(), source, config) {
+            Ok(server) => {
+                self.server_status = format!("MCP http://{}/mcp", server.addr());
+                self.server = Some(server);
+            }
+            Err(e) => self.server_status = format!("MCP non avviato: {e}"),
         }
     }
 
@@ -146,6 +166,7 @@ impl App {
             ui.horizontal(|ui| {
                 ui.label(format!("Motore: {}", engine_state_name(run_state)));
                 ui.label(format!("{fps:.1} frame/s"));
+                ui.label(&self.server_status);
                 if let Some((_, message)) = &self.error {
                     ui.label(RichText::new(format!("Errore: {message}")).color(Color32::RED));
                 }
@@ -258,6 +279,9 @@ impl eframe::App for App {
     }
 
     fn on_exit(&mut self) {
+        if let Some(server) = self.server.take() {
+            server.shutdown();
+        }
         let _ = self.engine.shutdown();
     }
 }

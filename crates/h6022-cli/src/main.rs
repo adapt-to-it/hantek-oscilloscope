@@ -89,6 +89,15 @@ enum Command {
     },
     /// Misura tensione, frequenza e spettro su più frame sincronizzati.
     Measure(MeasureArgs),
+    /// Avvia il server MCP e WebSocket senza interfaccia grafica.
+    Serve {
+        /// Porta su 127.0.0.1.
+        #[arg(long, default_value_t = h6022_server::DEFAULT_PORT)]
+        port: u16,
+        /// Usa il simulatore invece del dispositivo.
+        #[arg(long)]
+        sim: bool,
+    },
 }
 
 #[derive(Args)]
@@ -145,6 +154,7 @@ fn main() -> Result<()> {
         } => bench(rate, channels, seconds),
         Command::Eeprom { offset, len } => eeprom(offset, len),
         Command::Measure(args) => run_measure(&args),
+        Command::Serve { port, sim } => serve(port, sim),
     }
 }
 
@@ -312,6 +322,46 @@ const FRAME_TIMEOUT: Duration = Duration::from_secs(5);
 const TRIGGER_HYSTERESIS: f32 = 0.1;
 /// Frazione del frame prima del trigger.
 const PRETRIGGER: f32 = 0.5;
+
+/// Avvia motore e server, poi resta in attesa finché il processo non viene interrotto.
+fn serve(port: u16, sim: bool) -> Result<()> {
+    let (source, name): (Box<dyn SampleSource>, &'static str) = if sim {
+        (Box::new(SimulatedSource::bench_default()), "simulator")
+    } else {
+        (Box::new(HardwareSource::open().context("apertura dell'Hantek 6022BE")?), "hardware")
+    };
+    let config = EngineConfig {
+        acquisition: AcquisitionConfig {
+            sample_rate: SampleRate::nearest(1e6),
+            mode: ChannelMode::Dual,
+            range: [VoltageRange::V5; 2],
+            coupling: [Coupling::Dc; 2],
+        },
+        trigger: TriggerConfig {
+            source: Channel::Ch1,
+            kind: TriggerKind::Edge { slope: Slope::Rising },
+            level: 1.5,
+            hysteresis: TRIGGER_HYSTERESIS,
+            holdoff: 0.0,
+        },
+        mode: TriggerMode::Auto,
+        record_length: 10_000,
+        pretrigger: PRETRIGGER,
+        probe: [1.0, 1.0],
+    };
+    let engine = Engine::start(source, config)?;
+    let server_config = h6022_server::ServerConfig {
+        addr: std::net::SocketAddr::from(([127, 0, 0, 1], port)),
+    };
+    let server = h6022_server::spawn(engine.clone(), name, server_config)?;
+    let addr = server.addr();
+    println!("MCP:       http://{addr}/mcp");
+    println!("WebSocket: ws://{addr}/ws");
+    println!("Per Claude Code: claude mcp add --transport http h6022 http://{addr}/mcp");
+    server.wait();
+    engine.shutdown()?;
+    Ok(())
+}
 
 /// Raccoglie `frames` frame dal motore e stampa le misure medie per canale.
 fn run_measure(args: &MeasureArgs) -> Result<()> {
