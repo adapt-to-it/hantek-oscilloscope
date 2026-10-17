@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/h6022-usb", "crates/h6022-dsp", "crates/h6022-core", "crates/h6022-cli"]
+members = ["crates/h6022-usb", "crates/h6022-dsp", "crates/h6022-core", "crates/h6022-cli", "crates/h6022-gui"]
 
 [workspace.package]
 version = "0.1.0"
@@ -14,6 +14,7 @@ thiserror = "2"
 clap = { version = "4.6", features = ["derive"] }
 anyhow = "1"
 rustfft = "6.4"
+eframe = { version = "0.37", default-features = false, features = ["wgpu", "default_fonts", "accesskit"] }
 
 [profile.release]
 lto = "thin"

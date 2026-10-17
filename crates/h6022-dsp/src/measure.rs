@@ -45,6 +45,22 @@ struct Edge {
     t: f64,
 }
 
+/// Ampiezza minima, in passi di quantizzazione, perché una forma d'onda conti come segnale.
+const MIN_SIGNAL_STEPS: f32 = 4.0;
+
+/// Passo di quantizzazione: la differenza positiva minima tra due valori distinti.
+/// Con due soli valori distinti la forma d'onda è un'onda quadra ideale e il passo è zero.
+/// Per campioni non quantizzati (simulatore senza ADC) è quasi zero.
+fn quantum(s: &[f32]) -> f32 {
+    let mut sorted: Vec<f32> = s.iter().copied().filter(|v| v.is_finite()).collect();
+    sorted.sort_unstable_by(f32::total_cmp);
+    sorted.dedup();
+    if sorted.len() < 3 {
+        return 0.0;
+    }
+    sorted.windows(2).map(|w| w[1] - w[0]).fold(f32::INFINITY, f32::min)
+}
+
 pub fn measure(wave: &Waveform) -> Measurements {
     let s = &wave.samples;
     if s.is_empty() {
@@ -63,7 +79,9 @@ pub fn measure(wave: &Waveform) -> Measurements {
     let vac_rms = (vrms * vrms - vmean * vmean).max(0.0).sqrt();
     let (vtop, vbase) = levels(s, vmin, vmax);
     let vamp = vtop - vbase;
-    let edges = crossings(s, vtop, vbase);
+    // Un'ampiezza di pochi passi dell'ADC è rumore di quantizzazione: niente fronti né tempi.
+    let is_signal = vamp > 0.0 && vamp >= MIN_SIGNAL_STEPS * quantum(s);
+    let edges = if is_signal { crossings(s, vtop, vbase) } else { Vec::new() };
 
     let mut m = Measurements {
         vmax,
@@ -79,7 +97,7 @@ pub fn measure(wave: &Waveform) -> Measurements {
         falling_edges: edges.iter().filter(|e| !e.rising).count(),
         ..Default::default()
     };
-    if vamp > 0.0 {
+    if is_signal {
         m.overshoot_pct = Some((vmax - vtop) / vamp * 100.0);
         m.preshoot_pct = Some((vbase - vmin) / vamp * 100.0);
     }
@@ -404,5 +422,18 @@ mod tests {
         let b = sinusoide(10_000, 1_000.0, 1_000_000.0, -90.0, 1.0);
         let ritardo = delay_seconds(&a, &b).expect("ritardo");
         assert!((ritardo - 250e-6).abs() < 1e-6, "ritardo {ritardo}");
+    }
+
+    #[test]
+    fn quantization_noise_has_no_edges() {
+        // Rumore di ±1 passo da 40 mV attorno a -40 mV, come un ingresso scollegato.
+        let samples: Vec<f32> = (0..16000)
+            .map(|i| -0.04 + 0.04 * [0.0, 1.0, -1.0, 0.0, 1.0][(i * 7 + i / 3) % 5])
+            .collect();
+        let m = measure(&onda(samples, 16e6));
+        assert_eq!(m.rising_edges, 0);
+        assert_eq!(m.frequency, None);
+        assert_eq!(m.duty_positive, None);
+        assert_eq!(m.overshoot_pct, None);
     }
 }
