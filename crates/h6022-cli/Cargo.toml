@@ -1,0 +1,15 @@
+[package]
+name = "h6022-cli"
+description = "Riga di comando per l'oscilloscopio Hantek 6022BE"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "h6022"
+path = "src/main.rs"
+
+[dependencies]
+h6022-usb = { path = "../h6022-usb" }
+clap.workspace = true
+anyhow.workspace = true

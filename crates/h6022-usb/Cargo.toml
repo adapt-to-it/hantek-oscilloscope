@@ -1,0 +1,10 @@
+[package]
+name = "h6022-usb"
+description = "Driver USB per l'oscilloscopio Hantek 6022BE: firmware, comandi vendor, EEPROM, streaming"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+nusb.workspace = true
+thiserror.workspace = true
