@@ -44,6 +44,12 @@ fn main() -> eframe::Result {
         "h6022-gui",
         options,
         Box::new(move |cc| {
+            // SIGINT e SIGTERM chiudono la finestra: `on_exit` ferma server e streaming.
+            let ctx = cc.egui_ctx.clone();
+            let _ = ctrlc::set_handler(move || {
+                ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Close);
+                ctx.request_repaint();
+            });
             let mut app = app::App::new(cc.egui_ctx.clone(), source);
             if with_server {
                 app.start_server(name, port);

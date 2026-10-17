@@ -10,6 +10,7 @@ rust-version = "1.88"
 
 [workspace.dependencies]
 nusb = "0.2.8"
+ctrlc = { version = "3.4", features = ["termination"] }
 thiserror = "2"
 clap = { version = "4.6", features = ["derive"] }
 anyhow = "1"

@@ -51,6 +51,17 @@ pub fn list(vendor_id: u16, product_id: u16) -> Result<Vec<UsbId>> {
         .collect())
 }
 
+/// Reset della porta USB: il dispositivo ripete l'enumerazione, il firmware in RAM resta.
+/// macOS rifiuta il reset con un'interfaccia reclamata, quindi apre il dispositivo senza reclamarla.
+pub fn reset(vendor_id: u16, product_id: u16) -> Result<()> {
+    let info = nusb::list_devices()
+        .wait()
+        .map_err(usb_err)?
+        .find(|d| d.vendor_id() == vendor_id && d.product_id() == product_id)
+        .ok_or(Error::NotFound)?;
+    info.open().wait().map_err(usb_err)?.reset().wait().map_err(usb_err)
+}
+
 impl NusbTransport {
     /// Apre il primo dispositivo con VID e PID indicati e reclama l'interfaccia 0.
     pub fn open(vendor_id: u16, product_id: u16) -> Result<Self> {

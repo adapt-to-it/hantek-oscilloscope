@@ -43,47 +43,78 @@ impl Hantek6022<NusbTransport> {
     }
 
     /// Come `open`, con un limite di attesa per la rienumerazione.
+    ///
+    /// Un processo terminato a metà di uno streaming può lasciare il firmware senza risposta.
+    /// In quel caso `open` prova un reset della porta USB e, se non basta, ricarica il firmware:
+    /// la richiesta 0xA0 la gestisce il core del FX2, non il firmware.
     pub fn open_with_timeout(renumeration_timeout: Duration) -> Result<Self> {
         if !nusb_transport::list(VID_FIRMWARE, PID_6022BE)?.is_empty() {
-            return open_firmware_device();
+            let first = match open_firmware_device() {
+                Ok(dev) => return Ok(dev),
+                Err(e) => e,
+            };
+            if let Ok(dev) = recover_by_reset() {
+                return Ok(dev);
+            }
+            return reload_firmware(VID_FIRMWARE, renumeration_timeout).map_err(|_| first);
         }
 
         // Senza firmware: `open` restituisce `NotFound` se manca anche questo dispositivo.
-        let raw = NusbTransport::open(VID_NO_FIRMWARE, PID_6022BE)?;
-        firmware::upload(&raw, DSO6022BE_HEX)?;
-        drop(raw);
-
-        let deadline = Instant::now() + renumeration_timeout;
-        loop {
-            if !nusb_transport::list(VID_FIRMWARE, PID_6022BE)?.is_empty() {
-                break;
-            }
-            if Instant::now() >= deadline {
-                return Err(Error::Timeout);
-            }
-            thread::sleep(RENUMERATION_POLL);
-        }
-        // Il dispositivo compare sul bus prima che macOS e il firmware siano pronti:
-        // i primi trasferimenti possono andare in timeout o in stallo.
-        let mut last = Error::Timeout;
-        for _ in 0..OPEN_ATTEMPTS {
-            thread::sleep(SETTLE_DELAY);
-            match open_firmware_device() {
-                Ok(dev) => return Ok(dev),
-                Err(e) => last = e,
-            }
-        }
-        Err(last)
+        reload_firmware(VID_NO_FIRMWARE, renumeration_timeout)
     }
+}
+
+/// Reset della porta, poi un nuovo tentativo di apertura.
+fn recover_by_reset() -> Result<Hantek6022<NusbTransport>> {
+    nusb_transport::reset(VID_FIRMWARE, PID_6022BE)?;
+    open_after_settle()
+}
+
+/// Carica il firmware sul dispositivo con `vendor_id`, attende la rienumerazione e lo apre.
+fn reload_firmware(vendor_id: u16, renumeration_timeout: Duration) -> Result<Hantek6022<NusbTransport>> {
+    let raw = NusbTransport::open(vendor_id, PID_6022BE)?;
+    firmware::upload(&raw, DSO6022BE_HEX)?;
+    drop(raw);
+    if vendor_id == VID_FIRMWARE {
+        // Il dispositivo esce dal bus e rientra con lo stesso VID: senza questa attesa
+        // il controllo qui sotto troverebbe ancora la vecchia istanza.
+        thread::sleep(RENUMERATION_GONE);
+    }
+    let deadline = Instant::now() + renumeration_timeout;
+    while nusb_transport::list(VID_FIRMWARE, PID_6022BE)?.is_empty() {
+        if Instant::now() >= deadline {
+            return Err(Error::Timeout);
+        }
+        thread::sleep(RENUMERATION_POLL);
+    }
+    open_after_settle()
+}
+
+/// Il dispositivo compare sul bus prima che macOS e il firmware siano pronti:
+/// i primi trasferimenti possono andare in timeout o in stallo.
+fn open_after_settle() -> Result<Hantek6022<NusbTransport>> {
+    let mut last = Error::Timeout;
+    for _ in 0..OPEN_ATTEMPTS {
+        thread::sleep(SETTLE_DELAY);
+        match open_firmware_device() {
+            Ok(dev) => return Ok(dev),
+            Err(e) => last = e,
+        }
+    }
+    Err(last)
 }
 
 const STALE_QUIET: Duration = Duration::from_millis(30);
 const OPEN_ATTEMPTS: usize = 3;
 const SETTLE_DELAY: Duration = Duration::from_millis(500);
+/// Tempo in cui il FX2 esce dal bus dopo un nuovo caricamento del firmware.
+const RENUMERATION_GONE: Duration = Duration::from_millis(1500);
 
 /// Apre il dispositivo con il firmware già caricato e ne legge la versione.
 fn open_firmware_device() -> Result<Hantek6022<NusbTransport>> {
     let transport = NusbTransport::open(VID_FIRMWARE, PID_6022BE)?;
+    // Ferma uno streaming lasciato attivo da un processo terminato.
+    transport.control_out(req::START_STOP, 0, 0, &[0])?;
     let firmware_version = transport.id().device_version;
     Hantek6022::with_transport(transport, firmware_version)
 }
@@ -231,4 +262,21 @@ fn calibration_code(hz: u32) -> Option<u8> {
         return None;
     };
     u8::try_from(code).ok()
+}
+
+/// Richiedono l'Hantek collegato: `cargo test -p h6022-usb --lib -- --ignored hardware`.
+#[cfg(test)]
+mod hardware {
+    use super::*;
+
+    #[test]
+    #[ignore]
+    fn hardware_recovery_paths_reopen_the_device() {
+        drop(Hantek6022::open().expect("apertura"));
+        let dev = recover_by_reset().expect("recupero con reset");
+        assert_eq!(dev.firmware_version(), 0x0210);
+        drop(dev);
+        let dev = reload_firmware(VID_FIRMWARE, RENUMERATION_TIMEOUT).expect("ricarico del firmware");
+        assert_eq!(dev.firmware_version(), 0x0210);
+    }
 }

@@ -358,7 +358,14 @@ fn serve(port: u16, sim: bool) -> Result<()> {
     println!("MCP:       http://{addr}/mcp");
     println!("WebSocket: ws://{addr}/ws");
     println!("Per Claude Code: claude mcp add --transport http h6022 http://{addr}/mcp");
-    server.wait();
+    // Con SIGINT o SIGTERM ferma server e streaming: un processo terminato a metà
+    // di uno streaming lascia il firmware senza risposta.
+    let (tx, rx) = std::sync::mpsc::channel();
+    ctrlc::set_handler(move || {
+        let _ = tx.send(());
+    })?;
+    let _ = rx.recv();
+    server.shutdown();
     engine.shutdown()?;
     Ok(())
 }
