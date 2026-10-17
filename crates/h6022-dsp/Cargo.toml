@@ -1,0 +1,9 @@
+[package]
+name = "h6022-dsp"
+description = "Elaborazione del segnale per oscilloscopio: misure, FFT, filtri, canali matematici"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+rustfft.workspace = true

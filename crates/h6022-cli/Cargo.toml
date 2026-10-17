@@ -11,5 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 h6022-usb = { path = "../h6022-usb" }
+h6022-core = { path = "../h6022-core" }
+h6022-dsp = { path = "../h6022-dsp" }
 clap.workspace = true
 anyhow.workspace = true

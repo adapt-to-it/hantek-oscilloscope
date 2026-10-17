@@ -5,16 +5,27 @@ mod parse;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::mpsc::RecvTimeoutError;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
+use h6022_core::hardware::HardwareSource;
+use h6022_core::sim::SimulatedSource;
+use h6022_core::{
+    Engine, EngineConfig, EngineHandle, Frame, SampleSource, Slope, TriggerConfig, TriggerKind,
+    TriggerMode,
+};
+use h6022_dsp::{Measurements, Waveform, Window};
 use h6022_usb::{
-    Block, Channel, ChannelMode, Coupling, Hantek6022, SampleRate, StreamConfig, StreamStats,
-    VoltageRange,
+    AcquisitionConfig, Block, Channel, ChannelMode, Coupling, Hantek6022, SampleRate,
+    StreamConfig, StreamStats, VoltageRange,
 };
 
-use parse::{parse_channels, parse_range, parse_rate, parse_u16};
+use parse::{
+    parse_channels, parse_mode, parse_range, parse_rate, parse_trigger_source, parse_u16,
+};
 
 #[derive(Parser)]
 #[command(
@@ -76,6 +87,42 @@ enum Command {
         #[arg(long, value_parser = parse_u16)]
         len: u16,
     },
+    /// Misura tensione, frequenza e spettro su più frame sincronizzati.
+    Measure(MeasureArgs),
+}
+
+#[derive(Args)]
+struct MeasureArgs {
+    /// Frequenza di campionamento, per esempio 48M, 500k, 20000.
+    #[arg(long, value_parser = parse_rate)]
+    rate: SampleRate,
+    /// Numero di canali acquisiti: 1 o 2.
+    #[arg(long, value_parser = parse_channels)]
+    channels: ChannelMode,
+    /// Portata del canale 1 in volt: 5, 2.5, 1, 0.5.
+    #[arg(long, value_parser = parse_range)]
+    range1: VoltageRange,
+    /// Portata del canale 2 in volt: 5, 2.5, 1, 0.5.
+    #[arg(long, value_parser = parse_range)]
+    range2: VoltageRange,
+    /// Campioni per canale in ogni frame.
+    #[arg(long, default_value_t = 100_000)]
+    record: usize,
+    /// Numero di frame da raccogliere e mediare.
+    #[arg(long, default_value_t = 5)]
+    frames: usize,
+    /// Livello del trigger in volt.
+    #[arg(long, default_value_t = 1.5, allow_negative_numbers = true)]
+    trigger_level: f32,
+    /// Sorgente del trigger: 1 o 2.
+    #[arg(long, value_parser = parse_trigger_source)]
+    trigger_source: Channel,
+    /// Modalità del trigger: auto o normal.
+    #[arg(long, value_parser = parse_mode)]
+    mode: TriggerMode,
+    /// Usa il simulatore invece del dispositivo.
+    #[arg(long)]
+    sim: bool,
 }
 
 fn main() -> Result<()> {
@@ -97,6 +144,7 @@ fn main() -> Result<()> {
             seconds,
         } => bench(rate, channels, seconds),
         Command::Eeprom { offset, len } => eeprom(offset, len),
+        Command::Measure(args) => run_measure(&args),
     }
 }
 
@@ -256,6 +304,152 @@ fn measure(dev: &mut Hantek6022, limit: Duration) -> Result<StreamStats> {
         stream.next_block(&mut block)?;
     }
     Ok(stream.stats())
+}
+
+/// Timeout massimo per ricevere un frame dal motore.
+const FRAME_TIMEOUT: Duration = Duration::from_secs(5);
+/// Isteresi del trigger in volt.
+const TRIGGER_HYSTERESIS: f32 = 0.1;
+/// Frazione del frame prima del trigger.
+const PRETRIGGER: f32 = 0.5;
+
+/// Raccoglie `frames` frame dal motore e stampa le misure medie per canale.
+fn run_measure(args: &MeasureArgs) -> Result<()> {
+    if args.frames == 0 {
+        bail!("--frames deve essere maggiore di zero");
+    }
+    let dual = args.channels == ChannelMode::Dual;
+    let config = EngineConfig {
+        acquisition: AcquisitionConfig {
+            sample_rate: args.rate,
+            mode: args.channels,
+            range: [args.range1, args.range2],
+            coupling: [Coupling::Dc, Coupling::Dc],
+        },
+        trigger: TriggerConfig {
+            source: args.trigger_source,
+            kind: TriggerKind::Edge {
+                slope: Slope::Rising,
+            },
+            level: args.trigger_level,
+            hysteresis: TRIGGER_HYSTERESIS,
+            holdoff: 0.0,
+        },
+        mode: args.mode,
+        record_length: args.record,
+        pretrigger: PRETRIGGER,
+        probe: [1.0, 1.0],
+    };
+
+    let source: Box<dyn SampleSource> = if args.sim {
+        Box::new(SimulatedSource::bench_default())
+    } else {
+        Box::new(HardwareSource::open().context("apertura dell'Hantek 6022BE")?)
+    };
+    let engine = Engine::start(source, config)?;
+    let collected = collect_frames(&engine, args.frames);
+    let stopped = engine.shutdown();
+    let frames = collected?;
+    stopped?;
+
+    print_measure(&frames, dual);
+    Ok(())
+}
+
+/// Riceve `count` frame dal motore, con un timeout per frame.
+fn collect_frames(engine: &EngineHandle, count: usize) -> Result<Vec<Arc<Frame>>> {
+    let rx = engine.subscribe();
+    let mut frames = Vec::new();
+    while frames.len() < count {
+        match rx.recv_timeout(FRAME_TIMEOUT) {
+            Ok(frame) => frames.push(frame),
+            Err(RecvTimeoutError::Timeout) => bail!(
+                "nessun frame dal motore entro {} s",
+                FRAME_TIMEOUT.as_secs()
+            ),
+            Err(RecvTimeoutError::Disconnected) => {
+                bail!("il motore si è fermato durante la misura")
+            }
+        }
+    }
+    Ok(frames)
+}
+
+/// Stampa i frame sincronizzati, le medie per canale e i picchi dello spettro dell'ultimo frame.
+fn print_measure(frames: &[Arc<Frame>], dual: bool) {
+    let synced = frames.iter().filter(|f| f.triggered).count();
+    println!("Frame sincronizzati: {synced} su {}", frames.len());
+
+    let last = frames.last();
+    let channels = if dual { 2 } else { 1 };
+    for index in 0..channels {
+        let waves: Vec<&Waveform> = frames
+            .iter()
+            .filter_map(|f| channel_wave(f, index))
+            .collect();
+        let ms: Vec<Measurements> = waves.into_iter().map(h6022_dsp::measure).collect();
+
+        println!("CH{} (media su {} frame)", index + 1, ms.len());
+        let vpp = mean(&ms, |m| Some(f64::from(m.vpp)));
+        let vtop = mean(&ms, |m| Some(f64::from(m.vtop)));
+        let vbase = mean(&ms, |m| Some(f64::from(m.vbase)));
+        let vrms = mean(&ms, |m| Some(f64::from(m.vrms)));
+        let freq = mean(&ms, |m| m.frequency);
+        let duty = mean(&ms, |m| m.duty_positive).map(|d| d * 100.0);
+        let rise = mean(&ms, |m| m.rise_time).map(|t| t * 1e6);
+        let fall = mean(&ms, |m| m.fall_time).map(|t| t * 1e6);
+        println!("  vpp        {}", fmt_value(vpp, 3, "V"));
+        println!("  vtop       {}", fmt_value(vtop, 3, "V"));
+        println!("  vbase      {}", fmt_value(vbase, 3, "V"));
+        println!("  vrms       {}", fmt_value(vrms, 3, "V"));
+        println!("  frequenza  {}", fmt_value(freq, 2, "Hz"));
+        println!("  duty       {}", fmt_value(duty, 1, "%"));
+        println!("  salita     {}", fmt_value(rise, 3, "µs"));
+        println!("  discesa    {}", fmt_value(fall, 3, "µs"));
+
+        if let Some(wave) = last.and_then(|f| channel_wave(f, index)) {
+            let spec = h6022_dsp::spectrum::spectrum(wave, Window::FlatTop);
+            println!("  picchi spettro FlatTop (ultimo frame):");
+            let peaks = spec.peaks(5);
+            if peaks.is_empty() {
+                println!("    —");
+            }
+            for p in peaks {
+                println!("    {:>12.1} Hz  {:.4} V", p.frequency, p.vrms);
+            }
+            let thd = freq.and_then(|f| spec.thd_pct(f));
+            println!("  THD        {}", fmt_value(thd, 3, "%"));
+        }
+    }
+}
+
+/// Forma d'onda del canale `index` (0 = CH1, 1 = CH2), se presente nel frame.
+fn channel_wave(frame: &Frame, index: usize) -> Option<&Waveform> {
+    match index {
+        0 => Some(&frame.ch1),
+        _ => frame.ch2.as_ref(),
+    }
+}
+
+/// Media dei valori presenti; `None` se nessuna misura ha il valore.
+fn mean<F>(ms: &[Measurements], get: F) -> Option<f64>
+where
+    F: Fn(&Measurements) -> Option<f64>,
+{
+    let values: Vec<f64> = ms.iter().filter_map(get).collect();
+    if values.is_empty() {
+        None
+    } else {
+        Some(values.iter().sum::<f64>() / values.len() as f64)
+    }
+}
+
+/// Valore con decimali e unità, oppure "—" se assente.
+fn fmt_value(value: Option<f64>, decimals: usize, unit: &str) -> String {
+    match value {
+        Some(v) => format!("{v:.decimals$} {unit}"),
+        None => "—".to_string(),
+    }
 }
 
 fn eeprom(offset: u16, len: u16) -> Result<()> {

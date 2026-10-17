@@ -1,0 +1,11 @@
+[package]
+name = "h6022-core"
+description = "Motore di acquisizione: trigger software, frame, modalità auto/normale/singola/roll, simulatore"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+h6022-usb = { path = "../h6022-usb" }
+h6022-dsp = { path = "../h6022-dsp" }
+thiserror.workspace = true

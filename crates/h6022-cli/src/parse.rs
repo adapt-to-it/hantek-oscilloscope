@@ -1,6 +1,7 @@
 //! Parsing degli argomenti da riga di comando. Funzioni pure, senza accesso al dispositivo.
 
-use h6022_usb::{ChannelMode, SampleRate, VoltageRange};
+use h6022_core::TriggerMode;
+use h6022_usb::{Channel, ChannelMode, SampleRate, VoltageRange};
 
 /// Frequenza in Hz. Accetta un suffisso `k` (chilo) o `M` (mega), per esempio "48M", "500k", "20000".
 pub fn parse_frequency(s: &str) -> Result<f64, String> {
@@ -45,6 +46,28 @@ pub fn parse_channels(s: &str) -> Result<ChannelMode, String> {
         "1" => Ok(ChannelMode::Single),
         "2" => Ok(ChannelMode::Dual),
         _ => Err(format!("canali non validi: \"{s}\" (valori ammessi: 1, 2)")),
+    }
+}
+
+/// Modalità del trigger: auto o normal.
+pub fn parse_mode(s: &str) -> Result<TriggerMode, String> {
+    match s.trim() {
+        "auto" => Ok(TriggerMode::Auto),
+        "normal" => Ok(TriggerMode::Normal),
+        _ => Err(format!(
+            "modalità non valida: \"{s}\" (valori ammessi: auto, normal)"
+        )),
+    }
+}
+
+/// Sorgente del trigger: canale 1 o 2.
+pub fn parse_trigger_source(s: &str) -> Result<Channel, String> {
+    match s.trim() {
+        "1" => Ok(Channel::Ch1),
+        "2" => Ok(Channel::Ch2),
+        _ => Err(format!(
+            "sorgente di trigger non valida: \"{s}\" (valori ammessi: 1, 2)"
+        )),
     }
 }
 
@@ -99,6 +122,22 @@ mod tests {
         assert_eq!(parse_channels("2"), Ok(ChannelMode::Dual));
         assert!(parse_channels("3").is_err());
         assert!(parse_channels("").is_err());
+    }
+
+    #[test]
+    fn modalita_ammesse() {
+        assert_eq!(parse_mode("auto"), Ok(TriggerMode::Auto));
+        assert_eq!(parse_mode(" normal "), Ok(TriggerMode::Normal));
+        assert!(parse_mode("single").is_err());
+        assert!(parse_mode("").is_err());
+    }
+
+    #[test]
+    fn sorgente_trigger_ammesse() {
+        assert_eq!(parse_trigger_source("1"), Ok(Channel::Ch1));
+        assert_eq!(parse_trigger_source("2"), Ok(Channel::Ch2));
+        assert!(parse_trigger_source("3").is_err());
+        assert!(parse_trigger_source("").is_err());
     }
 
     #[test]
