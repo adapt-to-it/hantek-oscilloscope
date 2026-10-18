@@ -10,3 +10,6 @@ h6022-usb = { path = "../h6022-usb" }
 h6022-core = { path = "../h6022-core" }
 h6022-dsp = { path = "../h6022-dsp" }
 serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

@@ -1,5 +1,5 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
-import type { Status, ViewSettings } from './types'
+import type { AcquisitionSettings, MeasureSnapshot, Status, ViewSettings } from './types'
 import type { RunCommand } from './shell/keys'
 
 // Wrapper tipizzati dei comandi definiti in crates/h6022-app/src/commands.rs.
@@ -39,4 +39,16 @@ export function getTriggerLevel(): Promise<number> {
 
 export function setTriggerLevel(volts: number): Promise<void> {
   return invoke<void>('set_trigger_level', { volts })
+}
+
+export function getAcquisition(): Promise<AcquisitionSettings> {
+  return invoke('get_acquisition')
+}
+
+export function setAcquisition(settings: AcquisitionSettings): Promise<void> {
+  return invoke('set_acquisition', { settings })
+}
+
+export function getMeasurements(): Promise<MeasureSnapshot | null> {
+  return invoke('measurements')
 }

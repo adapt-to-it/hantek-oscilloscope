@@ -1,96 +1,112 @@
 <script lang="ts">
-  // Pannello di destra: canali (attivo, V/div, offset) e asse orizzontale (tempo/div, offset).
-  // Ogni modifica produce una nuova vista; l'applicazione al motore la fa il genitore.
-  import type { ChannelSettings, ViewSettings } from '../types'
+  // Contenuto dell'aside, tab "Controlli": fisarmonica con Orizzontale, un canale per volta e Trigger.
+  // Una sola sezione aperta alla volta. Ogni modifica produce un oggetto nuovo; l'applicazione al motore la fa il genitore.
+  import type { AcquisitionSettings, ChannelSettings, ViewSettings } from '../types'
   import { CH_COLORS } from '../types'
-  import { TIME_STEPS, VOLT_STEPS, formatDiv, formatTime, formatVolts, step } from './format'
+  import { formatTime, formatVolts } from './format'
+  import { triggerSummary } from './controls/trigger'
+  import HorizontalSection from './controls/HorizontalSection.svelte'
+  import ChannelSection from './controls/ChannelSection.svelte'
+  import TriggerSection from './controls/TriggerSection.svelte'
 
   interface Props {
     view: ViewSettings
+    acq: AcquisitionSettings
     onchange: (view: ViewSettings) => void
+    onacq: (acq: AcquisitionSettings) => void
+    /** Riga informativa della sezione Orizzontale, per esempio la frequenza di campionamento. */
+    info?: string
   }
 
-  let { view, onchange }: Props = $props()
+  let { view, acq, onchange, onacq, info }: Props = $props()
 
-  /** Passo di spostamento verticale, in divisioni. */
-  const OFFSET_STEP_DIV = 0.5
+  type SectionId = 'horizontal' | 'ch1' | 'ch2' | 'trigger'
 
-  function withChannel(index: 0 | 1, patch: Partial<ChannelSettings>) {
+  interface Section {
+    id: SectionId
+    name: string
+    color: string
+    summary: string
+    /** Indice del canale per le sezioni di canale, altrimenti null. */
+    channel: 0 | 1 | null
+    /** Canale spento: l'intestazione si attenua come nel design. */
+    dim: boolean
+  }
+
+  let openSection = $state<SectionId | null>('horizontal')
+
+  const sections: Section[] = $derived([
+    {
+      id: 'horizontal',
+      name: 'Orizzontale',
+      color: '#e8ebef',
+      summary: `${formatTime(view.timePerDiv)}/div`,
+      channel: null,
+      dim: false,
+    },
+    {
+      id: 'ch1',
+      name: 'CH1',
+      color: CH_COLORS[0],
+      summary: `${formatVolts(view.channels[0].voltsPerDiv)}/div`,
+      channel: 0,
+      dim: !view.channels[0].enabled,
+    },
+    {
+      id: 'ch2',
+      name: 'CH2',
+      color: CH_COLORS[1],
+      summary: `${formatVolts(view.channels[1].voltsPerDiv)}/div`,
+      channel: 1,
+      dim: !view.channels[1].enabled,
+    },
+    {
+      id: 'trigger',
+      name: 'Trigger',
+      color: '#ff9f43',
+      summary: triggerSummary(acq),
+      channel: null,
+      dim: false,
+    },
+  ])
+
+  function toggle(id: SectionId) {
+    openSection = openSection === id ? null : id
+  }
+
+  function toggleChannel(index: 0 | 1) {
     const channels = [...view.channels] as [ChannelSettings, ChannelSettings]
-    channels[index] = { ...channels[index], ...patch }
+    channels[index] = { ...channels[index], enabled: !channels[index].enabled }
     onchange({ ...view, channels })
-  }
-
-  function withTime(timePerDiv: number) {
-    onchange({ ...view, timePerDiv })
-  }
-
-  function withHorizontal(horizontalOffset: number) {
-    onchange({ ...view, horizontalOffset })
   }
 </script>
 
 <div style="display:flex;flex-direction:column">
-  <section style="border-bottom:1px solid #20262e;padding:12px 14px;display:flex;flex-direction:column;gap:4px">
-    <h3 style="font-size:14px;font-weight:700;margin-bottom:6px">Canali</h3>
-    {#each view.channels as channel, i (i)}
-      {@const index = i as 0 | 1}
-      <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:10px;opacity:{channel.enabled ? 1 : 0.55}">
-        <div class="rw">
-          <span style="font-size:14px;font-weight:700;color:{CH_COLORS[index]}">CH{i + 1}</span>
-          <button
-            class="tgl {index === 0 ? 'c1' : 'c2'} {channel.enabled ? 'on' : ''}"
-            role="switch"
-            aria-checked={channel.enabled}
-            aria-label="CH{i + 1} attivo"
-            onclick={() => withChannel(index, { enabled: !channel.enabled })}
-          ></button>
-        </div>
-        <div class="rw">
-          <span class="lb">V/div</span>
-          <div style="display:flex;align-items:center;gap:6px">
-            <button class="step" aria-label="Riduci volt per divisione CH{i + 1}"
-              onclick={() => withChannel(index, { voltsPerDiv: step(VOLT_STEPS, channel.voltsPerDiv, -1) })}>−</button>
-            <span class="mono" style="min-width:74px;text-align:center;font-size:14px;font-weight:600">{formatVolts(channel.voltsPerDiv)}</span>
-            <button class="step" aria-label="Aumenta volt per divisione CH{i + 1}"
-              onclick={() => withChannel(index, { voltsPerDiv: step(VOLT_STEPS, channel.voltsPerDiv, 1) })}>+</button>
-          </div>
-        </div>
-        <div class="rw">
-          <span class="lb">Offset</span>
-          <div style="display:flex;align-items:center;gap:6px">
-            <button class="step" aria-label="Sposta in basso CH{i + 1}"
-              onclick={() => withChannel(index, { offsetDiv: channel.offsetDiv - OFFSET_STEP_DIV })}>−</button>
-            <span class="mono" style="min-width:74px;text-align:center;font-size:13px">{formatDiv(channel.offsetDiv)}</span>
-            <button class="step" aria-label="Sposta in alto CH{i + 1}"
-              onclick={() => withChannel(index, { offsetDiv: channel.offsetDiv + OFFSET_STEP_DIV })}>+</button>
-          </div>
-        </div>
+  {#each sections as section (section.id)}
+    <div style="border-bottom:1px solid #20262e;opacity:{section.dim ? 0.55 : 1}">
+      <div class="acc-h">
+        <button class="acc-t" aria-expanded={openSection === section.id} onclick={() => toggle(section.id)}>
+          <span style="color:{section.color}">{section.name}</span>
+          <span class="mono" style="font-weight:500;font-size:12px;color:#9aa3af;margin-left:auto">{section.summary}</span>
+        </button>
+        {#if section.channel !== null}
+          {@const index = section.channel}
+          <button class="tgl {index === 0 ? 'c1' : 'c2'} {view.channels[index].enabled ? 'on' : ''}"
+            role="switch" aria-checked={view.channels[index].enabled} aria-label="{section.name} attivo"
+            onclick={() => toggleChannel(index)}></button>
+        {/if}
       </div>
-    {/each}
-  </section>
-
-  <section style="padding:12px 14px;display:flex;flex-direction:column;gap:4px">
-    <h3 style="font-size:14px;font-weight:700;margin-bottom:6px">Orizzontale</h3>
-    <div class="rw">
-      <span class="lb">Tempo/div</span>
-      <div style="display:flex;align-items:center;gap:6px">
-        <button class="step" aria-label="Riduci tempo per divisione"
-          onclick={() => withTime(step(TIME_STEPS, view.timePerDiv, -1))}>−</button>
-        <span class="mono" style="min-width:74px;text-align:center;font-size:14px;font-weight:600">{formatTime(view.timePerDiv)}</span>
-        <button class="step" aria-label="Aumenta tempo per divisione"
-          onclick={() => withTime(step(TIME_STEPS, view.timePerDiv, 1))}>+</button>
-      </div>
+      {#if openSection === section.id}
+        <div style="padding:0 14px 14px">
+          {#if section.id === 'horizontal'}
+            <HorizontalSection {view} {acq} {onchange} {onacq} {info} />
+          {:else if section.id === 'trigger'}
+            <TriggerSection {acq} {onacq} />
+          {:else if section.channel !== null}
+            <ChannelSection index={section.channel} {view} {acq} {onchange} {onacq} />
+          {/if}
+        </div>
+      {/if}
     </div>
-    <div class="rw">
-      <span class="lb">Offset</span>
-      <div style="display:flex;align-items:center;gap:6px">
-        <button class="step" aria-label="Sposta a sinistra"
-          onclick={() => withHorizontal(view.horizontalOffset - view.timePerDiv)}>−</button>
-        <span class="mono" style="min-width:74px;text-align:center;font-size:13px">{formatTime(view.horizontalOffset)}</span>
-        <button class="step" aria-label="Sposta a destra"
-          onclick={() => withHorizontal(view.horizontalOffset + view.timePerDiv)}>+</button>
-      </div>
-    </div>
-  </section>
+  {/each}
 </div>

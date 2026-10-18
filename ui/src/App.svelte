@@ -3,7 +3,9 @@
   import Scope from './lib/display/Scope.svelte'
   import { decodeDisplay } from './lib/display/frame'
   import * as api from './lib/api'
-  import type { ChannelSettings, DisplayFrame, Status, ViewSettings } from './lib/types'
+  import type { AcquisitionSettings, ChannelSettings, DisplayFrame, MeasureSnapshot, Status, ViewSettings } from './lib/types'
+  import MeasureGrid from './lib/measures/MeasureGrid.svelte'
+  import { formatHz } from './lib/shell/format'
   import TopBar from './lib/shell/TopBar.svelte'
   import ControlPanel from './lib/shell/ControlPanel.svelte'
   import Footer from './lib/shell/Footer.svelte'
@@ -11,11 +13,15 @@
 
   const STATUS_INTERVAL_MS = 500
   const ERROR_MS = 5000
+  const MEASURE_INTERVAL_MS = 250
 
   let view = $state<ViewSettings | null>(null)
   let status = $state<Status | null>(null)
   let frame = $state<DisplayFrame | null>(null)
-  let triggerLevel = $state(0)
+  let acq = $state<AcquisitionSettings | null>(null)
+  let measures = $state<MeasureSnapshot | null>(null)
+  const triggerLevel = $derived(acq?.triggerLevel ?? 0)
+  const info = $derived(status ? `Frequenza ${formatHz(status.sampleRateHz)}, record ${status.recordLength} campioni` : undefined)
   let fps = $state(0)
   let errorMsg = $state<string | null>(null)
 
@@ -75,9 +81,29 @@
     applyView({ ...view, channels })
   }
 
+  /** Applica trigger e acquisizione; se il motore li rifiuta, ripristina quelli precedenti. */
+  async function applyAcq(next: AcquisitionSettings) {
+    if (!acq) return
+    const previous = acq
+    acq = next
+    try {
+      await api.setAcquisition(next)
+    } catch (e) {
+      acq = previous
+      showError(`Impostazioni non applicate: ${e}`)
+    }
+  }
+
   function onTriggerLevel(volts: number) {
-    triggerLevel = volts
-    api.setTriggerLevel(volts).catch((e) => showError(`Livello di trigger: ${e}`))
+    if (acq) applyAcq({ ...acq, triggerLevel: volts })
+  }
+
+  async function refreshMeasures() {
+    try {
+      measures = await api.getMeasurements()
+    } catch (e) {
+      showError(`Misure non disponibili: ${e}`)
+    }
   }
 
   async function refreshStatus() {
@@ -99,7 +125,7 @@
       .getView()
       .then(async (loaded) => {
         view = loaded
-        triggerLevel = await api.getTriggerLevel()
+        acq = await api.getAcquisition()
         await api.subscribeDisplay((buf) => {
           frame = decodeDisplay(buf)
         })
@@ -108,8 +134,10 @@
 
     refreshStatus()
     const timer = setInterval(refreshStatus, STATUS_INTERVAL_MS)
+    const measureTimer = setInterval(refreshMeasures, MEASURE_INTERVAL_MS)
     return () => {
       clearInterval(timer)
+      clearInterval(measureTimer)
       clearTimeout(errorTimer)
     }
   })
@@ -130,12 +158,13 @@
     <div style="flex:1 1 640px;min-width:0;display:flex;flex-direction:column;gap:12px">
       {#if view}
         <Scope {frame} {view} {triggerLevel} oncolumns={onColumns} onoffset={onOffset} ontriggerlevel={onTriggerLevel} />
+        <MeasureGrid snapshot={measures} enabled={[view.channels[0].enabled, view.channels[1].enabled]} />
       {/if}
     </div>
 
     <aside class="card" style="flex:0 1 330px;min-width:300px;display:flex;flex-direction:column;min-height:420px;overflow:auto">
-      {#if view}
-        <ControlPanel {view} onchange={applyView} />
+      {#if view && acq}
+        <ControlPanel {view} {acq} {info} onchange={applyView} onacq={applyAcq} />
       {/if}
     </aside>
   </main>

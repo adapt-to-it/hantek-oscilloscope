@@ -10,6 +10,8 @@ use tauri::State;
 use tauri::ipc::{Channel, InvokeResponseBody};
 
 use h6022_core::{RunState, TriggerMode};
+use h6022_view::acquisition::AcquisitionSettings;
+use h6022_view::measures::{MeasureSnapshot, snapshot};
 use h6022_view::settings::ViewSettings;
 use h6022_view::trace::encode_display;
 
@@ -155,4 +157,27 @@ pub fn set_trigger_level(state: State<'_, AppState>, volts: f32) -> Result<(), S
     let mut config = state.engine.config();
     config.trigger.level = volts;
     state.engine.set_config(config).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_acquisition(state: State<'_, AppState>) -> AcquisitionSettings {
+    AcquisitionSettings::from_config(&state.engine.config())
+}
+
+/// Applica trigger, sonde, accoppiamento e pretrigger. Se il motore li rifiuta, resta la configurazione di prima.
+#[tauri::command]
+pub fn set_acquisition(state: State<'_, AppState>, settings: AcquisitionSettings) -> Result<(), String> {
+    let mut config = state.engine.config();
+    settings.apply(&mut config)?;
+    // La sonda cambia la portata necessaria: la vista la ricalcola.
+    state.view.lock().unwrap().apply(&mut config);
+    state.engine.set_config(config).map_err(|e| e.to_string())
+}
+
+/// Misure del frame più recente; `None` se non è ancora arrivato un frame.
+#[tauri::command]
+pub fn measurements(state: State<'_, AppState>) -> Option<MeasureSnapshot> {
+    let frame = state.engine.latest_frame()?;
+    let view = *state.view.lock().unwrap();
+    Some(snapshot(&frame, [view.channels[0].enabled, view.channels[1].enabled]))
 }

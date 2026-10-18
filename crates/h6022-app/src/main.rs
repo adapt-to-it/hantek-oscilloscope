@@ -74,6 +74,9 @@ fn main() {
             commands::subscribe_display,
             commands::get_trigger_level,
             commands::set_trigger_level,
+            commands::get_acquisition,
+            commands::set_acquisition,
+            commands::measurements,
         ])
         .setup(|app| {
             // SIGINT e SIGTERM chiudono l'app con la stessa sequenza della chiusura della finestra.

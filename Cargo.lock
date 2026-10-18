@@ -2353,6 +2353,7 @@ dependencies = [
  "h6022-dsp",
  "h6022-usb",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
