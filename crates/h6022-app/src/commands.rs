@@ -16,6 +16,11 @@ use h6022_view::measures::{MeasureSnapshot, snapshot};
 use h6022_view::settings::ViewSettings;
 use h6022_view::trace::encode_display;
 
+use h6022_server::api::{RecordParams, RecordSummaryView, RecordingView};
+use h6022_server::api_decode::{ExportParams, ExportView};
+use h6022_server::decode_tools::export_view;
+use h6022_server::tools::{record_summary_view, recording_view, start_recorder};
+
 use crate::state::AppState;
 
 /// Intervallo minimo tra due frame inviati al display (circa 60 al secondo).
@@ -217,4 +222,42 @@ pub fn decode(
 ) -> Result<Option<h6022_server::api_decode::DecodeView>, String> {
     let Some(frame) = state.engine.latest_frame() else { return Ok(None) };
     h6022_server::decode_tools::decode_view(&frame, params).map(Some).map_err(|e| e.message.to_string())
+}
+
+/// Avvia una registrazione con i parametri dello strumento MCP `start_recording`.
+/// Una registrazione già finita per limite viene chiusa prima; una ancora attiva dà errore.
+#[tauri::command]
+pub fn start_recording(state: State<'_, AppState>, params: RecordParams) -> Result<RecordingView, String> {
+    let mut slot = state.recorder.lock().unwrap();
+    if let Some(old) = slot.take() {
+        if old.status().running {
+            *slot = Some(old);
+            return Err("registrazione già attiva".into());
+        }
+        let _ = old.stop();
+    }
+    let recorder = start_recorder(&state.engine, params).map_err(|e| e.message.to_string())?;
+    let view = recording_view(recorder.status());
+    *slot = Some(recorder);
+    Ok(view)
+}
+
+/// Ferma la registrazione e restituisce il riepilogo.
+#[tauri::command]
+pub fn stop_recording(state: State<'_, AppState>) -> Result<RecordSummaryView, String> {
+    let recorder = state.recorder.lock().unwrap().take().ok_or("nessuna registrazione attiva")?;
+    recorder.stop().map(record_summary_view).map_err(|e| e.to_string())
+}
+
+/// Stato della registrazione; `None` se non ne è stata avviata una.
+#[tauri::command]
+pub fn recording_status(state: State<'_, AppState>) -> Option<RecordingView> {
+    state.recorder.lock().unwrap().as_ref().map(|r| recording_view(r.status()))
+}
+
+/// Esporta il frame più recente in vcd o sr con i parametri dello strumento MCP `export_logic`.
+#[tauri::command]
+pub fn export_logic(state: State<'_, AppState>, params: ExportParams) -> Result<ExportView, String> {
+    let frame = state.engine.latest_frame().ok_or("nessun frame da esportare")?;
+    export_view(&frame, params).map_err(|e| e.message.to_string())
 }

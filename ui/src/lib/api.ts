@@ -1,5 +1,5 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
-import type { AcquisitionSettings, DecodeParams, DecodeView, MeasureSnapshot, SpectrumView, Status, ViewSettings, ViewMode, WindowName, XyView } from './types'
+import type { AcquisitionSettings, DecodeParams, DecodeView, ExportParams, ExportView, RecordingView, RecordParams, RecordSummaryView, MeasureSnapshot, SpectrumView, Status, ViewSettings, ViewMode, WindowName, XyView } from './types'
 import type { RunCommand } from './shell/keys'
 
 // Wrapper tipizzati dei comandi definiti in crates/h6022-app/src/commands.rs.
@@ -69,4 +69,23 @@ export function getInitialMode(): Promise<ViewMode | null> {
 /** Decodifica il frame più recente; null se non c'è ancora un frame. Rifiutata se i parametri non sono validi. */
 export function decode(params: DecodeParams): Promise<DecodeView | null> {
   return invoke<DecodeView | null>('decode', { params })
+}
+
+/** Rifiutata se i parametri non sono validi o se una registrazione è già attiva. */
+export function startRecording(params: RecordParams): Promise<RecordingView> {
+  return invoke<RecordingView>('start_recording', { params })
+}
+
+export function stopRecording(): Promise<RecordSummaryView> {
+  return invoke<RecordSummaryView>('stop_recording')
+}
+
+/** `null` se non è stata avviata una registrazione. `running` diventa false quando scatta un limite. */
+export function recordingStatus(): Promise<RecordingView | null> {
+  return invoke<RecordingView | null>('recording_status')
+}
+
+/** Rifiutata se non c'è ancora un frame o se il file esiste già. */
+export function exportLogic(params: ExportParams): Promise<ExportView> {
+  return invoke<ExportView>('export_logic', { params })
 }

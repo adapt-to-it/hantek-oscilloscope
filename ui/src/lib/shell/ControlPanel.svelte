@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Contenuto dell'aside, tab "Controlli": fisarmonica con Orizzontale, un canale per volta, Trigger, Display e Decoder.
+  // Contenuto dell'aside, tab "Controlli": fisarmonica con Orizzontale, un canale per volta, Trigger, Display, Decoder e File.
   // Una sola sezione aperta alla volta. Ogni modifica produce un oggetto nuovo; l'applicazione al motore la fa il genitore.
-  import type { AcquisitionSettings, ChannelSettings, DecoderSettings, DisplayOptions, ViewSettings } from '../types'
+  import type { AcquisitionSettings, ChannelSettings, DecoderSettings, DisplayOptions, RecordingView, ViewSettings } from '../types'
   import { CH_COLORS } from '../types'
   import { formatTime, formatVolts } from './format'
   import { triggerSummary } from './controls/trigger'
@@ -11,6 +11,8 @@
   import DisplaySection, { WINDOW_OPTIONS } from './controls/DisplaySection.svelte'
   import DecoderSection from './controls/DecoderSection.svelte'
   import { decoderSummary } from './controls/decoder'
+  import FileSection from './controls/FileSection.svelte'
+  import { recordingLabel } from './controls/file'
 
   interface Props {
     view: ViewSettings
@@ -23,11 +25,14 @@
     ondecoder: (decoder: DecoderSettings) => void
     /** Riga informativa della sezione Orizzontale, per esempio la frequenza di campionamento. */
     info?: string
+    /** Stato della registrazione, mostrato nel riepilogo della sezione File. */
+    recording: RecordingView | null
+    onrecording: (r: RecordingView | null) => void
   }
 
-  let { view, acq, display, decoder, onchange, onacq, ondisplay, ondecoder, info }: Props = $props()
+  let { view, acq, display, decoder, onchange, onacq, ondisplay, ondecoder, info, recording, onrecording }: Props = $props()
 
-  type SectionId = 'horizontal' | 'ch1' | 'ch2' | 'trigger' | 'display' | 'decoder'
+  type SectionId = 'horizontal' | 'ch1' | 'ch2' | 'trigger' | 'display' | 'decoder' | 'file'
 
   interface Section {
     id: SectionId
@@ -93,6 +98,14 @@
       channel: null,
       dim: false,
     },
+    {
+      id: 'file',
+      name: 'File',
+      color: '#e8ebef',
+      summary: recordingLabel(recording),
+      channel: null,
+      dim: false,
+    },
   ])
 
   function toggle(id: SectionId) {
@@ -131,6 +144,8 @@
             <DisplaySection {display} {ondisplay} />
           {:else if section.id === 'decoder'}
             <DecoderSection {decoder} {ondecoder} />
+          {:else if section.id === 'file'}
+            <FileSection {decoder} {onrecording} />
           {:else if section.channel !== null}
             <ChannelSection index={section.channel} {view} {acq} {onchange} {onacq} />
           {/if}

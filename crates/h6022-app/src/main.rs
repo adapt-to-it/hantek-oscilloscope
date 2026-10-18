@@ -62,6 +62,7 @@ fn main() {
         previous_mode: Mutex::new(None),
         server: Mutex::new(server),
         server_status: Mutex::new(server_status),
+        recorder: Mutex::new(None),
     };
 
     let app = tauri::Builder::default()
@@ -82,6 +83,10 @@ fn main() {
             commands::xy,
             commands::initial_mode,
             commands::decode,
+            commands::start_recording,
+            commands::stop_recording,
+            commands::recording_status,
+            commands::export_logic,
         ])
         .setup(|app| {
             // SIGINT e SIGTERM chiudono l'app con la stessa sequenza della chiusura della finestra.
@@ -95,6 +100,10 @@ fn main() {
     app.run(|handle, event| {
         if let tauri::RunEvent::Exit = event {
             let state = handle.state::<AppState>();
+            // Chiude il file in corso: senza stop l'intestazione resta incompleta.
+            if let Some(recorder) = state.recorder.lock().unwrap().take() {
+                let _ = recorder.stop();
+            }
             if let Some(server) = state.server.lock().unwrap().take() {
                 server.shutdown();
             }

@@ -2247,6 +2247,7 @@ version = "0.1.0"
 dependencies = [
  "ctrlc",
  "h6022-core",
+ "h6022-record",
  "h6022-server",
  "h6022-usb",
  "h6022-view",

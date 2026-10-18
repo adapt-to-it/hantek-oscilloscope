@@ -173,3 +173,38 @@ export interface DecoderSettings {
   enabled: boolean
   params: DecodeParams
 }
+
+// Registrazione ed export: tipi di crates/h6022-server/src/api.rs e api_decode.rs (campi snake_case).
+export type RecordFormat = 'csv' | 'npy' | 'wav'
+export type ExportFormat = 'vcd' | 'sr'
+/** `path` relativo: il file va in ~/h6022-recordings. */
+export interface RecordParams {
+  path: string
+  format: RecordFormat | null
+  max_frames: number | null
+  max_seconds: number | null
+}
+export interface RecordingView {
+  path: string
+  format: RecordFormat
+  frames: number
+  running: boolean
+  error: string | null
+}
+export interface RecordSummaryView {
+  path: string
+  format: RecordFormat
+  frames: number
+  channels: number
+  sample_rate_hz: number
+  samples_per_channel: number
+}
+export interface ExportParams {
+  path: string
+  format: ExportFormat
+  decode: DecodeParams | null
+}
+export interface ExportView {
+  path: string
+  bytes: number
+}

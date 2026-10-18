@@ -19,5 +19,6 @@ serde_json.workspace = true
 ctrlc.workspace = true
 h6022-usb = { path = "../h6022-usb" }
 h6022-core = { path = "../h6022-core" }
+h6022-record = { path = "../h6022-record" }
 h6022-server = { path = "../h6022-server" }
 h6022-view = { path = "../h6022-view" }

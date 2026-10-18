@@ -5,7 +5,7 @@ use std::sync::mpsc::Receiver;
 use std::sync::{Arc, MutexGuard};
 use std::time::{Duration, Instant};
 
-use h6022_core::{EngineConfig, Frame, RunState, Slope, TriggerKind, TriggerMode};
+use h6022_core::{EngineConfig, EngineHandle, Frame, RunState, Slope, TriggerKind, TriggerMode};
 use h6022_dsp::measure::{Measurements, delay_seconds, measure as measure_wave, phase_degrees};
 use h6022_dsp::resample::min_max_decimate;
 use h6022_dsp::spectrum::spectrum as spectrum_of;
@@ -215,17 +215,11 @@ impl H6022Mcp {
 
     #[tool(description = "Avvia la registrazione dei frame su disco in un formato csv, npy o wav.")]
     pub async fn start_recording(&self, params: Parameters<RecordParams>) -> Result<Json<RecordingView>, ErrorData> {
-        let p = params.0;
-        if p.max_seconds.is_some_and(|s| !(s > 0.0 && s.is_finite())) {
-            return Err(invalid("max_seconds deve essere positivo"));
-        }
-        let (path, format) = recording_target(&p.path, p.format)?;
-        let limit = RecordLimit { max_frames: p.max_frames, max_seconds: p.max_seconds };
         let mut slot = self.recorder()?;
         if slot.is_some() {
             return Err(invalid("registrazione già attiva: chiama stop_recording prima"));
         }
-        let recorder = Recorder::start(&self.state.engine, &path, format, limit).map_err(record_error)?;
+        let recorder = start_recorder(&self.state.engine, params.0)?;
         let view = recording_view(recorder.status());
         *slot = Some(recorder);
         Ok(Json(view))
@@ -583,8 +577,18 @@ fn format_name(format: Format) -> FormatName {
     }
 }
 
+/// Valida i parametri e avvia una registrazione; la usano lo strumento MCP e l'app desktop.
+pub fn start_recorder(engine: &EngineHandle, p: RecordParams) -> Result<Recorder, ErrorData> {
+    if p.max_seconds.is_some_and(|s| !(s > 0.0 && s.is_finite())) {
+        return Err(invalid("max_seconds deve essere positivo"));
+    }
+    let (path, format) = recording_target(&p.path, p.format)?;
+    let limit = RecordLimit { max_frames: p.max_frames, max_seconds: p.max_seconds };
+    Recorder::start(engine, &path, format, limit).map_err(record_error)
+}
+
 /// Percorso assoluto del file e formato. Un percorso relativo va in `$HOME/h6022-recordings`.
-fn recording_target(raw: &str, format: Option<FormatName>) -> Result<(PathBuf, Format), ErrorData> {
+pub(crate) fn recording_target(raw: &str, format: Option<FormatName>) -> Result<(PathBuf, Format), ErrorData> {
     if raw.trim().is_empty() {
         return Err(invalid("percorso vuoto"));
     }
@@ -622,7 +626,7 @@ fn record_error(err: std::io::Error) -> ErrorData {
     }
 }
 
-fn recording_view(status: RecordStatus) -> RecordingView {
+pub fn recording_view(status: RecordStatus) -> RecordingView {
     RecordingView {
         path: status.path.to_string_lossy().into_owned(),
         format: format_name(status.format),
@@ -632,7 +636,7 @@ fn recording_view(status: RecordStatus) -> RecordingView {
     }
 }
 
-fn record_summary_view(summary: RecordSummary) -> RecordSummaryView {
+pub fn record_summary_view(summary: RecordSummary) -> RecordSummaryView {
     RecordSummaryView {
         path: summary.path.to_string_lossy().into_owned(),
         format: format_name(summary.format),

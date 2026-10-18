@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Barra superiore: dispositivo, Run/Stop, Singolo, stato, selettore di vista e server MCP.
+  // Barra superiore: dispositivo, Run/Stop, Singolo, stato, selettore di vista, registrazione e server MCP.
   // Spiegazioni, screenshot sono fuori da questa unità.
-  import type { Status, ViewMode } from '../types'
+  import type { RecordingView, Status, ViewMode } from '../types'
   import { toggleCommand } from './keys'
 
   interface Props {
@@ -10,9 +10,11 @@
     onrun: () => void
     onsingle: () => void
     onmode: (mode: ViewMode) => void
+    /** Registrazione in corso: la barra mostra REC e i frame scritti. */
+    recording: RecordingView | null
   }
 
-  let { status, mode, onrun, onsingle, onmode }: Props = $props()
+  let { status, mode, onrun, onsingle, onmode, recording }: Props = $props()
 
   const DEVICE_COLOR = { hardware: '#3fd68a', simulator: '#ff9f43' } as const
   const DEVICE_LABEL = { hardware: 'Hardware', simulator: 'Simulatore' } as const
@@ -28,6 +30,8 @@
   let devLabel = $derived(status ? DEVICE_LABEL[status.source] : 'In avvio')
   let stateText = $derived(status ? STATE_TEXT[status.runState] : '—')
   let stateColor = $derived(status ? STATE_COLOR[status.runState] : '#8a94a1')
+  // Lo stato del server inizia con "MCP http" solo se il server è partito.
+  let mcpColor = $derived(status?.server.startsWith('MCP http') ? '#3fd68a' : '#8a94a1')
   let isStopped = $derived(!status || status.runState === 'stopped')
   let runCls = $derived(isStopped ? 'run' : 'stop')
   let runLabel = $derived(toggleCommand(status?.runState ?? 'stopped') === 'run' ? 'Run' : 'Stop')
@@ -60,7 +64,13 @@
 
   <div style="flex:1 1 10px"></div>
 
+  {#if recording?.running}
+    <div class="chip mono" role="status" style="font-size:12px;color:#ff6b6b" title={recording.path}>
+      <span style="width:8px;height:8px;border-radius:50%;background:#ff6b6b;display:inline-block"></span>REC · {recording.frames} frame
+    </div>
+  {/if}
+
   <div class="chip mono" style="font-size:12px;font-weight:500;color:#9aa3af" title="Server MCP per Claude Code">
-    <span style="width:8px;height:8px;border-radius:50%;background:#8a94a1;display:inline-block"></span>{status?.server ?? '—'}
+    <span style="width:8px;height:8px;border-radius:50%;background:{mcpColor};display:inline-block"></span>{status?.server ?? '—'}
   </div>
 </header>

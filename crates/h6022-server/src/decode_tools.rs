@@ -89,12 +89,18 @@ impl H6022Mcp {
 
     #[tool(description = "Esporta i canali attivi digitalizzati in un file vcd o sigrok sr; nel vcd entrano anche le annotazioni.")]
     pub async fn export_logic(&self, params: Parameters<ExportParams>) -> Result<Json<ExportView>, ErrorData> {
-        let p = params.0;
-        let path = export_target(&p.path, p.format)?;
         let frame = self.latest()?;
+        Ok(Json(export_view(&frame, params.0)?))
+    }
+}
+
+/// Esporta in vcd o sr i canali del frame digitalizzati; la usano lo strumento MCP e l'app desktop.
+pub fn export_view(frame: &Frame, p: ExportParams) -> Result<ExportView, ErrorData> {
+    {
+        let path = export_target(&p.path, p.format)?;
         let threshold = threshold_of(p.decode.as_ref().and_then(|d| d.threshold_v))?;
         let annotations = match (p.format, &p.decode) {
-            (ExportFormatName::Vcd, Some(d)) => decode_frame(&frame, d)?,
+            (ExportFormatName::Vcd, Some(d)) => decode_frame(frame, d)?,
             _ => Vec::new(),
         };
         let ch1 = digitize(&frame.ch1, threshold);
@@ -104,7 +110,7 @@ impl H6022Mcp {
             traces.push(("CH2", t));
         }
         let bytes = write_export(&path, p.format, &traces, &annotations)?;
-        Ok(Json(ExportView { path: path.to_string_lossy().into_owned(), bytes }))
+        Ok(ExportView { path: path.to_string_lossy().into_owned(), bytes })
     }
 }
 

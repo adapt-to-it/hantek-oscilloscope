@@ -9,6 +9,7 @@
     DisplayFrame,
     DecodeView,
     DecoderSettings,
+    RecordingView,
     DisplayOptions,
     MeasureSnapshot,
     SpectrumView as SpectrumData,
@@ -43,6 +44,7 @@
   let spectrum = $state<SpectrumData | null>(null)
   let xy = $state<XyData | null>(null)
   let decoder = $state<DecoderSettings>(defaultDecoder())
+  let recording = $state<RecordingView | null>(null)
   let decoded = $state<DecodeView | null>(null)
   let decodeError = $state<string | null>(null)
   const triggerLevel = $derived(acq?.triggerLevel ?? 0)
@@ -213,7 +215,7 @@
 <svelte:window onkeydown={onKey} />
 
 <div class="app" style="display:flex;flex-direction:column;height:100vh;min-height:720px;background:#0b0d10;position:relative">
-  <TopBar {status} mode={display.mode} onrun={onRun} onsingle={() => send('single')} onmode={setMode} />
+  <TopBar {status} {recording} mode={display.mode} onrun={onRun} onsingle={() => send('single')} onmode={setMode} />
 
   {#if errorMsg}
     <div role="alert" style="display:flex;align-items:center;gap:10px;padding:9px 16px;background:#3a1714;border-bottom:1px solid #6a3029;color:#ffb3a6;font-size:13px;font-weight:500">
@@ -252,6 +254,8 @@
           {display}
           {decoder}
           {info}
+          {recording}
+          onrecording={(r) => (recording = r)}
           onchange={applyView}
           onacq={applyAcq}
           ondecoder={applyDecoder}

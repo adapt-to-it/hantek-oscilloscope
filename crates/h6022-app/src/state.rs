@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicU64, AtomicUsize};
 use std::sync::{Arc, Mutex};
 
 use h6022_core::{EngineHandle, TriggerMode};
+use h6022_record::Recorder;
 use h6022_server::ServerHandle;
 use h6022_view::settings::ViewSettings;
 
@@ -21,4 +22,6 @@ pub struct AppState {
     pub server: Mutex<Option<ServerHandle>>,
     /// Indirizzo MCP o motivo per cui il server non è partito.
     pub server_status: Mutex<String>,
+    /// Registrazione avviata dal frontend; resta qui anche dopo un limite raggiunto, fino a `stop_recording`.
+    pub recorder: Mutex<Option<Recorder>>,
 }
