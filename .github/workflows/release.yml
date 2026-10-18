@@ -1,5 +1,5 @@
-# Release automatica: un tag v* costruisce gli installer per macOS, Windows e Linux
-# e li pubblica in una GitHub Release. Il tag si crea con scripts/release.sh.
+# Release: parte solo con un tag v*, creato da scripts/release.sh. Verifica la versione,
+# esegue i test su macOS, Windows e Linux, poi costruisce gli installer e li pubblica.
 name: Release
 
 on:
@@ -27,9 +27,14 @@ jobs:
             exit 1
           fi
 
+  # Gli installer si costruiscono solo se i test passano su tutti e tre i sistemi.
+  test:
+    needs: check-version
+    uses: ./.github/workflows/ci.yml
+
   build:
     name: build (${{ matrix.name }})
-    needs: check-version
+    needs: test
     strategy:
       fail-fast: false
       matrix:

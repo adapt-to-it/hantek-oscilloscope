@@ -218,16 +218,21 @@ Do not open a public issue.
 
 ## Releases
 
-The CI workflow builds and tests every push and pull request on macOS, Windows and Linux. To
-publish a release, run this command from an up-to-date `main` branch:
+The workflows do not run on every push. GitHub Actions runs only when you publish a release.
+To publish one, run this command from an up-to-date `main` branch:
 
 ```bash
 scripts/release.sh 0.2.0
 ```
 
 The script updates the version in `Cargo.toml`, `tauri.conf.json` and `ui/package.json`,
-commits, creates the `v0.2.0` tag and pushes it. The tag starts the Release workflow, which
-builds the installers and the CLI and attaches them to a GitHub Release. A version with a
+commits, creates the `v0.2.0` tag and pushes it. The tag starts the Release workflow:
+
+1. It checks that the tag matches the version in `tauri.conf.json`.
+2. It runs the tests on macOS, Windows and Linux. If one fails, the release stops.
+3. It builds the installers and the CLI and attaches them to a GitHub Release.
+
+To run only the tests without a release, open **Actions → CI → Run workflow**. A version with a
 suffix, such as `0.2.0-beta.1`, becomes a pre-release.
 
 The macOS build is ad-hoc signed by default. To sign it with a Developer ID certificate and

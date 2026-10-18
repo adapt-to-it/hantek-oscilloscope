@@ -1,15 +1,10 @@
-# Build e test su macOS, Windows e Linux a ogni push su main e a ogni pull request.
+# Build e test su macOS, Windows e Linux. Non parte a ogni push: lo richiama il workflow
+# Release prima di costruire gli installer, oppure lo avvii a mano da Actions → CI → Run workflow.
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
   workflow_dispatch:
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
