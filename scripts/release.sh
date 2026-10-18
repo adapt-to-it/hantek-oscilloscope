@@ -43,7 +43,8 @@ node -e '
 cargo update --workspace --quiet
 
 git add Cargo.toml Cargo.lock crates/h6022-app/tauri.conf.json ui/package.json ui/package-lock.json
-git commit -m "Versione $version"
+# Se la versione è già quella dei file, non c'è niente da committare: si crea solo il tag.
+git diff --cached --quiet || git commit -m "Versione $version"
 git tag -a "v$version" -m "Versione $version"
 git push origin main "v$version"
 
