@@ -659,6 +659,8 @@ fn config_view(c: &EngineConfig) -> ConfigView {
         TriggerKind::Window { .. } => "window",
         TriggerKind::Timeout { .. } => "timeout",
         TriggerKind::Pattern { .. } => "pattern",
+        TriggerKind::Logic { .. } => "logic",
+        TriggerKind::Sequence { .. } => "sequence",
     };
     ConfigView {
         sample_rate_hz: f64::from(a.sample_rate.hz()),

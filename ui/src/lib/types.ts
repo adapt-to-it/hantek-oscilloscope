@@ -56,6 +56,8 @@ export type ModeName = 'auto' | 'normal' | 'single' | 'roll'
 export type SlopeName = 'rising' | 'falling' | 'either'
 export type PolarityName = 'positive' | 'negative'
 export type LevelName = 'high' | 'low' | 'any'
+export type LogicOpName = 'and' | 'or'
+export type CondName = 'rising' | 'falling' | 'either' | 'high' | 'low' | 'ignore'
 export interface WidthSpec {
   op: 'less' | 'greater' | 'within' | 'outside'
   a: number
@@ -68,6 +70,8 @@ export type TriggerSpec =
   | { kind: 'window'; low: number; high: number; enter: boolean }
   | { kind: 'timeout'; slope: SlopeName; seconds: number }
   | { kind: 'pattern'; ch1: LevelName; ch2: LevelName }
+  | { kind: 'logic'; op: LogicOpName; ch1: CondName; ch2: CondName; otherLevel: number }
+  | { kind: 'sequence'; slopeA: SlopeName; slopeB: SlopeName; otherLevel: number; delay: number }
 export interface AcquisitionSettings {
   mode: ModeName
   probe: [number, number]

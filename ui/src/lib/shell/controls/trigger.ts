@@ -1,7 +1,9 @@
 // Tipi, opzioni e formati del trigger per il pannello Controlli. Specchio di crates/h6022-view/src/acquisition.rs.
 import type {
   AcquisitionSettings,
+  CondName,
   LevelName,
+  LogicOpName,
   ModeName,
   PolarityName,
   SlopeName,
@@ -27,6 +29,8 @@ const KIND_LABEL: Record<TriggerKind, string> = {
   window: 'Finestra',
   timeout: 'Timeout',
   pattern: 'Pattern',
+  logic: 'Logico',
+  sequence: 'A → B',
 }
 
 export const MODE_OPTIONS: readonly { value: ModeName; label: string }[] = (
@@ -34,7 +38,7 @@ export const MODE_OPTIONS: readonly { value: ModeName; label: string }[] = (
 ).map((value) => ({ value, label: MODE_LABEL[value] }))
 
 export const TRIGGER_KINDS: readonly { kind: TriggerKind; label: string }[] = (
-  ['edge', 'pulseWidth', 'runt', 'window', 'timeout', 'pattern'] as const
+  ['edge', 'pulseWidth', 'runt', 'window', 'timeout', 'pattern', 'logic', 'sequence'] as const
 ).map((kind) => ({ kind, label: KIND_LABEL[kind] }))
 
 export const SLOPE_OPTIONS: readonly { value: SlopeName; label: string }[] = (
@@ -59,6 +63,21 @@ export const WIDTH_OPTIONS: readonly { value: WidthSpec['op']; label: string }[]
   { value: 'outside', label: 'Fuori' },
 ]
 
+export const LOGIC_OP_OPTIONS: readonly { value: LogicOpName; label: string }[] = [
+  { value: 'and', label: 'AND' },
+  { value: 'or', label: 'OR' },
+]
+
+/** Condizione di un canale nel trigger logico: fronte, livello rispetto alla soglia o nessuna. */
+export const COND_OPTIONS: readonly { value: CondName; label: string }[] = [
+  { value: 'rising', label: '↑' },
+  { value: 'falling', label: '↓' },
+  { value: 'either', label: '↕' },
+  { value: 'high', label: 'Alto' },
+  { value: 'low', label: 'Basso' },
+  { value: 'ignore', label: '—' },
+]
+
 /** Sorgente del trigger: il valore è una stringa per i gruppi di pulsanti, 1 o 2 nelle impostazioni. */
 export const SOURCE_OPTIONS: readonly { value: '1' | '2'; label: string }[] = [
   { value: '1', label: 'CH1' },
@@ -74,6 +93,7 @@ export const ENTER_OPTIONS: readonly { value: 'enter' | 'exit'; label: string }[
 /**
  * Trigger valido del tipo indicato, con la fascia attorno a `level` (±0,5 V) e durate da 1 ms.
  * Per l'impulso l'intervallo "entro" o "fuori" va da 1 ms a 2 ms. Pattern parte da CH1 alto e CH2 basso.
+ * Logico e A → B partono con fronti di salita e il livello dell'altro canale uguale a `level`.
  */
 export function defaultSpec(kind: TriggerKind, level: number): TriggerSpec {
   switch (kind) {
@@ -93,6 +113,10 @@ export function defaultSpec(kind: TriggerKind, level: number): TriggerSpec {
       return { kind, slope: 'rising', seconds: DEFAULT_DURATION_S }
     case 'pattern':
       return { kind, ch1: 'high', ch2: 'low' }
+    case 'logic':
+      return { kind, op: 'or', ch1: 'rising', ch2: 'rising', otherLevel: level }
+    case 'sequence':
+      return { kind, slopeA: 'rising', slopeB: 'rising', otherLevel: level, delay: 0 }
   }
 }
 
@@ -116,4 +140,11 @@ export function stepValue(kind: StepKind, current: number, dir: number): number 
   if (current > 0) return step(VOLT_STEPS, magnitude, dir)
   if (dir > 0 && magnitude <= VOLT_STEPS[0]) return 0
   return -step(VOLT_STEPS, magnitude, -dir)
+}
+
+/** Passo del ritardo A → B: come `stepValue('time')`, ma con lo zero sotto il primo gradino. */
+export function stepDelay(current: number, dir: number): number {
+  if (current <= 0) return dir > 0 ? TIME_STEPS[0] : 0
+  if (dir < 0 && current <= TIME_STEPS[0]) return 0
+  return step(TIME_STEPS, current, dir)
 }

@@ -2,7 +2,7 @@
 //! Frequenza, record e portate restano derivati dalla vista (`settings::ViewSettings::apply`).
 
 use h6022_core::{
-    EngineConfig, Level, Polarity, Slope, TriggerConfig, TriggerKind, TriggerMode, WidthCondition,
+    EngineConfig, Level, LogicCond, LogicOp, Polarity, Slope, TriggerConfig, TriggerKind, TriggerMode, WidthCondition,
 };
 use h6022_usb::{Channel, Coupling};
 use serde::{Deserialize, Serialize};
@@ -39,6 +39,25 @@ pub enum LevelName {
     Any,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LogicOpName {
+    And,
+    Or,
+}
+
+/// Condizione di un canale nel trigger logico: un fronte, un livello o nessuna.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CondName {
+    Rising,
+    Falling,
+    Either,
+    High,
+    Low,
+    Ignore,
+}
+
 /// Condizione sulla durata dell'impulso, in secondi. `b` serve solo a `within` e `outside`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,6 +78,10 @@ pub enum TriggerSpec {
     Window { low: f32, high: f32, enter: bool },
     Timeout { slope: SlopeName, seconds: f64 },
     Pattern { ch1: LevelName, ch2: LevelName },
+    /// Il canale sorgente usa `triggerLevel`, l'altro `otherLevel`.
+    Logic { op: LogicOpName, ch1: CondName, ch2: CondName, other_level: f32 },
+    /// A sul canale sorgente, B sull'altro canale a `otherLevel`, almeno `delay` secondi dopo A.
+    Sequence { slope_a: SlopeName, slope_b: SlopeName, other_level: f32, delay: f64 },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -220,6 +243,21 @@ fn trigger_spec(kind: TriggerKind) -> TriggerSpec {
         TriggerKind::Pattern { ch1, ch2 } => {
             TriggerSpec::Pattern { ch1: level_name(ch1), ch2: level_name(ch2) }
         }
+        TriggerKind::Logic { op, conds, other_level } => TriggerSpec::Logic {
+            op: match op {
+                LogicOp::And => LogicOpName::And,
+                LogicOp::Or => LogicOpName::Or,
+            },
+            ch1: cond_name(conds[0]),
+            ch2: cond_name(conds[1]),
+            other_level,
+        },
+        TriggerKind::Sequence { slope_a, slope_b, other_level, delay } => TriggerSpec::Sequence {
+            slope_a: slope_name(slope_a),
+            slope_b: slope_name(slope_b),
+            other_level,
+            delay,
+        },
     }
 }
 
@@ -245,7 +283,53 @@ fn trigger_kind(spec: &TriggerSpec) -> Result<TriggerKind, String> {
         TriggerSpec::Pattern { ch1, ch2 } => {
             TriggerKind::Pattern { ch1: level_from(*ch1), ch2: level_from(*ch2) }
         }
+        TriggerSpec::Logic { op, ch1, ch2, other_level } => {
+            check_finite("livello dell'altro canale", f64::from(*other_level))?;
+            if *ch1 == CondName::Ignore && *ch2 == CondName::Ignore {
+                return Err("trigger logico: serve una condizione su almeno un canale".into());
+            }
+            TriggerKind::Logic {
+                op: match op {
+                    LogicOpName::And => LogicOp::And,
+                    LogicOpName::Or => LogicOp::Or,
+                },
+                conds: [cond_from(*ch1), cond_from(*ch2)],
+                other_level: *other_level,
+            }
+        }
+        TriggerSpec::Sequence { slope_a, slope_b, other_level, delay } => {
+            check_finite("livello dell'altro canale", f64::from(*other_level))?;
+            check_non_negative("ritardo", *delay)?;
+            TriggerKind::Sequence {
+                slope_a: slope_from(*slope_a),
+                slope_b: slope_from(*slope_b),
+                other_level: *other_level,
+                delay: *delay,
+            }
+        }
     })
+}
+
+fn cond_name(cond: LogicCond) -> CondName {
+    match cond {
+        LogicCond::Edge(Slope::Rising) => CondName::Rising,
+        LogicCond::Edge(Slope::Falling) => CondName::Falling,
+        LogicCond::Edge(Slope::Either) => CondName::Either,
+        LogicCond::High => CondName::High,
+        LogicCond::Low => CondName::Low,
+        LogicCond::Ignore => CondName::Ignore,
+    }
+}
+
+fn cond_from(cond: CondName) -> LogicCond {
+    match cond {
+        CondName::Rising => LogicCond::Edge(Slope::Rising),
+        CondName::Falling => LogicCond::Edge(Slope::Falling),
+        CondName::Either => LogicCond::Edge(Slope::Either),
+        CondName::High => LogicCond::High,
+        CondName::Low => LogicCond::Low,
+        CondName::Ignore => LogicCond::Ignore,
+    }
 }
 
 /// `less` e `greater` usano solo `a`: in lettura `b` vale 0.
@@ -347,6 +431,14 @@ mod tests {
             TriggerSpec::Window { low: 0.2, high: 1.8, enter: false },
             TriggerSpec::Timeout { slope: SlopeName::Either, seconds: 0.01 },
             TriggerSpec::Pattern { ch1: LevelName::High, ch2: LevelName::Any },
+            TriggerSpec::Logic { op: LogicOpName::Or, ch1: CondName::Rising, ch2: CondName::Low, other_level: 2.5 },
+            TriggerSpec::Logic { op: LogicOpName::And, ch1: CondName::Ignore, ch2: CondName::Either, other_level: -1.0 },
+            TriggerSpec::Sequence {
+                slope_a: SlopeName::Rising,
+                slope_b: SlopeName::Falling,
+                other_level: 1.2,
+                delay: 5e-6,
+            },
         ]
     }
 
@@ -425,6 +517,30 @@ mod tests {
             Box::new(|s| s.trigger = TriggerSpec::Window { low: 1.8, high: 0.2, enter: true }),
             Box::new(|s| {
                 s.trigger = TriggerSpec::Timeout { slope: SlopeName::Rising, seconds: -1.0 }
+            }),
+            Box::new(|s| {
+                s.trigger = TriggerSpec::Logic {
+                    op: LogicOpName::Or,
+                    ch1: CondName::Ignore,
+                    ch2: CondName::Ignore,
+                    other_level: 1.0,
+                }
+            }),
+            Box::new(|s| {
+                s.trigger = TriggerSpec::Logic {
+                    op: LogicOpName::And,
+                    ch1: CondName::High,
+                    ch2: CondName::Rising,
+                    other_level: f32::NAN,
+                }
+            }),
+            Box::new(|s| {
+                s.trigger = TriggerSpec::Sequence {
+                    slope_a: SlopeName::Rising,
+                    slope_b: SlopeName::Rising,
+                    other_level: 1.0,
+                    delay: -1e-6,
+                }
             }),
         ];
         for caso in &casi {

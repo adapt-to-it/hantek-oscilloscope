@@ -2,7 +2,9 @@
   // Corpo della sezione Trigger: modo, sorgente, tipo con i suoi parametri, livello e holdoff.
   import type {
     AcquisitionSettings,
+    CondName,
     LevelName,
+    LogicOpName,
     ModeName,
     PolarityName,
     SlopeName,
@@ -11,8 +13,10 @@
   } from '../../types'
   import { formatTime, formatVolts } from '../format'
   import {
+    COND_OPTIONS,
     ENTER_OPTIONS,
     LEVEL_OPTIONS,
+    LOGIC_OP_OPTIONS,
     MODE_OPTIONS,
     POLARITY_OPTIONS,
     SLOPE_OPTIONS,
@@ -20,6 +24,7 @@
     TRIGGER_KINDS,
     WIDTH_OPTIONS,
     defaultSpec,
+    stepDelay,
     stepValue,
   } from './trigger'
   import type { TriggerKind } from './trigger'
@@ -32,6 +37,9 @@
   let { acq, onacq }: Props = $props()
 
   const trigger = $derived(acq.trigger)
+  /** Logico e A → B usano entrambi i canali: la sorgente ha `triggerLevel`, l'altro canale un livello proprio. */
+  const dual = $derived(trigger.kind === 'logic' || trigger.kind === 'sequence')
+  const otherCh = $derived(acq.triggerSource === 1 ? 2 : 1)
 
   function withAcq(patch: Partial<AcquisitionSettings>) {
     onacq({ ...acq, ...patch })
@@ -153,9 +161,40 @@
     {@render segRow('CH2', LEVEL_OPTIONS, spec.ch2, (value) =>
       setTrigger({ ...spec, ch2: value as LevelName }),
     )}
+  {:else if trigger.kind === 'logic'}
+    {@const spec = trigger}
+    {@render segRow('Operatore', LOGIC_OP_OPTIONS, spec.op, (value) =>
+      setTrigger({ ...spec, op: value as LogicOpName }),
+    )}
+    {@render segRow('CH1', COND_OPTIONS, spec.ch1, (value) => setTrigger({ ...spec, ch1: value as CondName }))}
+    {@render segRow('CH2', COND_OPTIONS, spec.ch2, (value) => setTrigger({ ...spec, ch2: value as CondName }))}
+    {@render stepRow(`Livello CH${otherCh}`, formatVolts(spec.otherLevel),
+      () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, -1) }),
+      () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, 1) }),
+    )}
+  {:else if trigger.kind === 'sequence'}
+    {@const spec = trigger}
+    {@render segRow(`A · CH${acq.triggerSource}`, SLOPE_OPTIONS, spec.slopeA, (value) =>
+      setTrigger({ ...spec, slopeA: value as SlopeName }),
+    )}
+    {@render segRow(`B · CH${otherCh}`, SLOPE_OPTIONS, spec.slopeB, (value) =>
+      setTrigger({ ...spec, slopeB: value as SlopeName }),
+    )}
+    {@render stepRow(`Livello CH${otherCh}`, formatVolts(spec.otherLevel),
+      () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, -1) }),
+      () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, 1) }),
+    )}
+    {@render stepRow('Ritardo B', formatTime(spec.delay),
+      () => setTrigger({ ...spec, delay: stepDelay(spec.delay, -1) }),
+      () => setTrigger({ ...spec, delay: stepDelay(spec.delay, 1) }),
+    )}
   {/if}
 
-  {@render stepRow('Livello', formatVolts(acq.triggerLevel),
+  {#if dual}
+    <span style="font-size:12px;color:#9aa3af">Richiede CH1 e CH2 attivi. La sorgente sceglie il canale che usa il livello del marcatore T.</span>
+  {/if}
+
+  {@render stepRow(dual ? `Livello CH${acq.triggerSource}` : 'Livello', formatVolts(acq.triggerLevel),
     () => withAcq({ triggerLevel: stepValue('volt', acq.triggerLevel, -1) }),
     () => withAcq({ triggerLevel: stepValue('volt', acq.triggerLevel, 1) }),
   )}

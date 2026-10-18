@@ -2,7 +2,9 @@
 
 use h6022_usb::Channel;
 
-use crate::types::{Level, Polarity, Slope, TriggerConfig, TriggerKind, WidthCondition};
+use crate::types::{
+    Level, LogicCond, LogicOp, Polarity, Slope, TriggerConfig, TriggerKind, WidthCondition,
+};
 
 /// Rivelatore con stato: i blocchi successivi sono un unico segnale continuo.
 pub struct Trigger {
@@ -28,6 +30,10 @@ struct State {
     /// Indice dell'ultimo fronte, o del primo campione dopo reset (Timeout).
     last_edge: Option<u64>,
     timeout_fired: bool,
+    /// Fronti del canale non sorgente (Logic, Sequence).
+    crossing_other: Crossing,
+    /// Indice dell'ultimo fronte A in attesa di B (Sequence).
+    armed_at: Option<u64>,
     /// Indice dell'ultimo trigger emesso, per l'holdoff.
     last_trigger: Option<u64>,
 }
@@ -81,6 +87,18 @@ impl Trigger {
             let n = ch1.len().min(ch2.len());
             for i in 0..n {
                 self.step_pattern(first_sample + i as u64, ch1[i], ch2[i], &mut out);
+            }
+            return out;
+        }
+        if matches!(self.config.kind, TriggerKind::Logic { .. } | TriggerKind::Sequence { .. }) {
+            // Come il pattern: servono entrambi i canali.
+            let (a, b) = match self.config.source {
+                Channel::Ch1 => (ch1, ch2),
+                Channel::Ch2 => (ch2, ch1),
+            };
+            let n = a.len().min(b.len());
+            for i in 0..n {
+                self.step_dual(first_sample + i as u64, a[i], b[i], &mut out);
             }
             return out;
         }
@@ -195,7 +213,55 @@ impl Trigger {
                         self.state.timeout_fired = false;
                     }
             }
-            TriggerKind::Pattern { .. } => {}
+            TriggerKind::Pattern { .. } | TriggerKind::Logic { .. } | TriggerKind::Sequence { .. } => {}
+        }
+    }
+
+    /// Un campione dei trigger a due canali: `a` dalla sorgente, `b` dall'altro canale.
+    fn step_dual(&mut self, idx: u64, a: f32, b: f32, out: &mut Vec<u64>) {
+        let level = self.config.level;
+        let half = self.config.hysteresis.max(0.0) / 2.0;
+        match self.config.kind {
+            TriggerKind::Logic { op, conds, other_level } => {
+                let edge_a = self.state.crossing.step(a, level, half);
+                let edge_b = self.state.crossing_other.step(b, other_level, half);
+                let source = match self.config.source {
+                    Channel::Ch1 => 0,
+                    Channel::Ch2 => 1,
+                };
+                let ca = cond_ok(conds[source], op, a, level, edge_a);
+                let cb = cond_ok(conds[1 - source], op, b, other_level, edge_b);
+                let matched = match op {
+                    LogicOp::And => ca && cb,
+                    LogicOp::Or => ca || cb,
+                };
+                // Un fronte richiesto riarma anche se la combinazione era già vera.
+                let edge_fired = (ca && edge_a.is_some() && matches!(conds[source], LogicCond::Edge(_)))
+                    || (cb && edge_b.is_some() && matches!(conds[1 - source], LogicCond::Edge(_)));
+                let was = self.state.prev_match.replace(matched);
+                if matched && (was == Some(false) || edge_fired) {
+                    self.emit(idx, out);
+                }
+            }
+            TriggerKind::Sequence { slope_a, slope_b, other_level, delay } => {
+                let edge_a = self.state.crossing.step(a, level, half);
+                let edge_b = self.state.crossing_other.step(b, other_level, half);
+                if let Some(start) = self.state.armed_at
+                    && let Some(ev) = edge_b
+                    && slope_matches(slope_b, ev)
+                    && (idx - start) as f64 >= delay * self.sample_rate
+                {
+                    self.state.armed_at = None;
+                    self.emit(idx, out);
+                }
+                // Un nuovo A riparte da capo: B si misura dall'ultimo A.
+                if let Some(ev) = edge_a
+                    && slope_matches(slope_a, ev)
+                {
+                    self.state.armed_at = Some(idx);
+                }
+            }
+            _ => {}
         }
     }
 
@@ -234,6 +300,16 @@ fn width_ok(condition: WidthCondition, d: f64) -> bool {
         WidthCondition::GreaterThan(x) => d > x,
         WidthCondition::Within(a, b) => d >= a && d <= b,
         WidthCondition::Outside(a, b) => d < a || d > b,
+    }
+}
+
+/// Esito della condizione di un canale. `Ignore` è neutro: vero in AND, falso in OR.
+fn cond_ok(cond: LogicCond, op: LogicOp, v: f32, level: f32, edge: Option<Slope>) -> bool {
+    match cond {
+        LogicCond::Edge(slope) => edge.is_some_and(|ev| slope_matches(slope, ev)),
+        LogicCond::High => v > level,
+        LogicCond::Low => v < level,
+        LogicCond::Ignore => op == LogicOp::And,
     }
 }
 
@@ -441,5 +517,95 @@ mod tests {
         let mut t = edge(Slope::Rising, 0.5, 0.0, 0.0025);
         assert_eq!(t.feed(&[0.0, 1.0, 0.0], &[], 0), vec![1]);
         assert_eq!(t.feed(&[1.0, 0.0, 1.0], &[], 3), vec![5]);
+    }
+
+    fn logic(op: LogicOp, ch1: LogicCond, ch2: LogicCond, other_level: f32) -> Trigger {
+        let kind = TriggerKind::Logic { op, conds: [ch1, ch2], other_level };
+        Trigger::new(cfg(Channel::Ch1, kind, 0.5, 0.0, 0.0), SR)
+    }
+
+    #[test]
+    fn logic_or_fires_on_edge_of_either_channel_with_own_levels() {
+        // CH1 soglia 0.5, CH2 soglia 2.0: il valore 1.0 su CH2 non è un fronte.
+        let mut t = logic(LogicOp::Or, LogicCond::Edge(Slope::Rising), LogicCond::Edge(Slope::Rising), 2.0);
+        let ch1 = [0.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+        let ch2 = [0.0, 0.0, 1.0, 0.0, 3.0, 3.0];
+        assert_eq!(t.feed(&ch1, &ch2, 0), vec![1, 4]);
+    }
+
+    #[test]
+    fn logic_and_edge_qualified_by_level_of_other_channel() {
+        // Fronte di salita su CH1 solo mentre CH2 è sopra 2.0.
+        let mut t = logic(LogicOp::And, LogicCond::Edge(Slope::Rising), LogicCond::High, 2.0);
+        let ch1 = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0];
+        let ch2 = [0.0, 0.0, 3.0, 3.0, 3.0, 3.0];
+        assert_eq!(t.feed(&ch1, &ch2, 0), vec![3, 5]);
+    }
+
+    #[test]
+    fn logic_and_levels_fire_once_when_combination_becomes_true() {
+        let mut t = logic(LogicOp::And, LogicCond::High, LogicCond::Low, 2.0);
+        let ch1 = [0.0, 1.0, 1.0, 1.0, 0.0, 1.0];
+        let ch2 = [3.0, 3.0, 1.0, 1.0, 1.0, 1.0];
+        assert_eq!(t.feed(&ch1, &ch2, 0), vec![2, 5]);
+    }
+
+    #[test]
+    fn logic_ignore_is_neutral_in_or() {
+        let mut t = logic(LogicOp::Or, LogicCond::Ignore, LogicCond::Edge(Slope::Falling), 2.0);
+        assert_eq!(t.feed(&[0.0, 1.0, 0.0], &[3.0, 3.0, 0.0], 0), vec![2]);
+    }
+
+    #[test]
+    fn logic_with_ch2_as_source_swaps_levels() {
+        // Sorgente CH2: CH2 usa `level` (0.5), CH1 usa `other_level` (2.0).
+        let kind = TriggerKind::Logic {
+            op: LogicOp::Or,
+            conds: [LogicCond::Edge(Slope::Rising), LogicCond::Ignore],
+            other_level: 2.0,
+        };
+        let mut t = Trigger::new(cfg(Channel::Ch2, kind, 0.5, 0.0, 0.0), SR);
+        assert_eq!(t.feed(&[0.0, 1.0, 3.0], &[0.0, 0.0, 0.0], 0), vec![2]);
+    }
+
+    fn sequence(delay: f64) -> Trigger {
+        let kind = TriggerKind::Sequence {
+            slope_a: Slope::Rising,
+            slope_b: Slope::Falling,
+            other_level: 2.0,
+            delay,
+        };
+        Trigger::new(cfg(Channel::Ch1, kind, 0.5, 0.0, 0.0), SR)
+    }
+
+    #[test]
+    fn sequence_fires_on_first_b_after_a() {
+        let mut t = sequence(0.0);
+        // B a 1 prima di A: ignorato. A a 3, B a 5 e 7: scatta solo a 5.
+        let ch1 = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+        let ch2 = [3.0, 0.0, 3.0, 3.0, 3.0, 0.0, 3.0, 0.0];
+        assert_eq!(t.feed(&ch1, &ch2, 0), vec![5]);
+    }
+
+    #[test]
+    fn sequence_delay_skips_early_b() {
+        // Ritardo 3 ms: A a 1, B a 2 troppo presto, B a 4 valido.
+        let mut t = sequence(0.003);
+        let ch1 = [0.0, 1.0, 1.0, 1.0, 1.0];
+        let ch2 = [3.0, 3.0, 0.0, 3.0, 0.0];
+        assert_eq!(t.feed(&ch1, &ch2, 0), vec![4]);
+    }
+
+    #[test]
+    fn sequence_across_blocks() {
+        let mut t = sequence(0.0);
+        assert_eq!(t.feed(&[0.0, 1.0], &[3.0, 3.0], 0), Vec::<u64>::new());
+        assert_eq!(t.feed(&[1.0, 1.0], &[3.0, 0.0], 2), vec![3]);
+    }
+
+    #[test]
+    fn dual_triggers_need_both_channels() {
+        let mut t = sequence(0.0);
+        assert_eq!(t.feed(&[0.0, 1.0, 0.0], &[], 0), Vec::<u64>::new());
     }
 }

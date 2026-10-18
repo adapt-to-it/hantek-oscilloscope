@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AcquisitionSettings } from '../../types'
-import { defaultSpec, stepValue, triggerSummary } from './trigger'
+import { defaultSpec, stepDelay, stepValue, triggerSummary } from './trigger'
+import { TIME_STEPS } from '../format'
 
 function acq(patch: Partial<AcquisitionSettings>): AcquisitionSettings {
   return {
@@ -34,6 +35,8 @@ describe('defaultSpec', () => {
       width: { op: 'greater', a: 1e-3, b: 2e-3 },
     })
     expect(defaultSpec('timeout', 0)).toEqual({ kind: 'timeout', slope: 'rising', seconds: 1e-3 })
+    expect(defaultSpec('logic', 2)).toEqual({ kind: 'logic', op: 'or', ch1: 'rising', ch2: 'rising', otherLevel: 2 })
+    expect(defaultSpec('sequence', -1)).toEqual({ kind: 'sequence', slopeA: 'rising', slopeB: 'rising', otherLevel: -1, delay: 0 })
   })
 })
 
@@ -72,5 +75,14 @@ describe('stepValue', () => {
     expect(stepValue('volt', -0.01, 1)).toBe(0)
     expect(stepValue('volt', -0.5, 1)).toBe(-0.2)
     expect(stepValue('volt', -0.5, -1)).toBe(-1)
+  })
+})
+
+describe('stepDelay', () => {
+  it('passa da zero al primo gradino e torna a zero', () => {
+    expect(stepDelay(0, 1)).toBe(TIME_STEPS[0])
+    expect(stepDelay(TIME_STEPS[0], -1)).toBe(0)
+    expect(stepDelay(0, -1)).toBe(0)
+    expect(stepDelay(TIME_STEPS[0], 1)).toBe(TIME_STEPS[1])
   })
 })

@@ -60,6 +60,28 @@ pub enum TriggerKind {
     Timeout { slope: Slope, seconds: f64 },
     /// Entrambi i canali confrontati con `level`; scatta quando il pattern diventa vero.
     Pattern { ch1: Level, ch2: Level },
+    /// Una condizione per canale, combinate con `op`. Il canale sorgente usa `level`,
+    /// l'altro `other_level`. Scatta quando la combinazione diventa vera o quando un fronte
+    /// richiesto avviene mentre la combinazione è vera.
+    Logic { op: LogicOp, conds: [LogicCond; 2], other_level: f32 },
+    /// Fronte A sul canale sorgente (`level`), poi il primo fronte B sull'altro canale
+    /// (`other_level`) che arriva almeno `delay` secondi dopo A. Il punto di trigger è B.
+    Sequence { slope_a: Slope, slope_b: Slope, other_level: f32, delay: f64 },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LogicOp {
+    And,
+    Or,
+}
+
+/// Condizione di un canale nel trigger logico. `Ignore` vale vero in AND e falso in OR.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LogicCond {
+    Edge(Slope),
+    High,
+    Low,
+    Ignore,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
