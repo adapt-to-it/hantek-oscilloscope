@@ -6,7 +6,8 @@
   import { formatHz } from '../format'
   import Tip from '../../help/Tip.svelte'
   import FileSection from '../controls/FileSection.svelte'
-  import { CHIPS, classHighlight, mathNote, stepCutoff } from './tools'
+  import { tr } from '../../i18n/msg/measures'
+  import { CHIPS, chipLabel, classHighlight, mathNote, stepCutoff } from './tools'
 
   interface Props {
     view: ViewSettings
@@ -20,23 +21,24 @@
 
   let { view, decoder, tools, ontools, onrecording, mode = 'time' }: Props = $props()
 
-  const MATH_OPTIONS: readonly { value: MathOp; label: string }[] = [
-    { value: 'off', label: 'Off' },
-    { value: 'add', label: 'CH1+CH2' },
-    { value: 'sub', label: 'CH1−CH2' },
-    { value: 'mul', label: 'CH1×CH2' },
-    { value: 'derivative', label: 'd/dt CH1' },
-    { value: 'integral', label: '∫ CH1' },
+  // Le etichette sono funzioni: leggono la lingua corrente al render.
+  const MATH_OPTIONS: readonly { value: MathOp; label: () => string }[] = [
+    { value: 'off', label: () => tr('mathOff') },
+    { value: 'add', label: () => 'CH1+CH2' },
+    { value: 'sub', label: () => 'CH1−CH2' },
+    { value: 'mul', label: () => 'CH1×CH2' },
+    { value: 'derivative', label: () => 'd/dt CH1' },
+    { value: 'integral', label: () => '∫ CH1' },
   ]
   const FILTER_CHANNELS: readonly { value: 0 | 1; label: string }[] = [
     { value: 0, label: 'CH1' },
     { value: 1, label: 'CH2' },
   ]
-  const FILTER_TYPES: readonly { value: FilterType; label: string }[] = [
-    { value: 'none', label: 'Nessuno' },
-    { value: 'lowPass', label: 'Passa-basso' },
-    { value: 'highPass', label: 'Passa-alto' },
-    { value: 'bandPass', label: 'Passa-banda' },
+  const FILTER_TYPES: readonly { value: FilterType; label: () => string }[] = [
+    { value: 'none', label: () => tr('filterNone') },
+    { value: 'lowPass', label: () => tr('filterLow') },
+    { value: 'highPass', label: () => tr('filterHigh') },
+    { value: 'bandPass', label: () => tr('filterBand') },
   ]
 
   // Risultati della classificazione per indice di canale (0 = CH1).
@@ -96,12 +98,12 @@
     <Tip id="classify">
       <div style="display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;align-items:center;justify-content:space-between">
-          <span style="font-size:13px;font-weight:700">Classificazione</span>
+          <span style="font-size:13px;font-weight:700">{tr('classTitle')}</span>
           <button class="btn" style="height:32px" disabled={classifying || activeChannels.length === 0}
-            onclick={classifyActive}>Classifica</button>
+            onclick={classifyActive}>{tr('classify')}</button>
         </div>
         {#if activeChannels.length === 0}
-          <span style="font-size:12px;color:#8a94a1;line-height:1.45">Attiva almeno un canale per classificarlo.</span>
+          <span style="font-size:12px;color:#8a94a1;line-height:1.45">{tr('classNeedChannel')}</span>
         {/if}
         {#if classError}
           <div style="font-size:13px;color:#ff6b6b">{classError}</div>
@@ -114,14 +116,14 @@
               {@const highlight = classHighlight(result.class)}
               <div style="display:flex;flex-wrap:wrap;gap:5px">
                 {#each CHIPS as chip (chip)}
-                  <span style="padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;{chipStyle(chip === highlight)}">{chip}</span>
+                  <span style="padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;{chipStyle(chip === highlight)}">{chipLabel(chip)}</span>
                 {/each}
               </div>
               <span class="mono" style="font-size:12px;color:#c3cad4">{result.summary}</span>
             {:else if result === null}
-              <span style="font-size:12px;color:#8a94a1">Nessun frame da classificare.</span>
+              <span style="font-size:12px;color:#8a94a1">{tr('classNoFrames')}</span>
             {:else}
-              <span style="font-size:12px;color:#8a94a1">Premi Classifica per analizzare il segnale.</span>
+              <span style="font-size:12px;color:#8a94a1">{tr('classPressHint')}</span>
             {/if}
           </div>
         {/each}
@@ -132,11 +134,11 @@
   <div style="padding:14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #20262e">
     <Tip id="math">
       <div style="display:flex;flex-direction:column;gap:10px">
-        <span style="font-size:13px;font-weight:700;color:#b794f6">Matematica</span>
-        <div style="display:flex;flex-wrap:wrap;gap:6px" role="group" aria-label="Operazione matematica">
+        <span style="font-size:13px;font-weight:700;color:#b794f6">{tr('mathTitle')}</span>
+        <div style="display:flex;flex-wrap:wrap;gap:6px" role="group" aria-label={tr('mathGroupAria')}>
           {#each MATH_OPTIONS as option (option.value)}
             <button class="opt {option.value === tools.math ? 'on' : ''}" aria-pressed={option.value === tools.math}
-              onclick={() => pickMath(option.value)}>{option.label}</button>
+              onclick={() => pickMath(option.value)}>{option.label()}</button>
           {/each}
         </div>
         <span style="font-size:12px;color:#8a94a1;line-height:1.45">{mathNote(tools.math, mode)}</span>
@@ -147,28 +149,28 @@
   <div style="padding:14px 14px 18px;display:flex;flex-direction:column;gap:10px">
     <Tip id="filter">
       <div style="display:flex;flex-direction:column;gap:10px">
-        <span style="font-size:13px;font-weight:700">Filtro digitale</span>
+        <span style="font-size:13px;font-weight:700">{tr('filterTitle')}</span>
         <div class="rw">
-          <span class="lb">Applica a</span>
-          <div class="segrow" role="group" aria-label="Canale del filtro">
+          <span class="lb">{tr('filterApplyTo')}</span>
+          <div class="segrow" role="group" aria-label={tr('filterChannelAria')}>
             {#each FILTER_CHANNELS as option (option.value)}
               <button class="seg {option.value === tools.filter.channel ? 'on' : ''}" aria-pressed={option.value === tools.filter.channel}
                 onclick={() => pickFilterChannel(option.value)}>{option.label}</button>
             {/each}
           </div>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px" role="group" aria-label="Tipo di filtro">
+        <div style="display:flex;flex-wrap:wrap;gap:6px" role="group" aria-label={tr('filterTypeAria')}>
           {#each FILTER_TYPES as option (option.value)}
             <button class="opt {option.value === tools.filter.kind ? 'on' : ''}" aria-pressed={option.value === tools.filter.kind}
-              onclick={() => pickFilterType(option.value)}>{option.label}</button>
+              onclick={() => pickFilterType(option.value)}>{option.label()}</button>
           {/each}
         </div>
         <div class="rw">
-          <span class="lb">Frequenza di taglio</span>
+          <span class="lb">{tr('cutoffLabel')}</span>
           <div style="display:flex;align-items:center;gap:6px">
-            <button class="step" onclick={() => moveCutoff(-1)} aria-label="Riduci frequenza di taglio">−</button>
+            <button class="step" onclick={() => moveCutoff(-1)} aria-label={tr('cutoffDown')}>−</button>
             <span class="mono" style="min-width:74px;text-align:center;font-size:14px;font-weight:600">{formatHz(tools.filter.cutoffHz)}</span>
-            <button class="step" onclick={() => moveCutoff(1)} aria-label="Aumenta frequenza di taglio">+</button>
+            <button class="step" onclick={() => moveCutoff(1)} aria-label={tr('cutoffUp')}>+</button>
           </div>
         </div>
       </div>

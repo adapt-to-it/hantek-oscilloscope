@@ -7,6 +7,7 @@
   import { measureGroups, type MeasureRow } from './rows'
   import TrendModal from './TrendModal.svelte'
   import type { HelpId } from '../help/texts'
+  import { tr } from '../i18n/msg/measures'
 
   // Spiegazione di ogni riga, per campo misurato.
   const ROW_HELP: Partial<Record<keyof ChannelMeasures, HelpId>> = {
@@ -69,7 +70,7 @@
           <span class="mono" style="text-align:right;color:{cellColor(row.ch1, 0)}">{row.ch1}</span>
           <span class="mono" style="text-align:right;color:{cellColor(row.ch2, 1)}">{row.ch2}</span>
           {#if hasNumber(row)}
-            <button class="ibtn" onclick={() => openTrend(row)} aria-label="Mostra l’andamento di {row.label} nel tempo" title="Andamento nel tempo">
+            <button class="ibtn" onclick={() => openTrend(row)} aria-label={tr('trendAria', { label: row.label })} title={tr('trendTitle')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v16h18"></path><path d="M7 15l4-5 3 3 5-7"></path></svg>
             </button>
           {:else}
@@ -81,9 +82,9 @@
   {/each}
 </section>
 <div style="display:flex;flex-wrap:wrap;gap:6px 24px;font-size:13px;color:#c3cad4;padding:0 4px">
-  <span data-help="phase">Fase CH1–CH2 <span class="mono" style="color:#8a94a1;margin-left:6px">{phaseText(snapshot?.phaseDeg)}</span></span>
-  <span data-help="delay">Ritardo CH1–CH2 <span class="mono" style="color:#8a94a1;margin-left:6px">{delayText(snapshot?.delayS)}</span></span>
-  <span style="color:#8a94a1">— = non calcolabile nella finestra attuale</span>
+  <span data-help="phase">{tr('phaseLabel')} <span class="mono" style="color:#8a94a1;margin-left:6px">{phaseText(snapshot?.phaseDeg)}</span></span>
+  <span data-help="delay">{tr('delayLabel')} <span class="mono" style="color:#8a94a1;margin-left:6px">{delayText(snapshot?.delayS)}</span></span>
+  <span style="color:#8a94a1">{tr('notComputable')}</span>
 </div>
 
 {#if trend}

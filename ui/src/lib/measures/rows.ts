@@ -1,6 +1,7 @@
 // Righe della griglia misure: testi già formattati per CH1 e CH2. Specchio di measure_panel.rs.
 import type { ChannelMeasures, MeasureSnapshot } from '../types'
 import { formatHz, formatTime, formatVolts } from '../shell/format'
+import { tr } from '../i18n/msg/measures'
 
 export interface MeasureRow {
   label: string
@@ -51,42 +52,45 @@ interface RowSpec {
   read: (m: ChannelMeasures) => string
 }
 
-const GROUPS: { title: string; rows: RowSpec[] }[] = [
-  {
-    title: 'Tensione',
-    rows: [
-      { label: 'Vpp', field: 'vpp', read: (m) => volts(m.vpp) },
-      { label: 'Vmax', field: 'vmax', read: (m) => volts(m.vmax) },
-      { label: 'Vmin', field: 'vmin', read: (m) => volts(m.vmin) },
-      { label: 'Vmedia', field: 'vmean', read: (m) => volts(m.vmean) },
-      { label: 'Vrms', field: 'vrms', read: (m) => volts(m.vrms) },
-      { label: 'Vac rms', field: 'vacRms', read: (m) => volts(m.vacRms) },
-    ],
-  },
-  {
-    title: 'Livelli e fronti',
-    rows: [
-      { label: 'Vtop', field: 'vtop', read: (m) => volts(m.vtop) },
-      { label: 'Vbase', field: 'vbase', read: (m) => volts(m.vbase) },
-      { label: 'Ampiezza', field: 'vamp', read: (m) => volts(m.vamp) },
-      { label: 'Salita', field: 'riseTime', read: (m) => time(m.riseTime) },
-      { label: 'Discesa', field: 'fallTime', read: (m) => time(m.fallTime) },
-      { label: 'Overshoot', field: 'overshootPct', read: (m) => percent(m.overshootPct) },
-    ],
-  },
-  {
-    title: 'Tempo',
-    rows: [
-      { label: 'Frequenza', field: 'frequency', read: (m) => hz(m.frequency) },
-      { label: 'Periodo', field: 'period', read: (m) => time(m.period) },
-      { label: 'Duty', field: 'dutyPositive', read: (m) => fraction(m.dutyPositive) },
-      { label: 'Larghezza +', field: 'pulseWidthPositive', read: (m) => time(m.pulseWidthPositive) },
-      { label: 'Larghezza −', field: 'pulseWidthNegative', read: (m) => time(m.pulseWidthNegative) },
-      // Fronti non ha un campo unico: il grafico segue i fronti di salita.
-      { label: 'Fronti', field: 'risingEdges', read: (m) => `${m.risingEdges} / ${m.fallingEdges}` },
-    ],
-  },
-]
+/** Gruppi e righe con i testi nella lingua corrente: chiamata a ogni costruzione, non a livello di modulo. */
+function groupSpecs(): { title: string; rows: RowSpec[] }[] {
+  return [
+    {
+      title: tr('groupVoltage'),
+      rows: [
+        { label: 'Vpp', field: 'vpp', read: (m) => volts(m.vpp) },
+        { label: 'Vmax', field: 'vmax', read: (m) => volts(m.vmax) },
+        { label: 'Vmin', field: 'vmin', read: (m) => volts(m.vmin) },
+        { label: tr('rowMean'), field: 'vmean', read: (m) => volts(m.vmean) },
+        { label: 'Vrms', field: 'vrms', read: (m) => volts(m.vrms) },
+        { label: 'Vac rms', field: 'vacRms', read: (m) => volts(m.vacRms) },
+      ],
+    },
+    {
+      title: tr('groupLevels'),
+      rows: [
+        { label: 'Vtop', field: 'vtop', read: (m) => volts(m.vtop) },
+        { label: 'Vbase', field: 'vbase', read: (m) => volts(m.vbase) },
+        { label: tr('rowAmplitude'), field: 'vamp', read: (m) => volts(m.vamp) },
+        { label: tr('rowRise'), field: 'riseTime', read: (m) => time(m.riseTime) },
+        { label: tr('rowFall'), field: 'fallTime', read: (m) => time(m.fallTime) },
+        { label: 'Overshoot', field: 'overshootPct', read: (m) => percent(m.overshootPct) },
+      ],
+    },
+    {
+      title: tr('groupTime'),
+      rows: [
+        { label: tr('rowFrequency'), field: 'frequency', read: (m) => hz(m.frequency) },
+        { label: tr('rowPeriod'), field: 'period', read: (m) => time(m.period) },
+        { label: 'Duty', field: 'dutyPositive', read: (m) => fraction(m.dutyPositive) },
+        { label: tr('rowWidthPos'), field: 'pulseWidthPositive', read: (m) => time(m.pulseWidthPositive) },
+        { label: tr('rowWidthNeg'), field: 'pulseWidthNegative', read: (m) => time(m.pulseWidthNegative) },
+        // Fronti non ha un campo unico: il grafico segue i fronti di salita.
+        { label: tr('rowEdges'), field: 'risingEdges', read: (m) => `${m.risingEdges} / ${m.fallingEdges}` },
+      ],
+    },
+  ]
+}
 
 /** Una cella: "—" se il canale è spento o la misura manca nello snapshot. */
 function cell(
@@ -100,7 +104,7 @@ function cell(
 
 /** Gruppi e righe della griglia, in ordine, con i testi pronti per la vista. */
 export function measureGroups(snapshot: MeasureSnapshot | null, enabled: [boolean, boolean]): MeasureGroup[] {
-  return GROUPS.map((group) => ({
+  return groupSpecs().map((group) => ({
     title: group.title,
     rows: group.rows.map((spec) => ({
       label: spec.label,

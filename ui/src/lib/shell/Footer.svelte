@@ -2,6 +2,7 @@
   // Piè di pagina: motore, frame al secondo e campionamento nominale e misurato.
   import type { Status } from '../types'
   import { formatHz } from './format'
+  import { tr } from '../i18n/msg/shell'
 
   interface Props {
     status: Status | null
@@ -13,6 +14,6 @@
 </script>
 
 <footer class="mono" style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 20px;padding:7px 16px;background:#0f1216;border-top:1px solid #20262e;font-size:12px;color:#9aa3af">
-  <span data-help="engine">Motore: {status?.source ?? '—'} · {Math.round(fps)} frame/s</span>
-  <span data-help="sampleRate">Campionamento {status ? formatHz(status.sampleRateHz) : '—'} · misurato {status ? formatHz(status.sampleRateMeasuredHz) : '—'}</span>
+  <span data-help="engine">{tr('footerEngine', { sorgente: status?.source ?? '—', fps: Math.round(fps) })}</span>
+  <span data-help="sampleRate">{tr('footerSampling', { nominale: status ? formatHz(status.sampleRateHz) : '—', misurato: status ? formatHz(status.sampleRateMeasuredHz) : '—' })}</span>
 </footer>

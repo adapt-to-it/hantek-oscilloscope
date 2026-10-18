@@ -1,5 +1,6 @@
 <script lang="ts">
   // Corpo della sezione Orizzontale: tempo/div, offset con Centra, pretrigger e riga di frequenza.
+  import { tr } from '../../i18n/msg/trigger'
   import type { AcquisitionSettings, ViewSettings } from '../../types'
   import { TIME_STEPS, formatTime, step } from '../format'
 
@@ -34,24 +35,24 @@
 
 <div style="display:flex;flex-direction:column;gap:4px">
   <div class="rw" data-help="timePerDiv">
-    <span class="lb">Tempo/div</span>
+    <span class="lb">{tr('timePerDiv')}</span>
     <div style="display:flex;align-items:center;gap:6px">
-      <button class="step" aria-label="Riduci tempo per divisione"
+      <button class="step" aria-label={tr('decreaseTimePerDiv')}
         onclick={() => withTime(step(TIME_STEPS, view.timePerDiv, -1))}>−</button>
       <span class="mono" style="min-width:74px;text-align:center;font-size:14px;font-weight:600">{formatTime(view.timePerDiv)}</span>
-      <button class="step" aria-label="Aumenta tempo per divisione"
+      <button class="step" aria-label={tr('increaseTimePerDiv')}
         onclick={() => withTime(step(TIME_STEPS, view.timePerDiv, 1))}>+</button>
     </div>
   </div>
   <div class="rw" data-help="horizontalOffset">
-    <span class="lb">Offset</span>
+    <span class="lb">{tr('offset')}</span>
     <div style="display:flex;align-items:center;gap:6px">
-      <button class="step" aria-label="Sposta a sinistra"
+      <button class="step" aria-label={tr('moveLeft')}
         onclick={() => withHorizontal(view.horizontalOffset - view.timePerDiv)}>−</button>
       <span class="mono" style="min-width:74px;text-align:center;font-size:13px">{formatTime(view.horizontalOffset)}</span>
-      <button class="step" aria-label="Sposta a destra"
+      <button class="step" aria-label={tr('moveRight')}
         onclick={() => withHorizontal(view.horizontalOffset + view.timePerDiv)}>+</button>
-      <button class="lnk" onclick={() => withHorizontal(0)}>Centra</button>
+      <button class="lnk" onclick={() => withHorizontal(0)}>{tr('center')}</button>
     </div>
   </div>
   <div class="rw" data-help="pretrigger">

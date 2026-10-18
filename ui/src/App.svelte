@@ -28,6 +28,7 @@
   import MeasureGrid from './lib/measures/MeasureGrid.svelte'
   import { MeasureHistory } from './lib/measures/history'
   import { formatHz } from './lib/shell/format'
+  import { tr } from './lib/i18n/msg/display'
   import TopBar from './lib/shell/TopBar.svelte'
   import ControlPanel from './lib/shell/ControlPanel.svelte'
   import Footer from './lib/shell/Footer.svelte'
@@ -53,7 +54,7 @@
   let decoded = $state<DecodeView | null>(null)
   let decodeError = $state<string | null>(null)
   const triggerLevel = $derived(acq?.triggerLevel ?? 0)
-  const info = $derived(status ? `Frequenza ${formatHz(status.sampleRateHz)}, record ${status.recordLength} campioni` : undefined)
+  const info = $derived(status ? tr('info', { freq: formatHz(status.sampleRateHz), record: status.recordLength }) : undefined)
   let tools = $state<ToolSettings>({ math: 'off', filter: { channel: 0, kind: 'none', cutoffHz: 10e3 } })
   let cursors = $state<CursorPositions>({ t1: -1e-4, t2: 1e-4, v1: 1, v2: -1 })
   let explain = $state(false)
@@ -84,7 +85,7 @@
       await api.setView(next)
     } catch (e) {
       view = previous
-      showError(`Vista non applicata: ${e}`)
+      showError(tr('viewNotApplied', { error: String(e) }))
     }
   }
 
@@ -92,7 +93,7 @@
     try {
       await api.runCommand(command)
     } catch (e) {
-      showError(`Comando «${command}» non riuscito: ${e}`)
+      showError(tr('commandFailed', { command, error: String(e) }))
     }
   }
 
@@ -116,7 +117,7 @@
   }
 
   function onColumns(columns: number) {
-    api.setColumns(columns).catch((e) => showError(`Colonne del display: ${e}`))
+    api.setColumns(columns).catch((e) => showError(tr('columnsError', { error: String(e) })))
   }
 
   function onOffset(channel: 0 | 1, offsetDiv: number) {
@@ -135,7 +136,7 @@
       await api.setAcquisition(next)
     } catch (e) {
       acq = previous
-      showError(`Impostazioni non applicate: ${e}`)
+      showError(tr('acqNotApplied', { error: String(e) }))
     }
   }
 
@@ -154,7 +155,7 @@
       if (display.mode === 'spectrum') spectrum = await api.getSpectrum(display.window)
       else if (display.mode === 'xy') xy = await api.getXy()
     } catch (e) {
-      showError(`Analisi non disponibile: ${e}`)
+      showError(tr('analysisUnavailable', { error: String(e) }))
     }
   }
 
@@ -187,7 +188,7 @@
       await api.setTools(next)
     } catch (e) {
       tools = previous
-      showError(`Strumenti non applicati: ${e}`)
+      showError(tr('toolsNotApplied', { error: String(e) }))
     }
   }
 
@@ -200,14 +201,14 @@
   /** Salva il canvas del display in PNG nella cartella delle registrazioni. */
   async function saveScreenshot() {
     const canvas = document.querySelector<HTMLCanvasElement>('main canvas')
-    if (!canvas) return showError('Nessun display da salvare')
+    if (!canvas) return showError(tr('noDisplayToSave'))
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
-    if (!blob) return showError('Immagine del display non creata')
+    if (!blob) return showError(tr('imageNotCreated'))
     try {
       const path = await api.savePng(new Uint8Array(await blob.arrayBuffer()))
-      showNotice(`Immagine salvata: ${path}`)
+      showNotice(tr('imageSaved', { path }))
     } catch (e) {
-      showError(`Immagine non salvata: ${e}`)
+      showError(tr('imageNotSaved', { error: String(e) }))
     }
   }
 
@@ -219,7 +220,7 @@
         historyVersion++
       }
     } catch (e) {
-      showError(`Misure non disponibili: ${e}`)
+      showError(tr('measuresUnavailable', { error: String(e) }))
     }
   }
 
@@ -233,7 +234,7 @@
       lastPoll = now
       status = next
     } catch (e) {
-      showError(`Stato del motore non disponibile: ${e}`)
+      showError(tr('engineStatusUnavailable', { error: String(e) }))
     }
   }
 
@@ -250,7 +251,7 @@
           frame = decodeDisplay(buf)
         })
       })
-      .catch((e) => showError(`Avvio non riuscito: ${e}`))
+      .catch((e) => showError(tr('startFailed', { error: String(e) })))
 
     refreshStatus()
     const timer = setInterval(refreshStatus, STATUS_INTERVAL_MS)

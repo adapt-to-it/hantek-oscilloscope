@@ -4,6 +4,7 @@
   import type { ChannelTrace, CursorPositions, DisplayFrame, DisplayOptions, ViewSettings } from '../types'
   import Tip from '../help/Tip.svelte'
   import { cursorReadout } from './cursors'
+  import { tr } from '../i18n/msg/display'
 
   interface Props {
     frame: DisplayFrame | null
@@ -24,7 +25,6 @@
 
   let { frame, view, display, cursors, triggerLevel, frequencies = [null, null], oncolumns, onoffset, ontriggerlevel, oncursors }: Props = $props()
 
-  const NO_DATA_NOTE = "Nessun frame dal dispositivo: controlla la connessione e avvia l'acquisizione."
   const MATH_COLOR = '#b794f6'
   const CURSOR_COLOR = '#cfd5dd'
   // Persistenza: ultime 8 schermate; la più vecchia in trasparenza 0.05, la più recente sotto la corrente 0.4.
@@ -407,20 +407,20 @@
     {/if}
 
     {#if frame}
-      <div class="mono" data-help="verticalOffset" role="slider" aria-label="Offset CH1" aria-valuenow={view.channels[0].offsetDiv} tabindex="-1" onpointerdown={(e) => startChannelDrag(e, 0)} onpointermove={moveDrag} onpointerup={endDrag} onpointercancel={endDrag} style="position:absolute;left:0;top:{zeroY(0)}px;transform:translateY(-50%);opacity:{view.channels[0].enabled ? 1 : 0.35};width:26px;height:20px;padding-right:6px;background:{CH_COLORS[0]};color:#1a1403;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%);cursor:ns-resize;touch-action:none" title="Trascina per regolare l'offset di CH1">1</div>
-      <div class="mono" data-help="verticalOffset" role="slider" aria-label="Offset CH2" aria-valuenow={view.channels[1].offsetDiv} tabindex="-1" onpointerdown={(e) => startChannelDrag(e, 1)} onpointermove={moveDrag} onpointerup={endDrag} onpointercancel={endDrag} style="position:absolute;left:0;top:{zeroY(1)}px;transform:translateY(-50%);opacity:{view.channels[1].enabled ? 1 : 0.35};width:26px;height:20px;padding-right:6px;background:{CH_COLORS[1]};color:#021820;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%);cursor:ns-resize;touch-action:none" title="Trascina per regolare l'offset di CH2">2</div>
-      <div class="mono" data-help="triggerLevel" role="slider" aria-label="Livello di trigger" aria-valuenow={triggerLevel} tabindex="-1" onpointerdown={startTriggerDrag} onpointermove={moveDrag} onpointerup={endDrag} onpointercancel={endDrag} style="position:absolute;right:0;top:{trigY}px;transform:translateY(-50%);height:22px;padding:0 8px 0 14px;background:{CH_COLORS[0]};color:#1a1403;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;clip-path:polygon(0 50%,10px 0,100% 0,100% 100%,10px 100%);cursor:ns-resize;touch-action:none" title="Trascina per cambiare il livello di trigger">T <span style="font-weight:500">{fmtSI(triggerLevel, 'V')}</span></div>
+      <div class="mono" data-help="verticalOffset" role="slider" aria-label={tr('offsetCh', { n: 1 })} aria-valuenow={view.channels[0].offsetDiv} tabindex="-1" onpointerdown={(e) => startChannelDrag(e, 0)} onpointermove={moveDrag} onpointerup={endDrag} onpointercancel={endDrag} style="position:absolute;left:0;top:{zeroY(0)}px;transform:translateY(-50%);opacity:{view.channels[0].enabled ? 1 : 0.35};width:26px;height:20px;padding-right:6px;background:{CH_COLORS[0]};color:#1a1403;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%);cursor:ns-resize;touch-action:none" title={tr('dragOffsetCh', { n: 1 })}>1</div>
+      <div class="mono" data-help="verticalOffset" role="slider" aria-label={tr('offsetCh', { n: 2 })} aria-valuenow={view.channels[1].offsetDiv} tabindex="-1" onpointerdown={(e) => startChannelDrag(e, 1)} onpointermove={moveDrag} onpointerup={endDrag} onpointercancel={endDrag} style="position:absolute;left:0;top:{zeroY(1)}px;transform:translateY(-50%);opacity:{view.channels[1].enabled ? 1 : 0.35};width:26px;height:20px;padding-right:6px;background:{CH_COLORS[1]};color:#021820;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%);cursor:ns-resize;touch-action:none" title={tr('dragOffsetCh', { n: 2 })}>2</div>
+      <div class="mono" data-help="triggerLevel" role="slider" aria-label={tr('triggerLevel')} aria-valuenow={triggerLevel} tabindex="-1" onpointerdown={startTriggerDrag} onpointermove={moveDrag} onpointerup={endDrag} onpointercancel={endDrag} style="position:absolute;right:0;top:{trigY}px;transform:translateY(-50%);height:22px;padding:0 8px 0 14px;background:{CH_COLORS[0]};color:#1a1403;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;clip-path:polygon(0 50%,10px 0,100% 0,100% 100%,10px 100%);cursor:ns-resize;touch-action:none" title={tr('dragTrigger')}>T <span style="font-weight:500">{fmtSI(triggerLevel, 'V')}</span></div>
       {#if tmX !== null}
-        <div style="position:absolute;top:0;left:{tmX}px;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:11px solid {CH_COLORS[0]}" title="Istante del trigger (t = 0)"></div>
+        <div style="position:absolute;top:0;left:{tmX}px;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:11px solid {CH_COLORS[0]}" title={tr('triggerInstant')}></div>
       {/if}
 
       {#if showTime}
-        <div class="mono" data-help="cursors" role="slider" aria-label="Cursore t1" aria-valuenow={cursors.t1} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 't1')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;top:0;bottom:0;left:{timeToX(cursors.t1) - 5}px;width:10px;cursor:ew-resize;touch-action:none"></div>
-        <div class="mono" data-help="cursors" role="slider" aria-label="Cursore t2" aria-valuenow={cursors.t2} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 't2')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;top:0;bottom:0;left:{timeToX(cursors.t2) - 5}px;width:10px;cursor:ew-resize;touch-action:none"></div>
+        <div class="mono" data-help="cursors" role="slider" aria-label={tr('cursorLabel', { name: 't1' })} aria-valuenow={cursors.t1} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 't1')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;top:0;bottom:0;left:{timeToX(cursors.t1) - 5}px;width:10px;cursor:ew-resize;touch-action:none"></div>
+        <div class="mono" data-help="cursors" role="slider" aria-label={tr('cursorLabel', { name: 't2' })} aria-valuenow={cursors.t2} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 't2')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;top:0;bottom:0;left:{timeToX(cursors.t2) - 5}px;width:10px;cursor:ew-resize;touch-action:none"></div>
       {/if}
       {#if showVolt}
-        <div class="mono" data-help="cursors" role="slider" aria-label="Cursore V1" aria-valuenow={cursors.v1} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 'v1')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;left:0;right:0;top:{voltToY(cursors.v1, display.cursorChannel) - 5}px;height:10px;cursor:ns-resize;touch-action:none"></div>
-        <div class="mono" data-help="cursors" role="slider" aria-label="Cursore V2" aria-valuenow={cursors.v2} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 'v2')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;left:0;right:0;top:{voltToY(cursors.v2, display.cursorChannel) - 5}px;height:10px;cursor:ns-resize;touch-action:none"></div>
+        <div class="mono" data-help="cursors" role="slider" aria-label={tr('cursorLabel', { name: 'V1' })} aria-valuenow={cursors.v1} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 'v1')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;left:0;right:0;top:{voltToY(cursors.v1, display.cursorChannel) - 5}px;height:10px;cursor:ns-resize;touch-action:none"></div>
+        <div class="mono" data-help="cursors" role="slider" aria-label={tr('cursorLabel', { name: 'V2' })} aria-valuenow={cursors.v2} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 'v2')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;left:0;right:0;top:{voltToY(cursors.v2, display.cursorChannel) - 5}px;height:10px;cursor:ns-resize;touch-action:none"></div>
       {/if}
       {#if readout.length > 0}
         <div style="position:absolute;left:12px;top:14px;min-width:150px">
@@ -434,16 +434,16 @@
         </div>
       {/if}
 
-      <div style="position:absolute;left:36px;bottom:10px;font-size:12px;color:#7f8996">{display.cursors === 'off' ? 'Trascina 1, 2 e T per regolarli' : 'Trascina 1, 2, T e i cursori per regolarli'}</div>
+      <div style="position:absolute;left:36px;bottom:10px;font-size:12px;color:#7f8996">{display.cursors === 'off' ? tr('dragHint') : tr('dragHintCursors')}</div>
     {:else}
       <div style="position:absolute;left:0;top:0;right:0;bottom:0;background:#06080af2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:24px">
-        <div style="font-size:18px;font-weight:600">In attesa di dati</div>
-        <div style="font-size:13px;color:#9aa3af;max-width:340px;line-height:1.45;text-wrap:pretty">{NO_DATA_NOTE}</div>
+        <div style="font-size:18px;font-weight:600">{tr('waitingData')}</div>
+        <div style="font-size:13px;color:#9aa3af;max-width:340px;line-height:1.45;text-wrap:pretty">{tr('noFrame')}</div>
       </div>
     {/if}
   </div>
 
-  <div class="mono" aria-label="Asse dei tempi" style="position:relative;height:18px;border-top:1px solid #1b2128;background:#0a0c0f;font-size:11px;color:#8a94a1">
+  <div class="mono" aria-label={tr('timeAxis')} style="position:relative;height:18px;border-top:1px solid #1b2128;background:#0a0c0f;font-size:11px;color:#8a94a1">
     {#each timeLabels as label (label.i)}
       <span style="position:absolute;top:2px;left:{(label.i / DIVISIONS_X) * 100}%;transform:translateX({label.i === 0 ? '2px' : label.i === DIVISIONS_X ? 'calc(-100% - 2px)' : '-50%'});white-space:nowrap">{label.text}</span>
     {/each}
@@ -451,12 +451,12 @@
 
   <div class="mono" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;padding:7px 14px;border-top:1px solid #1b2128;background:#0a0c0f;font-size:12px">
     {#each [0, 1] as const as ch (ch)}
-      <span style="color:{CH_COLORS[ch]}" title="Frequenza della fondamentale: serve almeno un periodo intero nella finestra">
+      <span style="color:{CH_COLORS[ch]}" title={tr('freqTitle')}>
         CH{ch + 1} {fmtSI(view.channels[ch].voltsPerDiv, 'V')}/div · f {view.channels[ch].enabled && frequencies[ch] != null ? fmtSI(frequencies[ch], 'Hz') : '—'}
       </span>
     {/each}
     <span>{fmtSI(view.timePerDiv, 's')}/div</span>
     <span>fs {frame ? fmtSI(frame.sampleRate, 'Sa/s') : '—'}</span>
-    <span style="color:{frame?.triggered ? '#ff9f43' : '#9aa3af'};font-weight:600">{frame ? (frame.triggered ? 'Triggerato' : 'Non triggerato') : '—'}</span>
+    <span style="color:{frame?.triggered ? '#ff9f43' : '#9aa3af'};font-weight:600">{frame ? (frame.triggered ? tr('triggered') : tr('notTriggered')) : '—'}</span>
   </div>
 </section>

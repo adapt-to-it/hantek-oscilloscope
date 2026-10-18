@@ -1,4 +1,8 @@
 // Spiegazioni dei controlli: compaiono al passaggio del puntatore quando la modalità Spiegazioni è attiva (tasto i).
+import { getLocale, type Locale } from '../i18n/i18n.svelte'
+import { HELP_EN } from './texts.en'
+import { HELP_ES } from './texts.es'
+import { HELP_FR } from './texts.fr'
 
 export type HelpId =
   | 'run' | 'stop' | 'single' | 'triggerMode' | 'triggerSource' | 'triggerKind' | 'triggerLevel'
@@ -334,4 +338,11 @@ export const HELP: Record<HelpId, HelpText> = {
     title: 'Motore',
     text: 'Sorgente dei dati e numero di frame al secondo mostrati. La frequenza di campionamento misurata indica i campioni che arrivano davvero dal dispositivo.',
   },
+}
+
+const HELP_BY_LOCALE: Record<Locale, Record<HelpId, HelpText>> = { it: HELP, en: HELP_EN, fr: HELP_FR, es: HELP_ES }
+
+/** Spiegazione nella lingua corrente; in italiano se la traduzione manca. Undefined per un id sconosciuto. */
+export function helpText(id: HelpId): HelpText | undefined {
+  return HELP_BY_LOCALE[getLocale()][id] ?? HELP[id]
 }

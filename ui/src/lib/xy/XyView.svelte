@@ -3,6 +3,7 @@
   // Vista XY su canvas: CH1 sull'asse orizzontale, CH2 su quello verticale. Nessuna chiamata di rete.
   import { CH_COLORS } from '../types'
   import type { ViewSettings, XyView } from '../types'
+  import { tr } from '../i18n/msg/display'
   import { XY_DIVISIONS, voltsToPx } from './xy'
 
   interface Props {
@@ -11,10 +12,6 @@
   }
 
   let { data, view }: Props = $props()
-
-  const NO_DATA_NOTE = 'La vista XY richiede entrambi i canali attivi.'
-  const HINT =
-    "CH1 sull'asse orizzontale, CH2 su quello verticale. Una ellisse indica uno sfasamento, una retta segnali in fase."
 
   let plot: HTMLDivElement | undefined = $state()
   let canvas: HTMLCanvasElement | undefined = $state()
@@ -124,11 +121,11 @@
   <div bind:this={plot} style="position:relative;flex:1;min-height:240px;overflow:hidden">
     <canvas bind:this={canvas} style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:{side}px;height:{side}px;display:block"></canvas>
 
-    <div style="position:absolute;left:12px;bottom:10px;font-size:12px;color:#8a94a1;max-width:420px;line-height:1.4">{HINT}</div>
+    <div style="position:absolute;left:12px;bottom:10px;font-size:12px;color:#8a94a1;max-width:420px;line-height:1.4">{tr('xyHint')}</div>
 
     {#if !hasData}
       <div style="position:absolute;left:0;top:0;right:0;bottom:0;background:#06080af2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:24px">
-        <div style="font-size:13px;color:#9aa3af;max-width:340px;line-height:1.45;text-wrap:pretty">{NO_DATA_NOTE}</div>
+        <div style="font-size:13px;color:#9aa3af;max-width:340px;line-height:1.45;text-wrap:pretty">{tr('xyNeedsBoth')}</div>
       </div>
     {/if}
   </div>

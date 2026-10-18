@@ -1,6 +1,7 @@
 <script lang="ts">
   // Corpo della sezione Trigger: modo, sorgente, tipo con i suoi parametri, livello e holdoff.
   import type { HelpId } from '../../help/texts'
+  import { tr } from '../../i18n/msg/trigger'
   import type {
     AcquisitionSettings,
     CondName,
@@ -14,19 +15,19 @@
   } from '../../types'
   import { formatTime, formatVolts } from '../format'
   import {
-    COND_OPTIONS,
-    ENTER_OPTIONS,
-    LEVEL_OPTIONS,
     LOGIC_OP_OPTIONS,
-    MODE_OPTIONS,
-    POLARITY_OPTIONS,
-    SLOPE_OPTIONS,
     SOURCE_OPTIONS,
-    TRIGGER_KINDS,
-    WIDTH_OPTIONS,
+    condOptions,
     defaultSpec,
+    enterOptions,
+    levelOptions,
+    modeOptions,
+    polarityOptions,
+    slopeOptions,
     stepDelay,
     stepValue,
+    triggerKinds,
+    widthOptions,
   } from './trigger'
   import type { TriggerKind } from './trigger'
 
@@ -83,23 +84,23 @@
   <div class="rw" data-help={help}>
     <span class="lb">{label}</span>
     <div style="display:flex;align-items:center;gap:6px">
-      <button class="step" aria-label="Riduci {label}" onclick={dec}>−</button>
+      <button class="step" aria-label={tr('decreaseLabel', { etichetta: label })} onclick={dec}>−</button>
       <span class="mono" style="min-width:74px;text-align:center;font-size:14px;font-weight:600">{text}</span>
-      <button class="step" aria-label="Aumenta {label}" onclick={inc}>+</button>
+      <button class="step" aria-label={tr('increaseLabel', { etichetta: label })} onclick={inc}>+</button>
     </div>
   </div>
 {/snippet}
 
 <div style="display:flex;flex-direction:column;gap:6px">
-  {@render segRow('Modo', MODE_OPTIONS, acq.mode, (value) => withAcq({ mode: value as ModeName }), 'triggerMode')}
-  {@render segRow('Sorgente', SOURCE_OPTIONS, String(acq.triggerSource), (value) =>
+  {@render segRow(tr('labelMode'), modeOptions(), acq.mode, (value) => withAcq({ mode: value as ModeName }), 'triggerMode')}
+  {@render segRow(tr('labelSource'), SOURCE_OPTIONS, String(acq.triggerSource), (value) =>
     withAcq({ triggerSource: Number(value) as 1 | 2 }), 'triggerSource',
   )}
 
   <div data-help="triggerKind" style="display:flex;flex-direction:column;gap:6px;padding:4px 0">
-    <span class="lb" style="font-size:13px;color:#c3cad4">Tipo</span>
+    <span class="lb" style="font-size:13px;color:#c3cad4">{tr('labelType')}</span>
     <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
-      {#each TRIGGER_KINDS as option (option.kind)}
+      {#each triggerKinds() as option (option.kind)}
         <button class="opt {option.kind === trigger.kind ? 'on' : ''}" style="padding:0 4px"
           aria-pressed={option.kind === trigger.kind} onclick={() => pickKind(option.kind)}>{option.label}</button>
       {/each}
@@ -109,95 +110,95 @@
   <div data-help={KIND_HELP[trigger.kind]} style="display:flex;flex-direction:column;gap:6px">
   {#if trigger.kind === 'edge'}
     {@const spec = trigger}
-    {@render segRow('Pendenza', SLOPE_OPTIONS, spec.slope, (value) =>
+    {@render segRow(tr('labelSlope'), slopeOptions(), spec.slope, (value) =>
       setTrigger({ kind: 'edge', slope: value as SlopeName }),
     )}
   {:else if trigger.kind === 'pulseWidth'}
     {@const spec = trigger}
     {@const bounded = spec.width.op === 'within' || spec.width.op === 'outside'}
-    {@render segRow('Polarità', POLARITY_OPTIONS, spec.polarity, (value) =>
+    {@render segRow(tr('labelPolarity'), polarityOptions(), spec.polarity, (value) =>
       setTrigger({ ...spec, polarity: value as PolarityName }),
     )}
-    {@render segRow('Condizione', WIDTH_OPTIONS, spec.width.op, (value) =>
+    {@render segRow(tr('labelCondition'), widthOptions(), spec.width.op, (value) =>
       setTrigger({ ...spec, width: { ...spec.width, op: value as WidthSpec['op'] } }),
     )}
-    {@render stepRow(bounded ? 'Durata min' : 'Durata', formatTime(spec.width.a),
+    {@render stepRow(bounded ? tr('labelMinDuration') : tr('labelDuration'), formatTime(spec.width.a),
       () => setTrigger({ ...spec, width: { ...spec.width, a: stepValue('time', spec.width.a, -1) } }),
       () => setTrigger({ ...spec, width: { ...spec.width, a: stepValue('time', spec.width.a, 1) } }),
     )}
     {#if bounded}
-      {@render stepRow('Durata max', formatTime(spec.width.b),
+      {@render stepRow(tr('labelMaxDuration'), formatTime(spec.width.b),
         () => setTrigger({ ...spec, width: { ...spec.width, b: stepValue('time', spec.width.b, -1) } }),
         () => setTrigger({ ...spec, width: { ...spec.width, b: stepValue('time', spec.width.b, 1) } }),
       )}
     {/if}
   {:else if trigger.kind === 'runt'}
     {@const spec = trigger}
-    {@render segRow('Polarità', POLARITY_OPTIONS, spec.polarity, (value) =>
+    {@render segRow(tr('labelPolarity'), polarityOptions(), spec.polarity, (value) =>
       setTrigger({ ...spec, polarity: value as PolarityName }),
     )}
-    {@render stepRow('Soglia bassa', formatVolts(spec.low),
+    {@render stepRow(tr('labelLowThreshold'), formatVolts(spec.low),
       () => setTrigger({ ...spec, low: stepValue('volt', spec.low, -1) }),
       () => setTrigger({ ...spec, low: stepValue('volt', spec.low, 1) }),
     )}
-    {@render stepRow('Soglia alta', formatVolts(spec.high),
+    {@render stepRow(tr('labelHighThreshold'), formatVolts(spec.high),
       () => setTrigger({ ...spec, high: stepValue('volt', spec.high, -1) }),
       () => setTrigger({ ...spec, high: stepValue('volt', spec.high, 1) }),
     )}
   {:else if trigger.kind === 'window'}
     {@const spec = trigger}
-    {@render stepRow('Soglia bassa', formatVolts(spec.low),
+    {@render stepRow(tr('labelLowThreshold'), formatVolts(spec.low),
       () => setTrigger({ ...spec, low: stepValue('volt', spec.low, -1) }),
       () => setTrigger({ ...spec, low: stepValue('volt', spec.low, 1) }),
     )}
-    {@render stepRow('Soglia alta', formatVolts(spec.high),
+    {@render stepRow(tr('labelHighThreshold'), formatVolts(spec.high),
       () => setTrigger({ ...spec, high: stepValue('volt', spec.high, -1) }),
       () => setTrigger({ ...spec, high: stepValue('volt', spec.high, 1) }),
     )}
-    {@render segRow('Transizione', ENTER_OPTIONS, spec.enter ? 'enter' : 'exit', (value) =>
+    {@render segRow(tr('labelTransition'), enterOptions(), spec.enter ? 'enter' : 'exit', (value) =>
       setTrigger({ ...spec, enter: value === 'enter' }),
     )}
   {:else if trigger.kind === 'timeout'}
     {@const spec = trigger}
-    {@render segRow('Pendenza', SLOPE_OPTIONS, spec.slope, (value) =>
+    {@render segRow(tr('labelSlope'), slopeOptions(), spec.slope, (value) =>
       setTrigger({ ...spec, slope: value as SlopeName }),
     )}
-    {@render stepRow('Timeout', formatTime(spec.seconds),
+    {@render stepRow(tr('kindTimeout'), formatTime(spec.seconds),
       () => setTrigger({ ...spec, seconds: stepValue('time', spec.seconds, -1) }),
       () => setTrigger({ ...spec, seconds: stepValue('time', spec.seconds, 1) }),
     )}
   {:else if trigger.kind === 'pattern'}
     {@const spec = trigger}
-    {@render segRow('CH1', LEVEL_OPTIONS, spec.ch1, (value) =>
+    {@render segRow('CH1', levelOptions(), spec.ch1, (value) =>
       setTrigger({ ...spec, ch1: value as LevelName }),
     )}
-    {@render segRow('CH2', LEVEL_OPTIONS, spec.ch2, (value) =>
+    {@render segRow('CH2', levelOptions(), spec.ch2, (value) =>
       setTrigger({ ...spec, ch2: value as LevelName }),
     )}
   {:else if trigger.kind === 'logic'}
     {@const spec = trigger}
-    {@render segRow('Operatore', LOGIC_OP_OPTIONS, spec.op, (value) =>
+    {@render segRow(tr('labelOperator'), LOGIC_OP_OPTIONS, spec.op, (value) =>
       setTrigger({ ...spec, op: value as LogicOpName }),
     )}
-    {@render segRow('CH1', COND_OPTIONS, spec.ch1, (value) => setTrigger({ ...spec, ch1: value as CondName }))}
-    {@render segRow('CH2', COND_OPTIONS, spec.ch2, (value) => setTrigger({ ...spec, ch2: value as CondName }))}
-    {@render stepRow(`Livello CH${otherCh}`, formatVolts(spec.otherLevel),
+    {@render segRow('CH1', condOptions(), spec.ch1, (value) => setTrigger({ ...spec, ch1: value as CondName }))}
+    {@render segRow('CH2', condOptions(), spec.ch2, (value) => setTrigger({ ...spec, ch2: value as CondName }))}
+    {@render stepRow(tr('labelLevelCh', { canale: otherCh }), formatVolts(spec.otherLevel),
       () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, -1) }),
       () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, 1) }), 'otherLevel',
     )}
   {:else if trigger.kind === 'sequence'}
     {@const spec = trigger}
-    {@render segRow(`A · CH${acq.triggerSource}`, SLOPE_OPTIONS, spec.slopeA, (value) =>
+    {@render segRow(`A · CH${acq.triggerSource}`, slopeOptions(), spec.slopeA, (value) =>
       setTrigger({ ...spec, slopeA: value as SlopeName }),
     )}
-    {@render segRow(`B · CH${otherCh}`, SLOPE_OPTIONS, spec.slopeB, (value) =>
+    {@render segRow(`B · CH${otherCh}`, slopeOptions(), spec.slopeB, (value) =>
       setTrigger({ ...spec, slopeB: value as SlopeName }),
     )}
-    {@render stepRow(`Livello CH${otherCh}`, formatVolts(spec.otherLevel),
+    {@render stepRow(tr('labelLevelCh', { canale: otherCh }), formatVolts(spec.otherLevel),
       () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, -1) }),
       () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, 1) }), 'otherLevel',
     )}
-    {@render stepRow('Ritardo B', formatTime(spec.delay),
+    {@render stepRow(tr('labelDelayB'), formatTime(spec.delay),
       () => setTrigger({ ...spec, delay: stepDelay(spec.delay, -1) }),
       () => setTrigger({ ...spec, delay: stepDelay(spec.delay, 1) }), 'sequenceDelay',
     )}
@@ -205,10 +206,10 @@
   </div>
 
   {#if dual}
-    <span style="font-size:12px;color:#9aa3af">Richiede CH1 e CH2 attivi. La sorgente sceglie il canale che usa il livello del marcatore T.</span>
+    <span style="font-size:12px;color:#9aa3af">{tr('dualNote')}</span>
   {/if}
 
-  {@render stepRow(dual ? `Livello CH${acq.triggerSource}` : 'Livello', formatVolts(acq.triggerLevel),
+  {@render stepRow(dual ? tr('labelLevelCh', { canale: acq.triggerSource }) : tr('labelLevel'), formatVolts(acq.triggerLevel),
     () => withAcq({ triggerLevel: stepValue('volt', acq.triggerLevel, -1) }),
     () => withAcq({ triggerLevel: stepValue('volt', acq.triggerLevel, 1) }), 'triggerLevel',
   )}

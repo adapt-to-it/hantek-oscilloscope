@@ -1,17 +1,23 @@
 // Nomi dei file e testi di stato per la sezione File del pannello Controlli.
 import type { RecordingView } from '../../types'
+import { tr } from '../../i18n/msg/decoder'
 
 export interface LimitOption {
+  /** Chiave stabile, indipendente dalla lingua. */
+  key: string
   label: string
   /** Durata massima in secondi; null per la registrazione manuale. */
   seconds: number | null
 }
 
-export const LIMITS: readonly LimitOption[] = [
-  { label: 'Manuale', seconds: null },
-  { label: '10 s', seconds: 10 },
-  { label: '60 s', seconds: 60 },
-]
+/** Durate di registrazione. Le etichette dipendono dalla lingua corrente, quindi è una funzione. */
+export function limitOptions(): readonly LimitOption[] {
+  return [
+    { key: 'manual', label: tr('limitManual'), seconds: null },
+    { key: '10', label: '10 s', seconds: 10 },
+    { key: '60', label: '60 s', seconds: 60 },
+  ]
+}
 
 function pad(n: number): string {
   return String(n).padStart(2, '0')
@@ -38,8 +44,8 @@ export function formatBytes(n: number): string {
 }
 
 export function recordingLabel(r: RecordingView | null): string {
-  if (r === null) return 'Pronto'
-  if (r.error) return `Errore: ${r.error}`
-  if (r.running) return `REC · ${r.frames} frame`
-  return `Finita · ${r.frames} frame`
+  if (r === null) return tr('ready')
+  if (r.error) return tr('recErrorText', { error: r.error })
+  if (r.running) return tr('recording', { frames: r.frames })
+  return tr('finished', { frames: r.frames })
 }

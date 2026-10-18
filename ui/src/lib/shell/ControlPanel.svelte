@@ -12,6 +12,7 @@
   import DecoderSection from './controls/DecoderSection.svelte'
   import { decoderSummary } from './controls/decoder'
   import ToolsTab from './tools/ToolsTab.svelte'
+  import { tr } from '../i18n/msg/shell'
 
   interface Props {
     view: ViewSettings
@@ -35,11 +36,11 @@
 
   type TabId = 'controls' | 'decoder' | 'tools'
 
-  const TABS: readonly { id: TabId; label: string }[] = [
-    { id: 'controls', label: 'Controlli' },
-    { id: 'decoder', label: 'Decoder' },
-    { id: 'tools', label: 'Strumenti' },
-  ]
+  const TABS = [
+    { id: 'controls', label: 'tabControls' },
+    { id: 'decoder', label: 'tabDecoder' },
+    { id: 'tools', label: 'tabTools' },
+  ] as const
 
   let tab = $state<TabId>('controls')
 
@@ -70,7 +71,7 @@
   const sections: Section[] = $derived([
     {
       id: 'horizontal',
-      name: 'Orizzontale',
+      name: tr('sectionHorizontal'),
       color: '#e8ebef',
       summary: `${formatTime(view.timePerDiv)}/div`,
       channel: null,
@@ -94,7 +95,7 @@
     },
     {
       id: 'trigger',
-      name: 'Trigger',
+      name: tr('sectionTrigger'),
       color: '#ff9f43',
       summary: triggerSummary(acq),
       channel: null,
@@ -102,7 +103,7 @@
     },
     {
       id: 'display',
-      name: 'Display',
+      name: tr('sectionDisplay'),
       color: '#e8ebef',
       summary: windowLabel,
       channel: null,
@@ -123,10 +124,10 @@
 
 <div style="display:flex;flex-direction:column">
   <div style="position:sticky;top:0;z-index:5;background:#12151a;padding:10px 12px;border-bottom:1px solid #20262e">
-    <div class="segrow" role="group" aria-label="Pannello" data-help="panelTabs" style="display:flex;width:100%">
+    <div class="segrow" role="group" aria-label={tr('panelAria')} data-help="panelTabs" style="display:flex;width:100%">
       {#each TABS as option (option.id)}
         <button class="seg {tab === option.id ? 'on' : ''}" style="flex:1" aria-pressed={tab === option.id}
-          onclick={() => (tab = option.id)}>{option.label}{#if badges[option.id]}<span style="margin-left:6px;width:7px;height:7px;border-radius:50%;background:{badges[option.id]};display:inline-block"></span>{/if}</button>
+          onclick={() => (tab = option.id)}>{tr(option.label)}{#if badges[option.id]}<span style="margin-left:6px;width:7px;height:7px;border-radius:50%;background:{badges[option.id]};display:inline-block"></span>{/if}</button>
       {/each}
     </div>
   </div>
@@ -142,7 +143,7 @@
           {#if section.channel !== null}
             {@const index = section.channel}
             <button data-help="channelEnable" class="tgl {index === 0 ? 'c1' : 'c2'} {view.channels[index].enabled ? 'on' : ''}"
-              role="switch" aria-checked={view.channels[index].enabled} aria-label="{section.name} attivo"
+              role="switch" aria-checked={view.channels[index].enabled} aria-label={tr('channelActive', { nome: section.name })}
               onclick={() => toggleChannel(index)}></button>
           {/if}
         </div>

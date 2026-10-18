@@ -1,5 +1,6 @@
 // Protocolli, parametri e riepilogo del decoder per il pannello Controlli. Specchio di protocol_of in crates/h6022-server/src/decode_tools.rs.
 import type { DecodeParams, DecoderSettings, ProtocolName } from '../../types'
+import { tr } from '../../i18n/msg/decoder'
 
 export const PROTOCOLS: readonly { value: ProtocolName; label: string }[] = [
   { value: 'uart', label: 'UART' },
@@ -85,7 +86,7 @@ export function withProtocol(s: DecoderSettings, protocol: ProtocolName): Decode
 }
 
 export function decoderSummary(s: DecoderSettings): string {
-  if (!s.enabled) return 'Spento'
+  if (!s.enabled) return tr('off')
   const label = PROTOCOLS.find((p) => p.value === s.params.protocol)?.label ?? s.params.protocol
   return `${label} · CH${s.params.channel}`
 }

@@ -2,7 +2,8 @@
   // Corpo della sezione File: registrazione dei frame su disco ed export del logic analyzer.
   import type { DecoderSettings, ExportFormat, RecordFormat, RecordingView } from '../../types'
   import { exportLogic, recordingStatus, startRecording, stopRecording } from '../../api'
-  import { LIMITS, defaultFileName, fileName, formatBytes, recordingLabel } from './file'
+  import { tr } from '../../i18n/msg/decoder'
+  import { defaultFileName, fileName, formatBytes, limitOptions, recordingLabel } from './file'
 
   interface Props {
     decoder: DecoderSettings
@@ -21,10 +22,10 @@
     { value: 'vcd', label: 'VCD' },
     { value: 'sr', label: 'Sigrok .sr' },
   ]
-  const LIMIT_OPTIONS: readonly { value: string; label: string }[] = LIMITS.map((l) => ({ value: l.label, label: l.label }))
+  const LIMIT_OPTIONS = $derived(limitOptions().map((l) => ({ value: l.key, label: l.label })))
 
   let recFormat = $state<RecordFormat>('csv')
-  let limit = $state('Manuale')
+  let limit = $state('manual')
   let status = $state<RecordingView | null>(null)
   let recError = $state('')
   let recSaved = $state('')
@@ -37,7 +38,7 @@
   let exportSaved = $state('')
 
   const running = $derived(status?.running === true)
-  const maxSeconds = $derived(LIMITS.find((l) => l.label === limit)?.seconds ?? null)
+  const maxSeconds = $derived(limitOptions().find((l) => l.key === limit)?.seconds ?? null)
   const decodeAvailable = $derived(exportFormat === 'vcd' && decoder.enabled)
   const decodeIncluded = $derived(decodeAvailable && includeDecode)
 
@@ -74,7 +75,7 @@
     try {
       const summary = await stopRecording()
       setStatus({ ...current, running: false, frames: summary.frames })
-      recSaved = `Salvato ${fileName(summary.path)} · ${summary.frames} frame`
+      recSaved = tr('savedRecording', { name: fileName(summary.path), frames: summary.frames })
     } catch (e) {
       recError = String(e)
     } finally {
@@ -109,7 +110,7 @@
         format: exportFormat,
         decode: decodeIncluded ? decoder.params : null,
       })
-      exportSaved = `Salvato ${fileName(view.path)} (${formatBytes(view.bytes)})`
+      exportSaved = tr('savedExport', { name: fileName(view.path), size: formatBytes(view.bytes) })
     } catch (e) {
       exportError = String(e)
     }
@@ -129,15 +130,15 @@
 {/snippet}
 
 <div style="display:flex;flex-direction:column;gap:8px">
-  <span style="font-size:13px;font-weight:700">Registrazione</span>
-  {@render segRow('Formato', RECORD_FORMATS, recFormat, (value) => (recFormat = value as RecordFormat))}
-  {@render segRow('Durata', LIMIT_OPTIONS, limit, (value) => (limit = value))}
+  <span style="font-size:13px;font-weight:700">{tr('recordingTitle')}</span>
+  {@render segRow(tr('format'), RECORD_FORMATS, recFormat, (value) => (recFormat = value as RecordFormat))}
+  {@render segRow(tr('duration'), LIMIT_OPTIONS, limit, (value) => (limit = value))}
 
   <div class="rw">
     {#if running}
-      <button class="btn stop" onclick={stop}>Ferma</button>
+      <button class="btn stop" onclick={stop}>{tr('stop')}</button>
     {:else}
-      <button class="btn run" onclick={start}>Registra</button>
+      <button class="btn run" onclick={start}>{tr('record')}</button>
     {/if}
     <span class="mono" style="font-size:13px;color:#c3cad4">{recordingLabel(status)}</span>
   </div>
@@ -149,18 +150,18 @@
   {/if}
 
   <div style="display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid #20262e">
-    <span style="font-size:13px;font-weight:700">Export</span>
-    {@render segRow('Formato', EXPORT_FORMATS, exportFormat, (value) => (exportFormat = value as ExportFormat))}
+    <span style="font-size:13px;font-weight:700">{tr('exportTitle')}</span>
+    {@render segRow(tr('format'), EXPORT_FORMATS, exportFormat, (value) => (exportFormat = value as ExportFormat))}
 
     <div class="rw">
-      <span class="lb">Includi decoder</span>
+      <span class="lb">{tr('includeDecoder')}</span>
       <button class="tgl {decodeIncluded ? 'on' : ''}" role="switch" aria-checked={decodeIncluded}
-        aria-label="Includi decoder" disabled={!decodeAvailable}
+        aria-label={tr('includeDecoder')} disabled={!decodeAvailable}
         style={decodeAvailable ? '' : 'opacity:0.4'}
         onclick={() => (includeDecode = !includeDecode)}></button>
     </div>
 
-    <button class="btn" onclick={exportFrames}>Esporta frame</button>
+    <button class="btn" onclick={exportFrames}>{tr('exportFrames')}</button>
     {#if exportError}
       <div style="font-size:13px;color:#ff6b6b">{exportError}</div>
     {/if}
@@ -169,5 +170,5 @@
     {/if}
   </div>
 
-  <div style="font-size:12px;color:#8a94a1">I file vanno in ~/h6022-recordings</div>
+  <div style="font-size:12px;color:#8a94a1">{tr('filesIn', { dir: '~/h6022-recordings' })}</div>
 </div>

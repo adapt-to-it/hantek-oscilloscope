@@ -3,6 +3,7 @@
   // Striscia dei frame decodificati sulla finestra del display. Solo presentazione: nessuna chiamata di rete.
   import type { DecodeView } from '../types'
   import { stripBlocks } from './blocks'
+  import { tr } from '../i18n/msg/display'
 
   interface Props {
     /** Risultato del decoder per la finestra corrente; null se non c'è decodifica. */
@@ -36,7 +37,7 @@
 
 <section class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
   <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#9aa3af">
-    <span style="font-weight:700;color:#e8ebef">Decoder {view ? (PROTOCOLS.find((p) => p.value === view.protocol)?.label ?? view.protocol) : ''}</span><span>{channelLabel}</span>
+    <span style="font-weight:700;color:#e8ebef">{tr('decoderTitle', { name: view ? (PROTOCOLS.find((p) => p.value === view.protocol)?.label ?? view.protocol) : '' })}</span><span>{channelLabel}</span>
   </div>
 
   <div bind:this={strip} style="position:relative;height:28px">
@@ -44,7 +45,7 @@
       <div class="blk" style="left:{b.left}%;width:{b.width}%;background:{b.bg};color:{b.fg}" title={b.title}>{b.text}</div>
     {/each}
     {#if blocks.length === 0}
-      <div style="position:absolute;left:0;top:0;right:0;height:28px;border:1px dashed #333b47;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#8a94a1">Nessun frame decodificato nella finestra</div>
+      <div style="position:absolute;left:0;top:0;right:0;height:28px;border:1px dashed #333b47;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#8a94a1">{tr('noDecoded')}</div>
     {/if}
   </div>
 
@@ -53,6 +54,6 @@
   {/if}
 
   {#if view}
-    <div class="mono" style="font-size:12px;color:#c3cad4">{view.summary}{view.truncated ? ' (troncato)' : ''}</div>
+    <div class="mono" style="font-size:12px;color:#c3cad4">{view.truncated ? tr('summaryTruncated', { summary: view.summary }) : view.summary}</div>
   {/if}
 </section>

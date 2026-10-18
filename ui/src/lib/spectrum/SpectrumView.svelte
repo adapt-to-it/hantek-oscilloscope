@@ -3,6 +3,7 @@
   import { CH_COLORS, DIVISIONS_X } from '../types'
   import type { SpectrumView } from '../types'
   import { formatHz } from '../shell/format'
+  import { tr } from '../i18n/msg/display'
   import { DB_MAX, DB_MIN, DB_STEP, decadeTicks, dbToY, formatDb, freqToX } from './scale'
 
   interface Props {
@@ -13,8 +14,6 @@
   }
 
   let { data, logFrequency }: Props = $props()
-
-  const NO_DATA_NOTE = "Nessun frame dal dispositivo: controlla la connessione e avvia l'acquisizione."
 
   let plot: HTMLDivElement | undefined = $state()
   let canvas: HTMLCanvasElement | undefined = $state()
@@ -181,7 +180,7 @@
 
     {#if data}
       <div style="position:absolute;right:12px;top:12px;min-width:210px;padding:10px 12px;border-radius:10px;background:#0b0d10ee;border:1px solid #333b47;display:flex;flex-direction:column;gap:5px">
-        <div style="font-size:12px;font-weight:700;color:#c3cad4">Picchi</div>
+        <div style="font-size:12px;font-weight:700;color:#c3cad4">{tr('peaks')}</div>
         {#each peakGroups as g (g.name)}
           <div class="mono" style="font-size:12px;font-weight:700;color:{g.color}">{g.name}</div>
           {#each g.peaks as p, n (n)}
@@ -194,8 +193,8 @@
       </div>
     {:else}
       <div style="position:absolute;left:0;top:0;right:0;bottom:0;background:#06080af2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:24px">
-        <div style="font-size:18px;font-weight:600">In attesa di dati</div>
-        <div style="font-size:13px;color:#9aa3af;max-width:340px;line-height:1.45;text-wrap:pretty">{NO_DATA_NOTE}</div>
+        <div style="font-size:18px;font-weight:600">{tr('waitingData')}</div>
+        <div style="font-size:13px;color:#9aa3af;max-width:340px;line-height:1.45;text-wrap:pretty">{tr('noFrame')}</div>
       </div>
     {/if}
   </div>

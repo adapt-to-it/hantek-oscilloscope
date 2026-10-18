@@ -11,6 +11,8 @@ import type {
   WidthSpec,
 } from '../../types'
 import { TIME_STEPS, VOLT_STEPS, formatVolts, step } from '../format'
+import { tr } from '../../i18n/msg/trigger'
+import type { TriggerKey } from '../../i18n/msg/trigger'
 
 export type TriggerKind = TriggerSpec['kind']
 
@@ -19,49 +21,67 @@ const BAND_HALF_V = 0.5
 /** Durata iniziale dei trigger temporali, in secondi. */
 const DEFAULT_DURATION_S = 1e-3
 
-const MODE_LABEL: Record<ModeName, string> = { auto: 'Auto', normal: 'Normal', single: 'Single', roll: 'Roll' }
-const SLOPE_LABEL: Record<SlopeName, string> = { rising: 'Salita', falling: 'Discesa', either: 'Entrambi' }
+const MODE_KEY: Record<ModeName, TriggerKey> = {
+  auto: 'modeAuto',
+  normal: 'modeNormal',
+  single: 'modeSingle',
+  roll: 'modeRoll',
+}
 const SLOPE_ARROW: Record<SlopeName, string> = { rising: '↑', falling: '↓', either: '↕' }
-const KIND_LABEL: Record<TriggerKind, string> = {
-  edge: 'Fronte',
-  pulseWidth: 'Impulso',
-  runt: 'Runt',
-  window: 'Finestra',
-  timeout: 'Timeout',
-  pattern: 'Pattern',
-  logic: 'Logico',
-  sequence: 'A → B',
+const KIND_KEY: Record<TriggerKind, TriggerKey> = {
+  edge: 'kindEdge',
+  pulseWidth: 'kindPulseWidth',
+  runt: 'kindRunt',
+  window: 'kindWindow',
+  timeout: 'kindTimeout',
+  pattern: 'kindPattern',
+  logic: 'kindLogic',
+  sequence: 'kindSequence',
 }
 
-export const MODE_OPTIONS: readonly { value: ModeName; label: string }[] = (
-  ['auto', 'normal', 'single', 'roll'] as const
-).map((value) => ({ value, label: MODE_LABEL[value] }))
+/** Opzioni dei selettori: le etichette sono testi della lingua corrente, quindi si leggono al momento della chiamata. */
+export function modeOptions(): readonly { value: ModeName; label: string }[] {
+  return (['auto', 'normal', 'single', 'roll'] as const).map((value) => ({ value, label: tr(MODE_KEY[value]) }))
+}
 
-export const TRIGGER_KINDS: readonly { kind: TriggerKind; label: string }[] = (
-  ['edge', 'pulseWidth', 'runt', 'window', 'timeout', 'pattern', 'logic', 'sequence'] as const
-).map((kind) => ({ kind, label: KIND_LABEL[kind] }))
+export function triggerKinds(): readonly { kind: TriggerKind; label: string }[] {
+  return (['edge', 'pulseWidth', 'runt', 'window', 'timeout', 'pattern', 'logic', 'sequence'] as const).map((kind) => ({
+    kind,
+    label: tr(KIND_KEY[kind]),
+  }))
+}
 
-export const SLOPE_OPTIONS: readonly { value: SlopeName; label: string }[] = (
-  ['rising', 'falling', 'either'] as const
-).map((value) => ({ value, label: SLOPE_LABEL[value] }))
+export function slopeOptions(): readonly { value: SlopeName; label: string }[] {
+  return [
+    { value: 'rising', label: tr('slopeRising') },
+    { value: 'falling', label: tr('slopeFalling') },
+    { value: 'either', label: tr('slopeEither') },
+  ]
+}
 
-export const POLARITY_OPTIONS: readonly { value: PolarityName; label: string }[] = [
-  { value: 'positive', label: 'Positivo' },
-  { value: 'negative', label: 'Negativo' },
-]
+export function polarityOptions(): readonly { value: PolarityName; label: string }[] {
+  return [
+    { value: 'positive', label: tr('polarityPositive') },
+    { value: 'negative', label: tr('polarityNegative') },
+  ]
+}
 
-export const LEVEL_OPTIONS: readonly { value: LevelName; label: string }[] = [
-  { value: 'high', label: 'Alto' },
-  { value: 'low', label: 'Basso' },
-  { value: 'any', label: 'Qualsiasi' },
-]
+export function levelOptions(): readonly { value: LevelName; label: string }[] {
+  return [
+    { value: 'high', label: tr('levelHigh') },
+    { value: 'low', label: tr('levelLow') },
+    { value: 'any', label: tr('levelAny') },
+  ]
+}
 
-export const WIDTH_OPTIONS: readonly { value: WidthSpec['op']; label: string }[] = [
-  { value: 'less', label: 'Minore' },
-  { value: 'greater', label: 'Maggiore' },
-  { value: 'within', label: 'Entro' },
-  { value: 'outside', label: 'Fuori' },
-]
+export function widthOptions(): readonly { value: WidthSpec['op']; label: string }[] {
+  return [
+    { value: 'less', label: tr('widthLess') },
+    { value: 'greater', label: tr('widthGreater') },
+    { value: 'within', label: tr('widthWithin') },
+    { value: 'outside', label: tr('widthOutside') },
+  ]
+}
 
 export const LOGIC_OP_OPTIONS: readonly { value: LogicOpName; label: string }[] = [
   { value: 'and', label: 'AND' },
@@ -69,14 +89,16 @@ export const LOGIC_OP_OPTIONS: readonly { value: LogicOpName; label: string }[] 
 ]
 
 /** Condizione di un canale nel trigger logico: fronte, livello rispetto alla soglia o nessuna. */
-export const COND_OPTIONS: readonly { value: CondName; label: string }[] = [
-  { value: 'rising', label: '↑' },
-  { value: 'falling', label: '↓' },
-  { value: 'either', label: '↕' },
-  { value: 'high', label: 'Alto' },
-  { value: 'low', label: 'Basso' },
-  { value: 'ignore', label: '—' },
-]
+export function condOptions(): readonly { value: CondName; label: string }[] {
+  return [
+    { value: 'rising', label: '↑' },
+    { value: 'falling', label: '↓' },
+    { value: 'either', label: '↕' },
+    { value: 'high', label: tr('levelHigh') },
+    { value: 'low', label: tr('levelLow') },
+    { value: 'ignore', label: '—' },
+  ]
+}
 
 /** Sorgente del trigger: il valore è una stringa per i gruppi di pulsanti, 1 o 2 nelle impostazioni. */
 export const SOURCE_OPTIONS: readonly { value: '1' | '2'; label: string }[] = [
@@ -85,10 +107,12 @@ export const SOURCE_OPTIONS: readonly { value: '1' | '2'; label: string }[] = [
 ]
 
 /** Entra o esce dalla finestra: `enter` nelle impostazioni. */
-export const ENTER_OPTIONS: readonly { value: 'enter' | 'exit'; label: string }[] = [
-  { value: 'enter', label: 'Entra' },
-  { value: 'exit', label: 'Esce' },
-]
+export function enterOptions(): readonly { value: 'enter' | 'exit'; label: string }[] {
+  return [
+    { value: 'enter', label: tr('enterIn') },
+    { value: 'exit', label: tr('enterOut') },
+  ]
+}
 
 /**
  * Trigger valido del tipo indicato, con la fascia attorno a `level` (±0,5 V) e durate da 1 ms.
@@ -123,8 +147,8 @@ export function defaultSpec(kind: TriggerKind, level: number): TriggerSpec {
 /** Testo dell'intestazione: "Auto · CH1 ↑ 1.5 V". Per i trigger non a fronte al posto della freccia c'è il nome del tipo. */
 export function triggerSummary(acq: AcquisitionSettings): string {
   const { trigger } = acq
-  const detail = trigger.kind === 'edge' ? SLOPE_ARROW[trigger.slope] : KIND_LABEL[trigger.kind]
-  return `${MODE_LABEL[acq.mode]} · CH${acq.triggerSource} ${detail} ${formatVolts(acq.triggerLevel)}`
+  const detail = trigger.kind === 'edge' ? SLOPE_ARROW[trigger.slope] : tr(KIND_KEY[trigger.kind])
+  return `${tr(MODE_KEY[acq.mode])} · CH${acq.triggerSource} ${detail} ${formatVolts(acq.triggerLevel)}`
 }
 
 export type StepKind = 'time' | 'volt'

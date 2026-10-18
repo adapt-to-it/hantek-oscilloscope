@@ -4,6 +4,7 @@
   import { CH_COLORS } from '../types'
   import { HISTORY_SIZE, type MeasureHistory } from './history'
   import { formatValue } from './rows'
+  import { tr } from '../i18n/msg/measures'
 
   interface Props {
     history: MeasureHistory
@@ -90,7 +91,7 @@
   /** "−N s" rispetto all'ultima lettura, calcolato dai tempi reali; "ora" per l'ultima. */
   function ago(t: number): string {
     const secs = Math.round((shown.times[count - 1] - t) / 1000)
-    return secs <= 0 ? 'ora' : `−${secs} s`
+    return secs <= 0 ? tr('now') : tr('secsAgo', { n: secs })
   }
 
   const legend = $derived(
@@ -146,13 +147,13 @@
   onclick={(event) => { if (event.target === event.currentTarget) onclose() }}
   style="position:fixed;inset:0;z-index:60;background:#05070ad9;display:flex;align-items:center;justify-content:center;padding:20px"
 >
-  <div class="card" role="dialog" aria-modal="true" aria-label="Andamento della misura {label}" style="width:min(900px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:16px 18px;background:#0e1115;border-color:#3a4350;box-shadow:0 20px 60px #000c">
+  <div class="card" role="dialog" aria-modal="true" aria-label={tr('trendDialogAria', { label })} style="width:min(900px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:16px 18px;background:#0e1115;border-color:#3a4350;box-shadow:0 20px 60px #000c">
     <div style="display:flex;align-items:flex-start;gap:12px">
       <div style="flex:1;display:flex;flex-direction:column;gap:2px">
-        <h2 style="font-size:18px;font-weight:700">Andamento di {label}</h2>
-        <span style="font-size:13px;color:#9aa3af">Ultime {HISTORY_SIZE} letture · una misura per frame</span>
+        <h2 style="font-size:18px;font-weight:700">{tr('trendHeading', { label })}</h2>
+        <span style="font-size:13px;color:#9aa3af">{tr('trendSub', { n: HISTORY_SIZE })}</span>
       </div>
-      <button class="btn" onclick={onclose} aria-label="Chiudi" style="height:34px;padding:0 10px">
+      <button class="btn" onclick={onclose} aria-label={tr('close')} style="height:34px;padding:0 10px">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"></path></svg>
         <span class="kbd">Esc</span>
       </button>
@@ -162,15 +163,15 @@
       <button class="btn" aria-pressed={paused ? 'true' : 'false'} onclick={togglePause} style="min-width:120px">
         {#if paused}
           <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="currentColor"></path></svg>
-          Riprendi
+          {tr('resume')}
         {:else}
           <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2" width="3.2" height="10" rx="1" fill="currentColor"></rect><rect x="8.3" y="2" width="3.2" height="10" rx="1" fill="currentColor"></rect></svg>
-          Pausa
+          {tr('pause')}
         {/if}
       </button>
       <div class="chip" role="status" style="height:32px">
         <span style="width:8px;height:8px;border-radius:50%;background:{paused ? '#8a94a1' : '#5fd68d'};display:inline-block"></span>
-        {paused ? 'In pausa' : 'In diretta'}
+        {paused ? tr('paused') : tr('live')}
       </div>
       <div style="flex:1"></div>
       {#each legend as item (item.ch)}
@@ -188,13 +189,13 @@
       onmouseleave={() => (hover = null)}
       style="position:relative;height:300px;border:1px solid #232932;border-radius:10px;background:#06080a;overflow:hidden;cursor:crosshair"
     >
-      <svg viewBox="0 0 1000 400" preserveAspectRatio="none" role="img" aria-label="Andamento nel tempo della misura {label}" style="position:absolute;left:0;top:0;width:100%;height:100%">
+      <svg viewBox="0 0 1000 400" preserveAspectRatio="none" role="img" aria-label={tr('trendChartAria', { label })} style="position:absolute;left:0;top:0;width:100%;height:100%">
         <path d="M0 100H1000M0 200H1000M0 300H1000M200 0V400M400 0V400M600 0V400M800 0V400" stroke="#1b2128" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"></path>
         <path d={paths[1]} stroke={CH_COLORS[1]} stroke-width="2" fill="none" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
         <path d={paths[0]} stroke={CH_COLORS[0]} stroke-width="2" fill="none" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
       </svg>
       {#if !range}
-        <div class="mono" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#6b7585">In attesa di misure</div>
+        <div class="mono" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#6b7585">{tr('waiting')}</div>
       {/if}
       <div class="mono" style="position:absolute;left:8px;top:6px;padding:0 4px;background:#06080a;font-size:11px;color:#9aa3af">{yLabels[0]}</div>
       <div class="mono" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);padding:0 4px;background:#06080a;font-size:11px;color:#9aa3af">{yLabels[1]}</div>
@@ -210,14 +211,14 @@
       {/if}
     </div>
     <div class="mono" style="display:flex;justify-content:space-between;font-size:11px;color:#9aa3af;margin-top:-8px;padding:0 2px">
-      <span>{count > 0 ? ago(shown.times[0]) : '—'}</span><span>ora</span>
+      <span>{count > 0 ? ago(shown.times[0]) : '—'}</span><span>{tr('now')}</span>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:10px">
       {#each stats as s (s.ch)}
         <div style="padding:10px 12px;border-radius:10px;background:#12151a;border:1px solid #232932;display:flex;flex-direction:column;gap:6px">
           <span style="font-weight:700;color:{s.color}">CH{s.ch + 1}</span>
-          <div class="mono" style="display:flex;justify-content:space-between;font-size:12px;color:#c3cad4"><span>min {s.min}</span><span>media {s.avg}</span><span>max {s.max}</span></div>
+          <div class="mono" style="display:flex;justify-content:space-between;font-size:12px;color:#c3cad4"><span>{tr('statMin', { v: s.min })}</span><span>{tr('statAvg', { v: s.avg })}</span><span>{tr('statMax', { v: s.max })}</span></div>
         </div>
       {/each}
     </div>

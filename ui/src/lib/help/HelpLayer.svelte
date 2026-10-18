@@ -1,7 +1,7 @@
 <script lang="ts">
   // Spiegazione unica a posizione fissa: con `active`, segue l'elemento più vicino con `data-help`
   // sotto il puntatore. Si apre sotto l'elemento, o sopra se sotto manca spazio, e resta nella finestra.
-  import { HELP, type HelpId } from './texts'
+  import { helpText, type HelpId } from './texts'
 
   interface Props {
     active: boolean
@@ -19,12 +19,12 @@
   let box = $state<HTMLDivElement | null>(null)
   let pos = $state({ left: 0, top: 0, ready: false })
 
-  const help = $derived(anchor ? HELP[anchor.dataset.help as HelpId] : undefined)
+  const help = $derived(anchor ? helpText(anchor.dataset.help as HelpId) : undefined)
 
   function onOver(event: PointerEvent) {
     const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-help]') : null
     if (target !== anchor) {
-      anchor = target && HELP[target.dataset.help as HelpId] ? target : null
+      anchor = target && helpText(target.dataset.help as HelpId) ? target : null
       pos = { ...pos, ready: false }
     }
   }

@@ -1,4 +1,5 @@
 import type { AnnotationView } from '../types'
+import { tr } from '../i18n/msg/display'
 
 export interface StripBlock {
   /** Inizio del blocco, in percentuale della finestra (0..100). */
@@ -67,7 +68,7 @@ export function stripBlocks(
     const [bg, fg] = isError ? ERROR_COLORS : (PALETTE.get(a.kind) ?? DEFAULT_COLORS)
     const fits = (width / 100) * widthPx >= a.text.length * CHAR_PX + PADDING_PX
     const text = fits ? a.text : ''
-    const title = isError ? (a.text ? `Errore: ${a.text}` : 'Errore') : a.text
+    const title = isError ? (a.text ? tr('errorTitleText', { text: a.text }) : tr('errorTitle')) : a.text
 
     blocks.push({ left, width, text, bg, fg, title })
   }

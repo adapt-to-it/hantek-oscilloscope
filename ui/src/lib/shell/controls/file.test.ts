@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RecordingView } from '../../types'
-import { LIMITS, defaultFileName, fileName, formatBytes, recordingLabel } from './file'
+import { defaultFileName, fileName, formatBytes, limitOptions, recordingLabel } from './file'
 
 function view(patch: Partial<RecordingView>): RecordingView {
   return { path: 'h6022.csv', format: 'csv', frames: 0, running: false, error: null, ...patch }
@@ -56,6 +56,6 @@ describe('recordingLabel', () => {
 
 describe('LIMITS', () => {
   it('elenca manuale, 10 s e 60 s', () => {
-    expect(LIMITS.map((l) => l.seconds)).toEqual([null, 10, 60])
+    expect(limitOptions().map((l) => l.seconds)).toEqual([null, 10, 60])
   })
 })
