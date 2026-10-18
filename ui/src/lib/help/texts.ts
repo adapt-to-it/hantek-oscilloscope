@@ -7,6 +7,37 @@ export type HelpId =
   | 'fftWindow' | 'persistence' | 'measurements' | 'vpp' | 'vrms' | 'vacRms' | 'frequency' | 'duty'
   | 'riseTime' | 'thd' | 'phase' | 'sampleRate' | 'recordLength' | 'math' | 'filter' | 'classify'
   | 'recording' | 'decoder' | 'mcp' | 'device' | 'trend'
+  | 'explain'
+  | 'status'
+  | 'scope'
+  | 'panelTabs'
+  | 'logFrequency'
+  | 'pulsePolarity'
+  | 'pulseWidth'
+  | 'runt'
+  | 'windowTrigger'
+  | 'timeoutTrigger'
+  | 'patternTrigger'
+  | 'logicTrigger'
+  | 'otherLevel'
+  | 'sequenceTrigger'
+  | 'sequenceDelay'
+  | 'vmax'
+  | 'vmin'
+  | 'vmean'
+  | 'vtop'
+  | 'vbase'
+  | 'vamp'
+  | 'fallTime'
+  | 'overshoot'
+  | 'period'
+  | 'pulseWidthMeasure'
+  | 'edges'
+  | 'delay'
+  | 'decoderProtocol'
+  | 'decoderChannel'
+  | 'decoderThreshold'
+  | 'engine'
 
 export interface HelpText {
   title: string
@@ -178,5 +209,129 @@ export const HELP: Record<HelpId, HelpText> = {
   trend: {
     title: 'Andamento della misura',
     text: 'Mostra come una misura cambia nel tempo, acquisizione dopo acquisizione. Serve a notare una deriva lenta che non si vede nella singola forma d’onda. Con la tensione di alimentazione che scende piano, l’andamento mostra la discesa.',
+  },
+  explain: {
+    title: 'Spiegazioni',
+    text: 'Attiva o disattiva queste spiegazioni. Con la modalità attiva, passa il puntatore su un controllo per leggere a cosa serve. Il tasto i fa lo stesso.',
+  },
+  status: {
+    title: 'Stato acquisizione',
+    text: 'Indica se l’acquisizione è in corso, ferma o in attesa di un trigger. In modo Normale, «In attesa» significa che nessun evento soddisfa la condizione di trigger.',
+  },
+  scope: {
+    title: 'Display',
+    text: 'Mostra le tracce in funzione del tempo. Passa il puntatore per leggere tempo e tensioni in quel punto. Trascina i marcatori a sinistra per spostare i canali e il triangolo T a destra per il livello di trigger.',
+  },
+  panelTabs: {
+    title: 'Schede del pannello',
+    text: 'Controlli raccoglie canali, base dei tempi, trigger e display. Decoder imposta la decodifica dei protocolli. Strumenti contiene registrazione, classificazione, matematica e filtro.',
+  },
+  logFrequency: {
+    title: 'Asse logaritmico',
+    text: 'Mostra l’asse delle frequenze dello spettro in scala logaritmica. Serve a vedere insieme armoniche basse e alte, per esempio da 50 Hz a 50 kHz.',
+  },
+  pulsePolarity: {
+    title: 'Polarità impulso',
+    text: 'Sceglie se misurare gli impulsi positivi, cioè sopra il livello, o quelli negativi, sotto il livello.',
+  },
+  pulseWidth: {
+    title: 'Larghezza impulso',
+    text: 'Il trigger scatta quando un impulso dura meno, più, dentro o fuori dai limiti impostati. Serve a catturare un impulso anomalo in un treno PWM.',
+  },
+  runt: {
+    title: 'Trigger runt',
+    text: 'Scatta su un impulso che supera la soglia bassa ma non raggiunge quella alta. Serve a trovare impulsi deboli in un segnale digitale, per esempio per un’alimentazione instabile.',
+  },
+  windowTrigger: {
+    title: 'Trigger a finestra',
+    text: 'Scatta quando il segnale entra o esce dalla fascia tra soglia bassa e soglia alta. Serve a sorvegliare una tensione che deve restare in un intervallo.',
+  },
+  timeoutTrigger: {
+    title: 'Trigger timeout',
+    text: 'Scatta quando il segnale non presenta il fronte scelto per il tempo impostato. Serve a catturare un clock che si ferma o un bus che resta inattivo.',
+  },
+  patternTrigger: {
+    title: 'Trigger a pattern',
+    text: 'Scatta quando entrambi i canali assumono la combinazione di livelli alto e basso scelta. Il valore «qualsiasi» esclude il canale dal confronto.',
+  },
+  logicTrigger: {
+    title: 'Trigger logico',
+    text: 'Ogni canale ha una condizione: fronte, alto, basso o ignora. AND scatta quando tutte sono vere, OR quando ne basta una. Serve a catturare un evento che può comparire su uno dei due canali.',
+  },
+  otherLevel: {
+    title: 'Livello altro canale',
+    text: 'Soglia del canale che non è la sorgente. Ogni canale ha così il proprio livello nei trigger logico e A → B.',
+  },
+  sequenceTrigger: {
+    title: 'Trigger A → B',
+    text: 'Il fronte A sul canale sorgente arma il trigger. Il frame scatta al primo fronte B sull’altro canale, che diventa il tempo zero. Serve a misurare una causa e il suo effetto.',
+  },
+  sequenceDelay: {
+    title: 'Ritardo B',
+    text: 'Tempo minimo tra il fronte A e il fronte B. I fronti B che arrivano prima vengono ignorati. Con 0 vale il primo fronte B dopo A.',
+  },
+  vmax: {
+    title: 'Vmax',
+    text: 'Tensione più alta nella finestra visibile. Include picchi e disturbi.',
+  },
+  vmin: {
+    title: 'Vmin',
+    text: 'Tensione più bassa nella finestra visibile. Include picchi e disturbi.',
+  },
+  vmean: {
+    title: 'Vmedia',
+    text: 'Valore medio della tensione nella finestra. Corrisponde alla componente continua del segnale.',
+  },
+  vtop: {
+    title: 'Vtop',
+    text: 'Livello alto stabile del segnale, calcolato dall’istogramma delle tensioni. Esclude overshoot e picchi, a differenza di Vmax.',
+  },
+  vbase: {
+    title: 'Vbase',
+    text: 'Livello basso stabile del segnale, calcolato dall’istogramma delle tensioni. Esclude undershoot e picchi, a differenza di Vmin.',
+  },
+  vamp: {
+    title: 'Ampiezza',
+    text: 'Differenza tra Vtop e Vbase. Per un’onda quadra è l’escursione reale tra i due livelli, senza i picchi.',
+  },
+  fallTime: {
+    title: 'Tempo di discesa',
+    text: 'Tempo che il segnale impiega a scendere dal 90 % al 10 % dell’ampiezza. Serve a valutare la velocità di un’uscita digitale.',
+  },
+  overshoot: {
+    title: 'Overshoot',
+    text: 'Quanto il segnale supera Vtop dopo un fronte, in percentuale dell’ampiezza. Un valore alto indica risonanze o un carico non adattato.',
+  },
+  period: {
+    title: 'Periodo',
+    text: 'Durata di un ciclo completo del segnale, cioè l’inverso della frequenza. Mostra «—» se la finestra non contiene un periodo intero.',
+  },
+  pulseWidthMeasure: {
+    title: 'Larghezza impulso',
+    text: 'Durata della parte alta (+) e della parte bassa (−) di un ciclo, misurata a metà ampiezza.',
+  },
+  edges: {
+    title: 'Fronti',
+    text: 'Numero di fronti di salita e di discesa nella finestra visibile.',
+  },
+  delay: {
+    title: 'Ritardo CH1–CH2',
+    text: 'Tempo tra un fronte di CH1 e il fronte corrispondente di CH2. Serve a misurare la latenza di un circuito.',
+  },
+  decoderProtocol: {
+    title: 'Protocollo',
+    text: 'Sceglie il protocollo da decodificare, per esempio UART, I2C o CAN. I parametri sotto cambiano in base al protocollo.',
+  },
+  decoderChannel: {
+    title: 'Canale del decoder',
+    text: 'Sceglie il canale che porta il segnale da decodificare.',
+  },
+  decoderThreshold: {
+    title: 'Soglia del decoder',
+    text: 'Tensione che separa lo 0 dall’1 logico. Con la soglia automatica il decoder usa il punto medio tra i livelli alto e basso del segnale.',
+  },
+  engine: {
+    title: 'Motore',
+    text: 'Sorgente dei dati e numero di frame al secondo mostrati. La frequenza di campionamento misurata indica i campioni che arrivano davvero dal dispositivo.',
   },
 }

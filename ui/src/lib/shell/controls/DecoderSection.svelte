@@ -125,7 +125,7 @@
 <div style="display:flex;flex-direction:column;gap:8px">
   {@render toggleRow('Attiva decoder', decoder.enabled, () => setEnabled(!decoder.enabled))}
 
-  <div class="rw">
+  <div class="rw" data-help="decoderProtocol">
     <span class="lb">Protocollo</span>
     <select style={SELECT_STYLE} aria-label="Protocollo" value={protocol}
       onchange={(e) => pickProtocol(e.currentTarget.value as ProtocolName)}>
@@ -135,7 +135,7 @@
     </select>
   </div>
 
-  <div class="rw">
+  <div class="rw" data-help="decoderChannel">
     <span class="lb">Canale</span>
     <select style={SELECT_STYLE} aria-label="Canale da decodificare" value={String(params.channel)}
       onchange={(e) => withParams({ channel: Number(e.currentTarget.value) as 1 | 2 })}>
@@ -144,6 +144,7 @@
     </select>
   </div>
 
+  <div data-help="decoderThreshold" style="display:flex;flex-direction:column;gap:8px">
   {@render toggleRow('Soglia automatica', thresholdAuto, toggleThreshold)}
   {#if !thresholdAuto}
     {@render stepRow('Soglia', formatVolts(threshold),
@@ -151,6 +152,7 @@
       () => stepThreshold(1),
     )}
   {/if}
+  </div>
 
   {#if protocol === 'uart'}
     <div style="display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1px solid #20262e">

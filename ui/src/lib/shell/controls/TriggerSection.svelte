@@ -1,5 +1,6 @@
 <script lang="ts">
   // Corpo della sezione Trigger: modo, sorgente, tipo con i suoi parametri, livello e holdoff.
+  import type { HelpId } from '../../help/texts'
   import type {
     AcquisitionSettings,
     CondName,
@@ -53,10 +54,21 @@
   function pickKind(kind: TriggerKind) {
     if (kind !== trigger.kind) setTrigger(defaultSpec(kind, acq.triggerLevel))
   }
+
+  const KIND_HELP: Record<TriggerSpec['kind'], HelpId> = {
+    edge: 'triggerSlope',
+    pulseWidth: 'pulseWidth',
+    runt: 'runt',
+    window: 'windowTrigger',
+    timeout: 'timeoutTrigger',
+    pattern: 'patternTrigger',
+    logic: 'logicTrigger',
+    sequence: 'sequenceTrigger',
+  }
 </script>
 
-{#snippet segRow(label: string, options: readonly { value: string; label: string }[], current: string, pick: (value: string) => void)}
-  <div class="rw">
+{#snippet segRow(label: string, options: readonly { value: string; label: string }[], current: string, pick: (value: string) => void, help?: HelpId)}
+  <div class="rw" data-help={help}>
     <span class="lb">{label}</span>
     <div class="segrow" role="group" aria-label={label}>
       {#each options as option (option.value)}
@@ -67,8 +79,8 @@
   </div>
 {/snippet}
 
-{#snippet stepRow(label: string, text: string, dec: () => void, inc: () => void)}
-  <div class="rw">
+{#snippet stepRow(label: string, text: string, dec: () => void, inc: () => void, help?: HelpId)}
+  <div class="rw" data-help={help}>
     <span class="lb">{label}</span>
     <div style="display:flex;align-items:center;gap:6px">
       <button class="step" aria-label="Riduci {label}" onclick={dec}>−</button>
@@ -79,12 +91,12 @@
 {/snippet}
 
 <div style="display:flex;flex-direction:column;gap:6px">
-  {@render segRow('Modo', MODE_OPTIONS, acq.mode, (value) => withAcq({ mode: value as ModeName }))}
+  {@render segRow('Modo', MODE_OPTIONS, acq.mode, (value) => withAcq({ mode: value as ModeName }), 'triggerMode')}
   {@render segRow('Sorgente', SOURCE_OPTIONS, String(acq.triggerSource), (value) =>
-    withAcq({ triggerSource: Number(value) as 1 | 2 }),
+    withAcq({ triggerSource: Number(value) as 1 | 2 }), 'triggerSource',
   )}
 
-  <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0">
+  <div data-help="triggerKind" style="display:flex;flex-direction:column;gap:6px;padding:4px 0">
     <span class="lb" style="font-size:13px;color:#c3cad4">Tipo</span>
     <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
       {#each TRIGGER_KINDS as option (option.kind)}
@@ -94,6 +106,7 @@
     </div>
   </div>
 
+  <div data-help={KIND_HELP[trigger.kind]} style="display:flex;flex-direction:column;gap:6px">
   {#if trigger.kind === 'edge'}
     {@const spec = trigger}
     {@render segRow('Pendenza', SLOPE_OPTIONS, spec.slope, (value) =>
@@ -170,7 +183,7 @@
     {@render segRow('CH2', COND_OPTIONS, spec.ch2, (value) => setTrigger({ ...spec, ch2: value as CondName }))}
     {@render stepRow(`Livello CH${otherCh}`, formatVolts(spec.otherLevel),
       () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, -1) }),
-      () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, 1) }),
+      () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, 1) }), 'otherLevel',
     )}
   {:else if trigger.kind === 'sequence'}
     {@const spec = trigger}
@@ -182,13 +195,14 @@
     )}
     {@render stepRow(`Livello CH${otherCh}`, formatVolts(spec.otherLevel),
       () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, -1) }),
-      () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, 1) }),
+      () => setTrigger({ ...spec, otherLevel: stepValue('volt', spec.otherLevel, 1) }), 'otherLevel',
     )}
     {@render stepRow('Ritardo B', formatTime(spec.delay),
       () => setTrigger({ ...spec, delay: stepDelay(spec.delay, -1) }),
-      () => setTrigger({ ...spec, delay: stepDelay(spec.delay, 1) }),
+      () => setTrigger({ ...spec, delay: stepDelay(spec.delay, 1) }), 'sequenceDelay',
     )}
   {/if}
+  </div>
 
   {#if dual}
     <span style="font-size:12px;color:#9aa3af">Richiede CH1 e CH2 attivi. La sorgente sceglie il canale che usa il livello del marcatore T.</span>
@@ -196,10 +210,10 @@
 
   {@render stepRow(dual ? `Livello CH${acq.triggerSource}` : 'Livello', formatVolts(acq.triggerLevel),
     () => withAcq({ triggerLevel: stepValue('volt', acq.triggerLevel, -1) }),
-    () => withAcq({ triggerLevel: stepValue('volt', acq.triggerLevel, 1) }),
+    () => withAcq({ triggerLevel: stepValue('volt', acq.triggerLevel, 1) }), 'triggerLevel',
   )}
   {@render stepRow('Holdoff', formatTime(acq.holdoff),
     () => withAcq({ holdoff: stepValue('time', acq.holdoff, -1) }),
-    () => withAcq({ holdoff: stepValue('time', acq.holdoff, 1) }),
+    () => withAcq({ holdoff: stepValue('time', acq.holdoff, 1) }), 'holdoff',
   )}
 </div>

@@ -32,7 +32,7 @@
 </script>
 
 <div style="display:flex;flex-direction:column;gap:6px">
-  <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0">
+  <div data-help="fftWindow" style="display:flex;flex-direction:column;gap:6px;padding:4px 0">
     <span style="font-size:13px;color:#c3cad4">Finestra FFT</span>
     <div style="display:flex;flex-wrap:wrap;gap:6px">
       {#each WINDOW_OPTIONS as option (option.window)}
@@ -42,7 +42,7 @@
     </div>
   </div>
 
-  <div class="rw"><span class="lb">Asse delle frequenze logaritmico</span>
+  <div class="rw" data-help="logFrequency"><span class="lb">Asse delle frequenze logaritmico</span>
     <button class="tgl {display.logFrequency ? 'on' : ''}" role="switch" aria-checked={display.logFrequency}
       aria-label="Asse delle frequenze logaritmico" onclick={toggleLog}></button>
   </div>

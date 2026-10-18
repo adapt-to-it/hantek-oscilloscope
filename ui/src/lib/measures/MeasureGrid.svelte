@@ -6,6 +6,15 @@
   import type { MeasureHistory } from './history'
   import { measureGroups, type MeasureRow } from './rows'
   import TrendModal from './TrendModal.svelte'
+  import type { HelpId } from '../help/texts'
+
+  // Spiegazione di ogni riga, per campo misurato.
+  const ROW_HELP: Partial<Record<keyof ChannelMeasures, HelpId>> = {
+    vpp: 'vpp', vmax: 'vmax', vmin: 'vmin', vmean: 'vmean', vrms: 'vrms', vacRms: 'vacRms',
+    vtop: 'vtop', vbase: 'vbase', vamp: 'vamp', riseTime: 'riseTime', fallTime: 'fallTime',
+    overshootPct: 'overshoot', frequency: 'frequency', period: 'period', dutyPositive: 'duty',
+    pulseWidthPositive: 'pulseWidthMeasure', pulseWidthNegative: 'pulseWidthMeasure', risingEdges: 'edges',
+  }
 
   interface Props {
     snapshot: MeasureSnapshot | null
@@ -45,7 +54,7 @@
   }
 </script>
 
-<section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px">
+<section data-help="measurements" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px">
   {#each groups as group (group.title)}
     <div class="card" style="padding:8px 10px 10px;display:flex;flex-direction:column;gap:2px">
       <div class="mrow" style="min-height:30px;border-bottom:1px solid #20262e;border-radius:0">
@@ -55,7 +64,7 @@
         <span></span>
       </div>
       {#each group.rows as row (row.label)}
-        <div class="mrow">
+        <div class="mrow" data-help={ROW_HELP[row.field]}>
           <span style="white-space:nowrap">{row.label}</span>
           <span class="mono" style="text-align:right;color:{cellColor(row.ch1, 0)}">{row.ch1}</span>
           <span class="mono" style="text-align:right;color:{cellColor(row.ch2, 1)}">{row.ch2}</span>
@@ -72,8 +81,8 @@
   {/each}
 </section>
 <div style="display:flex;flex-wrap:wrap;gap:6px 24px;font-size:13px;color:#c3cad4;padding:0 4px">
-  <span>Fase CH1–CH2 <span class="mono" style="color:#8a94a1;margin-left:6px">{phaseText(snapshot?.phaseDeg)}</span></span>
-  <span>Ritardo CH1–CH2 <span class="mono" style="color:#8a94a1;margin-left:6px">{delayText(snapshot?.delayS)}</span></span>
+  <span data-help="phase">Fase CH1–CH2 <span class="mono" style="color:#8a94a1;margin-left:6px">{phaseText(snapshot?.phaseDeg)}</span></span>
+  <span data-help="delay">Ritardo CH1–CH2 <span class="mono" style="color:#8a94a1;margin-left:6px">{delayText(snapshot?.delayS)}</span></span>
   <span style="color:#8a94a1">— = non calcolabile nella finestra attuale</span>
 </div>
 

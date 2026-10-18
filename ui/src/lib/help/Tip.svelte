@@ -1,20 +1,16 @@
 <script lang="ts">
-  // Avvolge un controllo: con la classe `exp` su un antenato, il passaggio del puntatore mostra la spiegazione.
+  // Avvolge un blocco e gli assegna una spiegazione: HelpLayer la mostra al passaggio del puntatore.
   import type { Snippet } from 'svelte'
-  import { HELP, type HelpId } from './texts'
+  import type { HelpId } from './texts'
 
   interface Props {
     id: HelpId
-    /** Mostra la spiegazione sopra il controllo invece che sotto. */
-    up?: boolean
     children: Snippet
   }
 
-  let { id, up = false, children }: Props = $props()
-  const help = $derived(HELP[id])
+  let { id, children }: Props = $props()
 </script>
 
-<div class="tipw">
+<div data-help={id}>
   {@render children()}
-  {#if help}<div class="tip {up ? 'up' : ''}" role="tooltip"><b>{help.title}</b>{help.text}</div>{/if}
 </div>

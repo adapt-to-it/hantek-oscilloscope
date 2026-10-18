@@ -40,12 +40,9 @@ button.chip:hover{background:#181c22}
 .acc-t{flex:1;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:10px 0;text-align:left;font-size:14px;font-weight:700}
 .rw{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px}
 .rw>span.lb{font-size:13px;color:#c3cad4}
-.tipw{position:relative}
-.tip{display:none;position:absolute;left:0;right:0;top:100%;z-index:30;padding:10px 12px;border-radius:9px;background:#0b0d10;border:1px solid #4a5568;box-shadow:0 8px 24px #000a;font-size:13px;line-height:1.45;color:#c3cad4;pointer-events:none}
+.tip{padding:10px 12px;border-radius:9px;background:#0b0d10;border:1px solid #4a5568;box-shadow:0 8px 24px #000a;font-size:13px;line-height:1.45;color:#c3cad4;pointer-events:none}
 .tip b{display:block;color:#fff;font-size:13px;margin-bottom:2px}
-.tip.up{top:auto;bottom:100%}
-.exp .tipw:hover>.tip{display:block}
-.tipw.force>.tip{display:block}
+.exp [data-help]:hover:not(:has([data-help]:hover)){outline:1px dashed #4a5568;outline-offset:2px;border-radius:6px}
 .mrow{display:grid;grid-template-columns:1fr 76px 76px 28px;gap:6px;align-items:center;padding:0 4px;min-height:30px;font-size:13px;color:#c3cad4}
 .ibtn{width:26px;height:26px;border-radius:6px;border:1px solid transparent;background:transparent;color:#8a94a1;display:inline-flex;align-items:center;justify-content:center;padding:0}
 .ibtn:hover{background:#222833;border-color:#3a4350;color:#e8ebef}

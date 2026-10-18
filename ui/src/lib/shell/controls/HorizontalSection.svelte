@@ -33,7 +33,7 @@
 </script>
 
 <div style="display:flex;flex-direction:column;gap:4px">
-  <div class="rw">
+  <div class="rw" data-help="timePerDiv">
     <span class="lb">Tempo/div</span>
     <div style="display:flex;align-items:center;gap:6px">
       <button class="step" aria-label="Riduci tempo per divisione"
@@ -43,7 +43,7 @@
         onclick={() => withTime(step(TIME_STEPS, view.timePerDiv, 1))}>+</button>
     </div>
   </div>
-  <div class="rw">
+  <div class="rw" data-help="horizontalOffset">
     <span class="lb">Offset</span>
     <div style="display:flex;align-items:center;gap:6px">
       <button class="step" aria-label="Sposta a sinistra"
@@ -54,7 +54,7 @@
       <button class="lnk" onclick={() => withHorizontal(0)}>Centra</button>
     </div>
   </div>
-  <div class="rw">
+  <div class="rw" data-help="pretrigger">
     <span class="lb">Pretrigger</span>
     <div style="display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end">
       <input type="range" min="0" max="100" step={PRETRIGGER_STEP_PCT} value={pretriggerPct}
@@ -64,6 +64,6 @@
     </div>
   </div>
   {#if info}
-    <div class="mono" style="font-size:12px;color:#8a94a1;padding-top:4px">{info}</div>
+    <div class="mono" data-help="recordLength" style="font-size:12px;color:#8a94a1;padding-top:4px">{info}</div>
   {/if}
 </div>

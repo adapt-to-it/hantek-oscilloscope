@@ -78,7 +78,7 @@
     </Tip>
   </div>
 
-  <div class="chip" role="status" style="gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:{pill.color};display:inline-block"></span>{pill.text}</div>
+  <div class="chip" role="status" data-help="status" style="gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:{pill.color};display:inline-block"></span>{pill.text}</div>
 
   <div style="flex:1 1 10px"></div>
 
@@ -94,7 +94,7 @@
     <span class="kbd" title="Tasto F: cambia vista">F</span>
   </div>
 
-  <button class="btn {explain ? 'on' : ''}" aria-pressed={explain} onclick={onexplain}>Spiegazioni <span class="kbd">i</span></button>
+  <button data-help="explain" class="btn {explain ? 'on' : ''}" aria-pressed={explain} onclick={onexplain}>Spiegazioni <span class="kbd">i</span></button>
 
   {#if recording?.running}
     <div class="chip mono" role="status" style="font-size:12px;color:#ff6b6b" title={recording.path}>

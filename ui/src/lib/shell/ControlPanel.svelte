@@ -123,7 +123,7 @@
 
 <div style="display:flex;flex-direction:column">
   <div style="padding:10px 12px;border-bottom:1px solid #20262e">
-    <div class="segrow" role="group" aria-label="Pannello" style="display:flex;width:100%">
+    <div class="segrow" role="group" aria-label="Pannello" data-help="panelTabs" style="display:flex;width:100%">
       {#each TABS as option (option.id)}
         <button class="seg {tab === option.id ? 'on' : ''}" style="flex:1" aria-pressed={tab === option.id}
           onclick={() => (tab = option.id)}>{option.label}{#if badges[option.id]}<span style="margin-left:6px;width:7px;height:7px;border-radius:50%;background:{badges[option.id]};display:inline-block"></span>{/if}</button>
@@ -141,7 +141,7 @@
           </button>
           {#if section.channel !== null}
             {@const index = section.channel}
-            <button class="tgl {index === 0 ? 'c1' : 'c2'} {view.channels[index].enabled ? 'on' : ''}"
+            <button data-help="channelEnable" class="tgl {index === 0 ? 'c1' : 'c2'} {view.channels[index].enabled ? 'on' : ''}"
               role="switch" aria-checked={view.channels[index].enabled} aria-label="{section.name} attivo"
               onclick={() => toggleChannel(index)}></button>
           {/if}
@@ -162,7 +162,7 @@
       </div>
     {/each}
   {:else if tab === 'decoder'}
-    <div style="padding:14px">
+    <div style="padding:14px" data-help="decoder">
       <DecoderSection {decoder} {ondecoder} />
     </div>
   {:else}

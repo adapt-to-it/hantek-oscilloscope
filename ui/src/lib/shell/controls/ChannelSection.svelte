@@ -41,7 +41,7 @@
 </script>
 
 <div style="display:flex;flex-direction:column;gap:4px">
-  <div class="rw">
+  <div class="rw" data-help="voltsPerDiv">
     <span class="lb">V/div</span>
     <div style="display:flex;align-items:center;gap:6px">
       <button class="step" aria-label="Riduci volt per divisione {label}"
@@ -51,7 +51,7 @@
         onclick={() => withChannel({ voltsPerDiv: step(VOLT_STEPS, channel.voltsPerDiv, 1) })}>+</button>
     </div>
   </div>
-  <div class="rw">
+  <div class="rw" data-help="verticalOffset">
     <span class="lb">Offset</span>
     <div style="display:flex;align-items:center;gap:6px">
       <button class="step" aria-label="Sposta in basso {label}"
@@ -62,7 +62,7 @@
       <button class="lnk" onclick={() => withChannel({ offsetDiv: 0 })}>Azzera</button>
     </div>
   </div>
-  <div class="rw">
+  <div class="rw" data-help="probe">
     <span class="lb">Sonda</span>
     <div class="segrow" role="group" aria-label="Sonda {label}">
       {#each PROBE_OPTIONS as probe (probe)}
@@ -71,7 +71,7 @@
       {/each}
     </div>
   </div>
-  <div class="rw">
+  <div class="rw" data-help="coupling">
     <span class="lb">Accoppiamento</span>
     <div class="segrow" role="group" aria-label="Accoppiamento {label}">
       <button class="seg {acq.ac[index] ? '' : 'on'}" aria-pressed={!acq.ac[index]}

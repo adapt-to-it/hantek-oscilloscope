@@ -31,6 +31,7 @@
   import TopBar from './lib/shell/TopBar.svelte'
   import ControlPanel from './lib/shell/ControlPanel.svelte'
   import Footer from './lib/shell/Footer.svelte'
+  import HelpLayer from './lib/help/HelpLayer.svelte'
   import { nextMode, shortcutFor, toggleCommand, type RunCommand } from './lib/shell/keys'
 
   const STATUS_INTERVAL_MS = 500
@@ -329,4 +330,5 @@
   </main>
 
   <Footer {status} {fps} />
+  <HelpLayer active={explain} />
 </div>
