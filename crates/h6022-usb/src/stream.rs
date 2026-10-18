@@ -103,13 +103,13 @@ impl<B: BulkSource> Stream<B> {
                         None => self.carry = Some(ch1),
                     }
                 }
-                let pairs = raw.chunks_exact(2);
-                self.carry = self.carry.or(pairs.remainder().first().copied());
+                let (pairs, remainder) = raw.as_chunks::<2>();
+                self.carry = self.carry.or(remainder.first().copied());
                 block.ch1.reserve(pairs.len());
                 block.ch2.reserve(pairs.len());
-                for pair in pairs {
-                    block.ch1.push(pair[0]);
-                    block.ch2.push(pair[1]);
+                for &[ch1, ch2] in pairs {
+                    block.ch1.push(ch1);
+                    block.ch2.push(ch2);
                 }
             }
         }

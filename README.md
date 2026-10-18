@@ -3,6 +3,13 @@
 Open-source software for Hantek USB oscilloscopes. It currently supports the Hantek 6022BE.
 It runs on macOS, Windows and Linux.
 
+> [!WARNING]
+> **Windows and Linux are not tested yet.** The author develops and tests the software on macOS
+> with a real Hantek 6022BE. On Windows and Linux the CI only checks that the code compiles and
+> that the unit tests pass. Nobody has used the device with those builds yet. If you try them,
+> report the result with the
+> [platform test report](https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=6-platform-report.yml).
+
 It is a modern alternative to the original Hantek software and to OpenHantek. A single Rust
 engine drives the device. A desktop app, a command-line tool, an MCP server for AI agents and a
 Python API all use that engine.
@@ -46,8 +53,8 @@ firmware, so unplugging it restores the original state.
 | OS | Status |
 |---|---|
 | macOS (Apple Silicon and Intel) | Tested with the device |
-| Windows | Builds and tests pass in CI, not yet tested with the device |
-| Linux | Builds and tests pass in CI, not yet tested with the device |
+| Windows | **Not tested.** Compiles and passes unit tests in CI only |
+| Linux | **Not tested.** Compiles and passes unit tests in CI only |
 
 The USB layer uses [nusb](https://github.com/kevinmehall/nusb) and does not depend on libusb.
 
@@ -159,6 +166,55 @@ ui/              Svelte interface
 firmware/        FX2LP firmware (C, SDCC)
 python/          Python client
 ```
+
+## Issues and discussions
+
+Choose the channel that matches your request. Each one has a form that asks for the details we
+need.
+
+### Issues: confirmed problems and concrete requests
+
+| Category | Use it when | Label |
+|---|---|---|
+| [Bug report](https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=1-bug.yml) | A feature gives a wrong result or behaves unexpectedly | `bug` |
+| [Crash or freeze](https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=2-crash.yml) | The app or the CLI closes, freezes or loses the device | `crash` |
+| [Feature request](https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=3-feature.yml) | You want a new function or an improvement | `enhancement` |
+| [Protocol decoder request](https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=4-decoder.yml) | You want a new serial decoder or a decoder option | `decoder` |
+| [New device support](https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=5-new-device.yml) | You want support for another Hantek model | `device-support` |
+| [Platform test report](https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=6-platform-report.yml) | You tried the software on Windows, Linux or a new macOS version | `platform-report` |
+| [Documentation or translation](https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=7-docs.yml) | A text, an explanation or a translation is wrong or missing | `documentation` |
+
+Before you open an issue, search the
+[existing issues](https://github.com/adapt-to-it/hantek-oscilloscope/issues?q=is%3Aissue). If
+one already describes your problem, add your details there.
+
+### Discussions: questions, ideas and projects
+
+| Category | Use it when |
+|---|---|
+| [Q&A](https://github.com/adapt-to-it/hantek-oscilloscope/discussions/categories/q-a) | You need help with installation, drivers, settings or measurements |
+| [Ideas](https://github.com/adapt-to-it/hantek-oscilloscope/discussions/categories/ideas) | You have an idea that is not yet a concrete feature request |
+| [Show and tell](https://github.com/adapt-to-it/hantek-oscilloscope/discussions/categories/show-and-tell) | You want to share a project, a measurement, a script or a hardware mod |
+| [Polls](https://github.com/adapt-to-it/hantek-oscilloscope/discussions/categories/polls) | The maintainers ask the community to choose between options |
+| [Announcements](https://github.com/adapt-to-it/hantek-oscilloscope/discussions/categories/announcements) | The maintainers publish releases and news |
+
+### Security
+
+Report vulnerabilities privately through a
+[security advisory](https://github.com/adapt-to-it/hantek-oscilloscope/security/advisories/new).
+Do not open a public issue.
+
+### How we handle requests
+
+1. Every new issue receives the `needs-triage` label.
+2. A maintainer reproduces the problem and replaces the label with `confirmed`, or with
+   `needs-info` if details are missing. An issue in `needs-info` for 30 days without an answer
+   is closed.
+3. A request that the hardware cannot satisfy receives `hardware-limit` and is closed with an
+   explanation. The 6022BE has 2 analog channels, 8 bit, 20 MHz and no hardware trigger.
+4. Labels `platform: windows`, `platform: linux` and `platform: macos` mark problems that occur
+   on one system only.
+5. Issues with `good first issue` or `help wanted` are open to contributors.
 
 ## Releases
 

@@ -1,0 +1,36 @@
+name: Documentation or translation
+description: Report an error in the README, the in-app explanations or a translation.
+title: "[Docs] "
+labels: [documentation]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type
+      options:
+        - README or repository documentation
+        - In-app explanations (key i)
+        - English translation
+        - Italian translation
+        - French translation
+        - Spanish translation
+        - Request for a new language
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Where
+      description: File, section or control in the app.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current text
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed text
+    validations:
+      required: true

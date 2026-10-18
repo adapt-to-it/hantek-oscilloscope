@@ -93,10 +93,7 @@ mod tests {
         assert_eq!(&bytes[..8], b"\x93NUMPY\x01\x00");
         let dict = std::str::from_utf8(&bytes[10..HEADER_LEN]).unwrap();
         assert!(dict.contains("'shape': (6, 2), }"), "{dict}");
-        let data: Vec<f32> = bytes[HEADER_LEN..]
-            .chunks_exact(4)
-            .map(|c| f32::from_le_bytes(c.try_into().unwrap()))
-            .collect();
+        let data: Vec<f32> = bytes[HEADER_LEN..].as_chunks::<4>().0.iter().map(|c| f32::from_le_bytes(*c)).collect();
         assert_eq!(
             data,
             vec![0.1, -1.0, 0.2, -2.0, 0.3, -3.0, 0.4, -4.0, 0.5, -5.0, 0.6, -6.0]

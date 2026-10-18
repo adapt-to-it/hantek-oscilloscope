@@ -1,0 +1,14 @@
+title: "[Show] "
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What you built or measured
+      description: Screenshots, scripts, MCP workflows, hardware mods, probe setups.
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Setup
+      placeholder: Hantek 6022BE, Linux, v0.2.0

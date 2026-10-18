@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or help with setup
+    url: https://github.com/adapt-to-it/hantek-oscilloscope/discussions/categories/q-a
+    about: Ask how to install, configure or use the software. Issues are for confirmed problems.
+  - name: Idea or proposal to discuss
+    url: https://github.com/adapt-to-it/hantek-oscilloscope/discussions/categories/ideas
+    about: Discuss an idea before it becomes a concrete feature request.
+  - name: Show your setup or measurements
+    url: https://github.com/adapt-to-it/hantek-oscilloscope/discussions/categories/show-and-tell
+    about: Share screenshots, projects, scripts and MCP workflows.
+  - name: Security vulnerability
+    url: https://github.com/adapt-to-it/hantek-oscilloscope/security/advisories/new
+    about: Report security problems privately. Do not open a public issue.

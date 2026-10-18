@@ -1,0 +1,52 @@
+name: New device support
+description: Ask for support of another Hantek USB oscilloscope model.
+title: "[Device] "
+labels: [device-support, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Support for a new model needs a person who owns the device and can run tests.
+        The information below lets us judge how much work it takes.
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      placeholder: Hantek 6022BL, 6074BE, 6254BD
+    validations:
+      required: true
+  - type: input
+    id: usb-id
+    attributes:
+      label: USB vendor and product ID
+      description: |
+        macOS: `system_profiler SPUSBDataType`. Linux: `lsusb`.
+        Windows: Device Manager → device → Properties → Details → Hardware Ids.
+      placeholder: 04b4:602a
+    validations:
+      required: true
+  - type: textarea
+    id: usb-descriptor
+    attributes:
+      label: USB descriptor
+      description: Linux `lsusb -v -d <vid>:<pid>` or macOS `system_profiler SPUSBDataType`.
+      render: text
+  - type: textarea
+    id: specs
+    attributes:
+      label: Specifications
+      description: Channels, bandwidth, sample rate, resolution, digital inputs, generator, chipset if known.
+    validations:
+      required: true
+  - type: textarea
+    id: existing
+    attributes:
+      label: Existing open-source support
+      description: Links to OpenHantek, Hantek6022API, sigrok or other projects that support the model.
+  - type: checkboxes
+    id: tester
+    attributes:
+      label: Testing
+      options:
+        - label: I own this device and I can test development builds.
+        - label: I can capture USB traffic of the original Hantek software (Wireshark with USBPcap).

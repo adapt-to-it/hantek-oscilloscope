@@ -85,7 +85,7 @@ pub fn decode(trace: &LogicTrace, bit_period_s: Option<f64>, ieee: bool) -> Vec<
         }
     }
 
-    for chunk in bits.chunks_exact(8) {
+    for chunk in bits.as_chunks::<8>().0 {
         let values: Option<Vec<bool>> = chunk.iter().map(|c| c.2).collect();
         if let Some(values) = values {
             let v = values.iter().fold(0u64, |acc, &b| (acc << 1) | u64::from(b));

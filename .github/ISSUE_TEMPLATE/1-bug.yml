@@ -1,0 +1,97 @@
+name: Bug report
+description: Something works in the wrong way, but the app does not crash.
+title: "[Bug] "
+labels: [bug, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when a feature gives a wrong result or behaves unexpectedly.
+        If the app closes, freezes or stops responding, use the **Crash or freeze** form instead.
+        Search the [existing issues](https://github.com/adapt-to-it/hantek-oscilloscope/issues) first.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown in the app, or `h6022 --version` for the CLI.
+      placeholder: v0.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [macOS (Apple Silicon), macOS (Intel), Windows, Linux, Other]
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version or distribution
+      placeholder: macOS 15.3, Windows 11 24H2, Ubuntu 24.04
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      multiple: true
+      options:
+        - Desktop app
+        - Command-line tool (h6022)
+        - MCP server
+        - Python client
+        - Firmware or USB connection
+        - Installer or package
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Acquisition and time base
+        - Trigger
+        - Measurements
+        - Cursors
+        - FFT and spectrum
+        - Math channels and filters
+        - XY and persistence
+        - Protocol decoders
+        - Pattern recognition
+        - Recording and export
+        - Interface and translations
+        - Other
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: Hantek 6022BE, hardware revision if known
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the settings you used, such as sample rate, range, trigger and decoder.
+      placeholder: |
+        1. Set CH1 to ±5 V, 1 MS/s
+        2. Connect a 1 kHz square wave
+        3. Enable the UART decoder
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Attach screenshots. Press `P` in the app to save a PNG of the display.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or terminal output
+      render: text

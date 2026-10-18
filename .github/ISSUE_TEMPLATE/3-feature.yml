@@ -1,0 +1,64 @@
+name: Feature request
+description: Propose a new function or an improvement to an existing one.
+title: "[Feature] "
+labels: [enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a new protocol decoder, use the **Protocol decoder request** form.
+        For support of another Hantek model, use the **New device support** form.
+        To discuss an idea that is not yet concrete, open a thread in
+        [Ideas](https://github.com/adapt-to-it/hantek-oscilloscope/discussions/categories/ideas).
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Acquisition and time base
+        - Trigger
+        - Measurements
+        - Cursors
+        - FFT and spectrum
+        - Math channels and filters
+        - XY and persistence
+        - Pattern recognition
+        - Recording and export
+        - MCP server
+        - Python client
+        - Command-line tool
+        - Interface and usability
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you want to measure or do, and why the current software does not allow it.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How the feature should work. Mockups or references to other oscilloscopes help.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: checkboxes
+    id: limits
+    attributes:
+      label: Hardware limits
+      description: The 6022BE has 2 analog channels, 8 bit, 20 MHz bandwidth, 48 MS/s and no hardware trigger.
+      options:
+        - label: The feature is possible within these limits.
+          required: true
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Can you help?
+      options: [I can write a pull request, I can test it with my device, No]

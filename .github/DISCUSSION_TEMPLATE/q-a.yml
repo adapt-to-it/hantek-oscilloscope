@@ -1,0 +1,35 @@
+title: "[Q&A] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask about installation, drivers, settings or measurements. When an answer solves the
+        question, mark it as the answer. If you found a problem in the software, open a
+        [bug report](https://github.com/adapt-to-it/hantek-oscilloscope/issues/new/choose) instead.
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      options:
+        - Installation and drivers
+        - Using the oscilloscope
+        - Measurements and accuracy
+        - Protocol decoders
+        - MCP server and AI agents
+        - Python and scripting
+        - Building from source
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [macOS, Windows, Linux]
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What you want to do, what you tried and what happened.
+    validations:
+      required: true

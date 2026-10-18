@@ -109,10 +109,7 @@ mod tests {
         assert_eq!(u16::from_le_bytes(bytes[22..24].try_into().unwrap()), 2);
         assert_eq!(u32::from_le_bytes(bytes[24..28].try_into().unwrap()), 1000);
         assert_eq!(u32::from_le_bytes(bytes[40..44].try_into().unwrap()), 48);
-        let data: Vec<f32> = bytes[44..]
-            .chunks_exact(4)
-            .map(|c| f32::from_le_bytes(c.try_into().unwrap()))
-            .collect();
+        let data: Vec<f32> = bytes[44..].as_chunks::<4>().0.iter().map(|c| f32::from_le_bytes(*c)).collect();
         assert_eq!(
             data,
             vec![0.1, -1.0, 0.2, -2.0, 0.3, -3.0, 0.4, -4.0, 0.5, -5.0, 0.6, -6.0]

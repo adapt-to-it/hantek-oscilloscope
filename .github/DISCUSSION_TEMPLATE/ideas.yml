@@ -1,0 +1,19 @@
+title: "[Idea] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Discuss an idea before it becomes a feature request. When the idea is concrete and
+        has support, a maintainer converts it into an issue.
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: What you want to achieve and why.
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: A real measurement or project where the idea helps.

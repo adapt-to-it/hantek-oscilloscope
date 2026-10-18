@@ -1,0 +1,43 @@
+name: Protocol decoder request
+description: Ask for a new serial protocol decoder or an option for an existing one.
+title: "[Decoder] "
+labels: [decoder, enhancement, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The software has two analog channels, so it can decode protocols with at most two lines.
+        Full SPI (CLK, MOSI, MISO, CS) is not possible. A sample capture makes the work much faster.
+  - type: input
+    id: protocol
+    attributes:
+      label: Protocol
+      placeholder: LIN, DMX512, SENT, WS2812, Modbus RTU
+    validations:
+      required: true
+  - type: input
+    id: spec
+    attributes:
+      label: Specification
+      description: Link to the specification or a reference implementation, for example a sigrok decoder.
+  - type: textarea
+    id: signals
+    attributes:
+      label: Signals and parameters
+      description: Lines used, voltage levels, bit rate, framing, idle level.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Expected output
+      description: Which fields the decoder should show, such as address, data, checksum and errors.
+    validations:
+      required: true
+  - type: textarea
+    id: capture
+    attributes:
+      label: Sample capture
+      description: |
+        Attach a recording (CSV, NPY or WAV from the app or from `h6022 capture`) with the
+        decoded content you expect. Compress large files into a ZIP.

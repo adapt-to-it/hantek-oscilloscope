@@ -1,0 +1,72 @@
+name: Crash or freeze
+description: The app or the CLI closes, freezes, stops responding or loses the device.
+title: "[Crash] "
+labels: [crash, needs-triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when the program stops working. A crash report needs the exact
+        moment it happens and the terminal output.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: v0.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [macOS (Apple Silicon), macOS (Intel), Windows, Linux, Other]
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version or distribution
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What happens
+      options:
+        - The app closes
+        - The app freezes or stops responding
+        - The device disconnects or is not found
+        - Acquisition stops while the app keeps running
+        - The app does not start
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often
+      options: [Every time, Often, Rarely, Once]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you were doing
+      description: Settings, sample rate, how long the app ran, whether a decoder or recording was active.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal output or crash log
+      description: |
+        Start the app or the CLI from a terminal with `RUST_BACKTRACE=1` and paste the output.
+        On macOS you can also attach the report from Console → Crash Reports.
+        On Windows, attach the event from Event Viewer → Windows Logs → Application.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: usb
+    attributes:
+      label: USB connection
+      description: Direct port or hub, cable length, other USB devices on the same port.

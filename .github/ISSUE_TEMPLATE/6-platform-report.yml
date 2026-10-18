@@ -1,0 +1,77 @@
+name: Platform test report
+description: Report how the software works on Windows or Linux, or on a new macOS version.
+title: "[Platform] "
+labels: [platform-report]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Windows and Linux are not tested with a real device yet. A report helps even when
+        everything works. Open one report for each system you try.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: v0.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Windows 11, Windows 10, Linux, macOS]
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: Distribution, version and architecture
+      placeholder: Ubuntu 24.04 x86_64, Fedora 41 Wayland, Windows 11 ARM
+    validations:
+      required: true
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options: [.msi, -setup.exe, .deb, .rpm, .AppImage, .dmg, CLI archive, Built from source]
+    validations:
+      required: true
+  - type: dropdown
+    id: driver
+    attributes:
+      label: USB access
+      description: Windows needs WinUSB through Zadig. Linux needs the udev rule.
+      options:
+        - Windows, WinUSB installed with Zadig for 04B4 and 04B5
+        - Windows, other driver
+        - Linux, udev rule from the package
+        - Linux, udev rule installed by hand
+        - Linux, running as root
+        - macOS, no driver needed
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: What works
+      description: Tick only what you checked.
+      options:
+        - label: The installer runs and the app starts
+        - label: The app finds the device and loads the firmware
+        - label: Acquisition shows a waveform on both channels
+        - label: "48 MS/s with one channel runs without gaps"
+        - label: Trigger, measurements and FFT work
+        - label: Recording to file works
+        - label: "`h6022 info` and `h6022 capture` work"
+        - label: The MCP server answers
+  - type: textarea
+    id: problems
+    attributes:
+      label: Problems found
+      description: Describe what failed and paste the terminal output.
+  - type: textarea
+    id: bench
+    attributes:
+      label: Throughput
+      description: Output of `h6022 bench`, if you can run it.
+      render: text
