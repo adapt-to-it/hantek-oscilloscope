@@ -311,7 +311,7 @@ mod tests {
     fn trace_of(bits: &[bool]) -> LogicTrace {
         let mut levels = vec![true; 12 * BIT];
         for &b in bits {
-            levels.extend(std::iter::repeat(b).take(BIT));
+            levels.extend(std::iter::repeat_n(b, BIT));
         }
         levels.extend(vec![true; 3 * BIT]);
         from_levels(&levels)

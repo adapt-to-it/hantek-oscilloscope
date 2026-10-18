@@ -205,7 +205,7 @@ fn decode_frame(frame: &Frame, p: &DecodeParams) -> Result<Vec<Annotation>, Erro
     let threshold = threshold_of(p.threshold_v)?;
     let primary = wave_of(frame, ch)?;
     let secondary = if p.channel == 1 { frame.ch2.as_ref() } else { Some(&frame.ch1) };
-    run_decode(&protocol, primary, secondary, threshold).map_err(|e| invalid(e))
+    run_decode(&protocol, primary, secondary, threshold).map_err(invalid)
 }
 
 fn annotation_view(a: &Annotation) -> AnnotationView {

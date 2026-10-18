@@ -39,7 +39,7 @@ pub fn columns(wave: &Waveform, view: &Viewport) -> ColumnTrace {
     let n = view.columns;
     let mut trace = ColumnTrace { min: vec![f32::NAN; n], max: vec![f32::NAN; n] };
     let span = view.t_end - view.t_start;
-    if n == 0 || !(span > 0.0) || !(wave.sample_rate > 0.0) || wave.samples.is_empty() {
+    if n == 0 || span.is_nan() || span <= 0.0 || wave.sample_rate.is_nan() || wave.sample_rate <= 0.0 || wave.samples.is_empty() {
         return trace;
     }
     let dt = span / n as f64;

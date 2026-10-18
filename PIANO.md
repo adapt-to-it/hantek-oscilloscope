@@ -39,7 +39,6 @@ hantek6022/
 │   ├── h6022-decode     decoder seriali, analisi PWM, riconoscimento di pattern
 │   ├── h6022-record     registrazione su disco e formati di esportazione
 │   ├── h6022-server     API locale: MCP (HTTP streamable) e WebSocket per Python
-│   ├── h6022-gui        app egui/wgpu
 │   └── h6022-cli        comandi da terminale e modalità headless
 └── python/              client Python di esempio (numpy)
 ```

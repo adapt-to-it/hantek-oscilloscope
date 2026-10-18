@@ -108,7 +108,7 @@ pub fn decode(trace: &LogicTrace, config: &UartConfig) -> Vec<Annotation> {
             let p_idx = 1 + data_bits;
             let p = level(p_idx);
             // Pari: uni di dati e parità in numero pari; dispari: in numero dispari.
-            let ok = if config.parity == Parity::Even { (ones % 2 == 1) == p } else { (ones % 2 == 0) == p };
+            let ok = if config.parity == Parity::Even { (ones % 2 == 1) == p } else { ones.is_multiple_of(2) == p };
             let span = (at(edge(p_idx)), at(edge(p_idx + 1)));
             out.push(Annotation::new(span.0, span.1, "parity", if p { "1" } else { "0" }).with_value(u64::from(p)));
             if !ok {

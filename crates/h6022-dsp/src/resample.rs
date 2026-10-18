@@ -105,13 +105,13 @@ mod tests {
             assert!((out[j * factor] - x).abs() < 1e-5);
         }
         // Lontano dai bordi scosta meno dell'1 % dalla sinusoide vera.
-        for k in 40..=760 {
+        for (k, &y) in out.iter().enumerate().take(761).skip(40) {
             let pos = k as f64 / factor as f64;
             let truth = (2.0 * PI * pos / 20.0).sin();
             assert!(
-                (out[k] as f64 - truth).abs() < 0.01,
+                (y as f64 - truth).abs() < 0.01,
                 "k={k}: {} vs {truth}",
-                out[k]
+                y
             );
         }
     }

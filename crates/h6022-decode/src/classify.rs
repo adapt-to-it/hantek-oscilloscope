@@ -92,9 +92,9 @@ pub fn classify(wave: &Waveform) -> Classification {
             );
         }
     }
-    if let Some(f) = m.frequency {
-        if let Some(thd) = spectrum(wave, Window::FlatTop).thd_pct(f) {
-            if thd < THD_LIMIT_PCT {
+    if let Some(f) = m.frequency
+        && let Some(thd) = spectrum(wave, Window::FlatTop).thd_pct(f)
+            && thd < THD_LIMIT_PCT {
                 let margin = (THD_LIMIT_PCT - thd) / THD_LIMIT_PCT;
                 return done(
                     SignalClass::Analog,
@@ -103,8 +103,6 @@ pub fn classify(wave: &Waveform) -> Classification {
                     None,
                 );
             }
-        }
-    }
 
     // 4. Fronti di salita periodici: Clock o Pwm.
     if let Some(found) = periodic(&trace) {
@@ -341,10 +339,10 @@ mod tests {
                     .chain((0..8).map(|b| ((byte >> b) & 1) == 1))
                     .chain(std::iter::once(true));
                 for bit in bits {
-                    samples.extend(std::iter::repeat(if bit { 3.3 } else { 0.0 }).take(UNIT));
+                    samples.extend(std::iter::repeat_n(if bit { 3.3 } else { 0.0 }, UNIT));
                 }
             }
-            samples.extend(std::iter::repeat(3.3).take(PAUSA));
+            samples.extend(std::iter::repeat_n(3.3, PAUSA));
         }
         wave(samples)
     }

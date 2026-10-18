@@ -28,7 +28,7 @@ impl Biquad {
             z: [0.0, 0.0],
         };
         let nyquist = sample_rate / 2.0;
-        if !(cutoff_hz > 0.0 && cutoff_hz < nyquist) || !(q > 0.0) {
+        if !positive(cutoff_hz) || !positive(nyquist - cutoff_hz) || !positive(q) {
             return passthrough;
         }
 
@@ -105,7 +105,7 @@ pub fn apply(wave: &Waveform, kind: FilterKind, cutoff_hz: f64, q: f64) -> Wavef
 
 /// Media mobile centrata su `width` campioni (dispari; se pari usa width + 1).
 pub fn moving_average(wave: &Waveform, width: usize) -> Waveform {
-    let width = if width % 2 == 0 { width + 1 } else { width };
+    let width = if width.is_multiple_of(2) { width + 1 } else { width };
     let half = width / 2;
     let x = &wave.samples;
     let n = x.len();
@@ -122,6 +122,11 @@ pub fn moving_average(wave: &Waveform, width: usize) -> Waveform {
         sample_rate: wave.sample_rate,
         t0: wave.t0,
     }
+}
+
+/// Vero se `x` è un numero maggiore di zero (falso per NaN).
+fn positive(x: f64) -> bool {
+    x > 0.0
 }
 
 #[cfg(test)]
@@ -144,7 +149,7 @@ mod tests {
             sample_rate: fs,
             t0: 0.0,
         };
-        let out = apply(&wave, FilterKind::LowPass, 1_000.0, 0.7071);
+        let out = apply(&wave, FilterKind::LowPass, 1_000.0, std::f64::consts::FRAC_1_SQRT_2);
         // Salta il transitorio; la finestra copre un numero intero di periodi (100 campioni).
         let skip = 5_000;
         let gain_db = 20.0 * (rms(&out.samples[skip..]) / rms(&input[skip..])).log10();
@@ -158,7 +163,7 @@ mod tests {
             sample_rate: 1000.0,
             t0: 0.0,
         };
-        let out = apply(&wave, FilterKind::LowPass, 600.0, 0.7071);
+        let out = apply(&wave, FilterKind::LowPass, 600.0, std::f64::consts::FRAC_1_SQRT_2);
         assert_eq!(out.samples, wave.samples);
     }
 

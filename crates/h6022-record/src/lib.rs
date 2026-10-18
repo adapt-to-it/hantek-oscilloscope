@@ -120,11 +120,10 @@ impl Tally {
     /// Frequenza e canali del frame, se compatibili con quelli già scritti. Non cambia lo stato.
     pub fn check(&self, frame: &Frame) -> io::Result<(f64, u8)> {
         let (rate, channels) = shape(frame);
-        if let Some(ch2) = &frame.ch2 {
-            if ch2.sample_rate != rate || ch2.samples.len() != frame.ch1.samples.len() {
+        if let Some(ch2) = &frame.ch2
+            && (ch2.sample_rate != rate || ch2.samples.len() != frame.ch1.samples.len()) {
                 return Err(invalid_input("canali con frequenza o numero di campioni diversi"));
             }
-        }
         match self.layout {
             Some(layout) if layout != (rate, channels) => Err(invalid_input(format!(
                 "frame diverso dal primo: {rate} Hz e {channels} canali, attesi {} Hz e {} canali",

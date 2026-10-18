@@ -63,16 +63,14 @@ impl Calibration {
                 cal.offset[ch][i] = f32::from(bytes[FACTORY_OFFSET[i] + ch]) - 128.0;
 
                 // I byte estesi usati solo se presenti; 0x00 e 0xFF indicano cella non scritta.
-                if let Some(&b) = bytes.get(EXT_GAIN[i] + ch) {
-                    if b != 0 && b != 255 {
+                if let Some(&b) = bytes.get(EXT_GAIN[i] + ch)
+                    && b != 0 && b != 255 {
                         cal.gain[ch][i] *= 1.0 + (f32::from(b) - 128.0) / 500.0;
                     }
-                }
-                if let Some(&b) = bytes.get(EXT_OFFSET[i] + ch) {
-                    if b != 0 && b != 255 {
+                if let Some(&b) = bytes.get(EXT_OFFSET[i] + ch)
+                    && b != 0 && b != 255 {
                         cal.offset[ch][i] += (f32::from(b) - 128.0) / 250.0;
                     }
-                }
             }
         }
         cal

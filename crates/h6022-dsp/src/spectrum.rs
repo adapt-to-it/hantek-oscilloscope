@@ -178,7 +178,7 @@ impl Spectrum {
 
     /// Distorsione armonica totale in percentuale, armoniche 2..=10 della fondamentale.
     pub fn thd_pct(&self, fundamental_hz: f64) -> Option<f64> {
-        if self.vrms.len() < 2 || !(fundamental_hz > 0.0) {
+        if self.vrms.len() < 2 || fundamental_hz.is_nan() || fundamental_hz <= 0.0 {
             return None;
         }
         let nyquist = (self.vrms.len() - 1) as f64 * self.bin_hz;
@@ -268,7 +268,7 @@ mod tests {
         let s = spectrum(&sine(10_000.0), Window::FlatTop);
         let peak = s.peaks(1)[0];
         assert!(
-            (peak.vrms - 0.7071).abs() < 0.005,
+            (peak.vrms - std::f32::consts::FRAC_1_SQRT_2).abs() < 0.005,
             "vrms {}",
             peak.vrms
         );
@@ -286,7 +286,7 @@ mod tests {
         for window in Window::all() {
             let s = spectrum(&wave, window);
             assert!(
-                (s.vrms[100] - 0.70711).abs() < 0.001,
+                (s.vrms[100] - std::f32::consts::FRAC_1_SQRT_2).abs() < 0.001,
                 "{window:?}: {}",
                 s.vrms[100]
             );

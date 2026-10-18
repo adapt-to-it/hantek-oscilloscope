@@ -250,13 +250,13 @@ fn coupling_byte(couplings: [Coupling; 2]) -> u8 {
 
 /// Codice del firmware per la frequenza di calibrazione, `None` se fuori dagli intervalli.
 fn calibration_code(hz: u32) -> Option<u8> {
-    let code = if (1000..=100_000).contains(&hz) && hz % 1000 == 0 {
+    let code = if (1000..=100_000).contains(&hz) && hz.is_multiple_of(1000) {
         hz / 1000
     } else if hz == 32 {
         103
-    } else if (40..=1000).contains(&hz) && hz % 10 == 0 {
+    } else if (40..=1000).contains(&hz) && hz.is_multiple_of(10) {
         100 + hz / 10
-    } else if (100..=5500).contains(&hz) && hz % 100 == 0 {
+    } else if (100..=5500).contains(&hz) && hz.is_multiple_of(100) {
         200 + hz / 100
     } else {
         return None;

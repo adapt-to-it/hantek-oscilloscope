@@ -448,7 +448,7 @@ fn frame_view(frame: &Frame, points: usize) -> FrameView {
 }
 
 fn mean_of(ms: &[Measurements], f: impl Fn(&Measurements) -> Option<f64>) -> Option<f64> {
-    let (sum, count) = ms.iter().filter_map(|m| f(m)).fold((0.0, 0usize), |(s, n), v| (s + v, n + 1));
+    let (sum, count) = ms.iter().filter_map(f).fold((0.0, 0usize), |(s, n), v| (s + v, n + 1));
     (count > 0).then(|| sum / count as f64)
 }
 
@@ -547,11 +547,10 @@ fn describe(kind: SignalKind, m: &Measurements) -> String {
         parts.push(frequency_label(f));
     }
     parts.push(format!("{}–{} V", decimal(f64::from(m.vbase), 2), decimal(f64::from(m.vtop), 2)));
-    if matches!(kind, SignalKind::Square | SignalKind::Pwm) {
-        if let Some(d) = m.duty_positive {
+    if matches!(kind, SignalKind::Square | SignalKind::Pwm)
+        && let Some(d) = m.duty_positive {
             parts.push(format!("duty {} %", decimal(d * 100.0, 0)));
         }
-    }
     format!("{name} {}", parts.join(", "))
 }
 

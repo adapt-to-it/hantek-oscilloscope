@@ -108,11 +108,10 @@ impl Trigger {
         let half = self.config.hysteresis.max(0.0) / 2.0;
         match self.config.kind {
             TriggerKind::Edge { slope } => {
-                if let Some(ev) = self.state.crossing.step(v, level, half) {
-                    if slope_matches(slope, ev) {
+                if let Some(ev) = self.state.crossing.step(v, level, half)
+                    && slope_matches(slope, ev) {
                         self.emit(idx, out);
                     }
-                }
             }
             TriggerKind::PulseWidth { polarity, condition } => {
                 if let Some(ev) = self.state.crossing.step(v, level, half) {
@@ -122,14 +121,13 @@ impl Trigger {
                     };
                     if ev == start {
                         self.state.pulse_start = Some(idx);
-                    } else if ev == end {
-                        if let Some(s) = self.state.pulse_start.take() {
+                    } else if ev == end
+                        && let Some(s) = self.state.pulse_start.take() {
                             let width = (idx - s) as f64 / self.sample_rate;
                             if width_ok(condition, width) {
                                 self.emit(idx, out);
                             }
                         }
-                    }
                 }
             }
             TriggerKind::Runt { polarity, low, high } => {
@@ -179,12 +177,11 @@ impl Trigger {
                     self.state.timeout_fired = true;
                     self.emit(idx, out);
                 }
-                if let Some(ev) = ev {
-                    if slope_matches(slope, ev) {
+                if let Some(ev) = ev
+                    && slope_matches(slope, ev) {
                         self.state.last_edge = Some(idx);
                         self.state.timeout_fired = false;
                     }
-                }
             }
             TriggerKind::Pattern { .. } => {}
         }
@@ -203,11 +200,10 @@ impl Trigger {
 
     /// Emette `idx` se l'holdoff dall'ultimo trigger è scaduto.
     fn emit(&mut self, idx: u64, out: &mut Vec<u64>) {
-        if let Some(last) = self.state.last_trigger {
-            if idx < last + self.holdoff_samples {
+        if let Some(last) = self.state.last_trigger
+            && idx < last + self.holdoff_samples {
                 return;
             }
-        }
         self.state.last_trigger = Some(idx);
         out.push(idx);
     }

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/h6022-usb", "crates/h6022-dsp", "crates/h6022-core", "crates/h6022-cli", "crates/h6022-gui", "crates/h6022-record", "crates/h6022-server", "crates/h6022-decode", "crates/h6022-view", "crates/h6022-app"]
+members = ["crates/h6022-usb", "crates/h6022-dsp", "crates/h6022-core", "crates/h6022-cli", "crates/h6022-record", "crates/h6022-server", "crates/h6022-decode", "crates/h6022-view", "crates/h6022-app"]
 
 [workspace.package]
 version = "0.1.0"
@@ -22,7 +22,6 @@ rmcp = { version = "3.5", features = ["server", "macros", "schemars", "transport
 schemars = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-eframe = { version = "0.37", default-features = false, features = ["wgpu", "default_fonts", "accesskit"] }
 
 [profile.release]
 lto = "thin"

@@ -360,9 +360,12 @@ mod tests {
         }
     }
 
+    /// Modifica che rende non valide le impostazioni.
+    type Guasto = Box<dyn Fn(&mut AcquisitionSettings)>;
+
     #[test]
     fn ogni_errore_lascia_la_config_invariata() {
-        let casi: Vec<Box<dyn Fn(&mut AcquisitionSettings)>> = vec![
+        let casi: Vec<Guasto> = vec![
             Box::new(|s| s.probe[0] = 5.0),
             Box::new(|s| s.probe[1] = f32::NAN),
             Box::new(|s| s.pretrigger = 1.5),

@@ -53,7 +53,7 @@ pub fn find(haystack: &Waveform, template: &Waveform, min_score: f32, max_matche
     forward.process(&mut t);
     // X · conj(T) antitrasformato dà r[i] = Σ_j x[i+j]·t[j]; per i <= N − n non ci sono avvolgimenti.
     for (xi, ti) in x.iter_mut().zip(&t) {
-        *xi = *xi * ti.conj();
+        *xi *= ti.conj();
     }
     inverse.process(&mut x);
     let norm = 1.0 / len as f64;

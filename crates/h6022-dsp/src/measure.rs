@@ -222,7 +222,7 @@ fn min_max(s: &[f32]) -> (f32, f32) {
 /// Se l'ampiezza è < 2 % di vpp o < 1 mV, usa vmax e vmin.
 fn levels(s: &[f32], vmin: f32, vmax: f32) -> (f32, f32) {
     let vpp = vmax - vmin;
-    if !(vpp > 0.0) {
+    if vpp.is_nan() || vpp <= 0.0 {
         return (vmax, vmin);
     }
     let scale = BINS as f64 / vpp as f64;
@@ -262,22 +262,20 @@ fn crossings(s: &[f32], vtop: f32, vbase: f32) -> Vec<Edge> {
             if p >= mid && c < mid {
                 pending = Some(Edge { rising: false, base: i - 1, t: (i - 1) as f64 + (mid - p) / (c - p) });
             }
-            if c <= mid - hyst {
-                if let Some(e) = pending.take() {
+            if c <= mid - hyst
+                && let Some(e) = pending.take() {
                     out.push(e);
                     high = false;
                 }
-            }
         } else {
             if p <= mid && c > mid {
                 pending = Some(Edge { rising: true, base: i - 1, t: (i - 1) as f64 + (mid - p) / (c - p) });
             }
-            if c >= mid + hyst {
-                if let Some(e) = pending.take() {
+            if c >= mid + hyst
+                && let Some(e) = pending.take() {
                     out.push(e);
                     high = true;
                 }
-            }
         }
     }
     out
@@ -383,8 +381,8 @@ mod tests {
     #[test]
     fn sinusoide_vrms_e_componente_alternata() {
         let m = measure(&sinusoide(100_000, 1_000.0, 1_000_000.0, 0.0, 1.0));
-        assert!((m.vrms - 0.7071).abs() < 0.005, "vrms {}", m.vrms);
-        assert!((m.vac_rms - 0.7071).abs() < 0.005, "vac_rms {}", m.vac_rms);
+        assert!((m.vrms - std::f32::consts::FRAC_1_SQRT_2).abs() < 0.005, "vrms {}", m.vrms);
+        assert!((m.vac_rms - std::f32::consts::FRAC_1_SQRT_2).abs() < 0.005, "vac_rms {}", m.vac_rms);
         assert!(m.vmean.abs() < 0.001, "vmean {}", m.vmean);
     }
 
