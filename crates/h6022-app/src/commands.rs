@@ -11,6 +11,7 @@ use tauri::ipc::{Channel, InvokeResponseBody};
 
 use h6022_core::{RunState, TriggerMode};
 use h6022_view::acquisition::AcquisitionSettings;
+use h6022_view::analysis::{SpectrumView, WindowName, XyView, spectrum_view, xy_view};
 use h6022_view::measures::{MeasureSnapshot, snapshot};
 use h6022_view::settings::ViewSettings;
 use h6022_view::trace::encode_display;
@@ -180,4 +181,29 @@ pub fn measurements(state: State<'_, AppState>) -> Option<MeasureSnapshot> {
     let frame = state.engine.latest_frame()?;
     let view = *state.view.lock().unwrap();
     Some(snapshot(&frame, [view.channels[0].enabled, view.channels[1].enabled]))
+}
+
+/// Bin massimi dello spettro inviati al frontend.
+pub const SPECTRUM_BINS: usize = 2048;
+/// Punti massimi del grafico XY.
+pub const XY_POINTS: usize = 4096;
+
+#[tauri::command]
+pub fn spectrum(state: State<'_, AppState>, window: WindowName) -> Option<SpectrumView> {
+    let frame = state.engine.latest_frame()?;
+    let view = *state.view.lock().unwrap();
+    let enabled = [view.channels[0].enabled, view.channels[1].enabled];
+    Some(spectrum_view(&frame, enabled, window, SPECTRUM_BINS))
+}
+
+#[tauri::command]
+pub fn xy(state: State<'_, AppState>) -> Option<XyView> {
+    let frame = state.engine.latest_frame()?;
+    Some(xy_view(&frame, XY_POINTS))
+}
+
+/// Vista iniziale scelta con `H6022_MODE` (`time`, `spectrum`, `xy`); serve alle catture automatiche.
+#[tauri::command]
+pub fn initial_mode() -> Option<String> {
+    std::env::var("H6022_MODE").ok().filter(|m| matches!(m.as_str(), "time" | "spectrum" | "xy"))
 }

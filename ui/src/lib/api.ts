@@ -1,5 +1,5 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
-import type { AcquisitionSettings, MeasureSnapshot, Status, ViewSettings } from './types'
+import type { AcquisitionSettings, MeasureSnapshot, SpectrumView, Status, ViewSettings, ViewMode, WindowName, XyView } from './types'
 import type { RunCommand } from './shell/keys'
 
 // Wrapper tipizzati dei comandi definiti in crates/h6022-app/src/commands.rs.
@@ -51,4 +51,17 @@ export function setAcquisition(settings: AcquisitionSettings): Promise<void> {
 
 export function getMeasurements(): Promise<MeasureSnapshot | null> {
   return invoke('measurements')
+}
+
+export function getSpectrum(window: WindowName): Promise<SpectrumView | null> {
+  return invoke('spectrum', { window })
+}
+
+export function getXy(): Promise<XyView | null> {
+  return invoke('xy')
+}
+
+/** Vista iniziale richiesta con H6022_MODE, se presente. */
+export function getInitialMode(): Promise<ViewMode | null> {
+  return invoke<ViewMode | null>('initial_mode')
 }

@@ -1,6 +1,7 @@
 //! Applicazione desktop Tauri: motore, server MCP e comandi per il frontend in `ui/`.
 //!
-//! `--sim` usa il simulatore; `--no-server` non avvia il server MCP; `H6022_PORT` cambia la porta.
+//! `--sim` usa il simulatore; `--no-server` non avvia il server MCP; `H6022_PORT` cambia la porta;
+//! `H6022_MODE` apre l'app sulla vista indicata.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -77,6 +78,9 @@ fn main() {
             commands::get_acquisition,
             commands::set_acquisition,
             commands::measurements,
+            commands::spectrum,
+            commands::xy,
+            commands::initial_mode,
         ])
         .setup(|app| {
             // SIGINT e SIGTERM chiudono l'app con la stessa sequenza della chiusura della finestra.

@@ -3,23 +3,40 @@
   import Scope from './lib/display/Scope.svelte'
   import { decodeDisplay } from './lib/display/frame'
   import * as api from './lib/api'
-  import type { AcquisitionSettings, ChannelSettings, DisplayFrame, MeasureSnapshot, Status, ViewSettings } from './lib/types'
+  import type {
+    AcquisitionSettings,
+    ChannelSettings,
+    DisplayFrame,
+    DisplayOptions,
+    MeasureSnapshot,
+    SpectrumView as SpectrumData,
+    Status,
+    ViewMode,
+    ViewSettings,
+    XyView as XyData,
+  } from './lib/types'
+  import SpectrumView from './lib/spectrum/SpectrumView.svelte'
+  import XyView from './lib/xy/XyView.svelte'
   import MeasureGrid from './lib/measures/MeasureGrid.svelte'
   import { formatHz } from './lib/shell/format'
   import TopBar from './lib/shell/TopBar.svelte'
   import ControlPanel from './lib/shell/ControlPanel.svelte'
   import Footer from './lib/shell/Footer.svelte'
-  import { shortcutFor, toggleCommand, type RunCommand } from './lib/shell/keys'
+  import { nextMode, shortcutFor, toggleCommand, type RunCommand } from './lib/shell/keys'
 
   const STATUS_INTERVAL_MS = 500
   const ERROR_MS = 5000
   const MEASURE_INTERVAL_MS = 250
+  const ANALYSIS_INTERVAL_MS = 100
 
   let view = $state<ViewSettings | null>(null)
   let status = $state<Status | null>(null)
   let frame = $state<DisplayFrame | null>(null)
   let acq = $state<AcquisitionSettings | null>(null)
   let measures = $state<MeasureSnapshot | null>(null)
+  let display = $state<DisplayOptions>({ mode: 'time', window: 'flatTop', logFrequency: false })
+  let spectrum = $state<SpectrumData | null>(null)
+  let xy = $state<XyData | null>(null)
   const triggerLevel = $derived(acq?.triggerLevel ?? 0)
   const info = $derived(status ? `Frequenza ${formatHz(status.sampleRateHz)}, record ${status.recordLength} campioni` : undefined)
   let fps = $state(0)
@@ -67,7 +84,8 @@
     )
     if (!command) return
     event.preventDefault()
-    send(command)
+    if (command === 'view') setMode(nextMode(display.mode))
+    else send(command)
   }
 
   function onColumns(columns: number) {
@@ -98,6 +116,21 @@
     if (acq) applyAcq({ ...acq, triggerLevel: volts })
   }
 
+  function setMode(mode: ViewMode) {
+    display = { ...display, mode }
+    refreshAnalysis()
+  }
+
+  /** Chiede al motore lo spettro o i punti XY, solo per la vista visibile. */
+  async function refreshAnalysis() {
+    try {
+      if (display.mode === 'spectrum') spectrum = await api.getSpectrum(display.window)
+      else if (display.mode === 'xy') xy = await api.getXy()
+    } catch (e) {
+      showError(`Analisi non disponibile: ${e}`)
+    }
+  }
+
   async function refreshMeasures() {
     try {
       measures = await api.getMeasurements()
@@ -126,6 +159,8 @@
       .then(async (loaded) => {
         view = loaded
         acq = await api.getAcquisition()
+        const mode = await api.getInitialMode()
+        if (mode) setMode(mode)
         await api.subscribeDisplay((buf) => {
           frame = decodeDisplay(buf)
         })
@@ -135,9 +170,11 @@
     refreshStatus()
     const timer = setInterval(refreshStatus, STATUS_INTERVAL_MS)
     const measureTimer = setInterval(refreshMeasures, MEASURE_INTERVAL_MS)
+    const analysisTimer = setInterval(refreshAnalysis, ANALYSIS_INTERVAL_MS)
     return () => {
       clearInterval(timer)
       clearInterval(measureTimer)
+      clearInterval(analysisTimer)
       clearTimeout(errorTimer)
     }
   })
@@ -146,7 +183,7 @@
 <svelte:window onkeydown={onKey} />
 
 <div class="app" style="display:flex;flex-direction:column;height:100vh;min-height:720px;background:#0b0d10;position:relative">
-  <TopBar {status} onrun={onRun} onsingle={() => send('single')} />
+  <TopBar {status} mode={display.mode} onrun={onRun} onsingle={() => send('single')} onmode={setMode} />
 
   {#if errorMsg}
     <div role="alert" style="display:flex;align-items:center;gap:10px;padding:9px 16px;background:#3a1714;border-bottom:1px solid #6a3029;color:#ffb3a6;font-size:13px;font-weight:500">
@@ -157,14 +194,31 @@
   <main style="flex:1;min-height:0;display:flex;flex-wrap:wrap;gap:14px;padding:14px 16px;overflow:auto;align-items:stretch">
     <div style="flex:1 1 640px;min-width:0;display:flex;flex-direction:column;gap:12px">
       {#if view}
-        <Scope {frame} {view} {triggerLevel} oncolumns={onColumns} onoffset={onOffset} ontriggerlevel={onTriggerLevel} />
+        {#if display.mode === 'spectrum'}
+          <SpectrumView data={spectrum} logFrequency={display.logFrequency} />
+        {:else if display.mode === 'xy'}
+          <XyView data={xy} {view} />
+        {:else}
+          <Scope {frame} {view} {triggerLevel} oncolumns={onColumns} onoffset={onOffset} ontriggerlevel={onTriggerLevel} />
+        {/if}
         <MeasureGrid snapshot={measures} enabled={[view.channels[0].enabled, view.channels[1].enabled]} />
       {/if}
     </div>
 
     <aside class="card" style="flex:0 1 330px;min-width:300px;display:flex;flex-direction:column;min-height:420px;overflow:auto">
       {#if view && acq}
-        <ControlPanel {view} {acq} {info} onchange={applyView} onacq={applyAcq} />
+        <ControlPanel
+          {view}
+          {acq}
+          {display}
+          {info}
+          onchange={applyView}
+          onacq={applyAcq}
+          ondisplay={(next) => {
+            display = next
+            refreshAnalysis()
+          }}
+        />
       {/if}
     </aside>
   </main>

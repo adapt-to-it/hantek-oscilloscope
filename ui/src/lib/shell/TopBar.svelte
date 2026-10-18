@@ -1,21 +1,28 @@
 <script lang="ts">
-  // Barra superiore: dispositivo, Run/Stop, Singolo, stato e server MCP.
-  // Spiegazioni, screenshot e segmenti di vista sono fuori da questa unità.
-  import type { Status } from '../types'
+  // Barra superiore: dispositivo, Run/Stop, Singolo, stato, selettore di vista e server MCP.
+  // Spiegazioni, screenshot sono fuori da questa unità.
+  import type { Status, ViewMode } from '../types'
   import { toggleCommand } from './keys'
 
   interface Props {
     status: Status | null
+    mode: ViewMode
     onrun: () => void
     onsingle: () => void
+    onmode: (mode: ViewMode) => void
   }
 
-  let { status, onrun, onsingle }: Props = $props()
+  let { status, mode, onrun, onsingle, onmode }: Props = $props()
 
   const DEVICE_COLOR = { hardware: '#3fd68a', simulator: '#ff9f43' } as const
   const DEVICE_LABEL = { hardware: 'Hardware', simulator: 'Simulatore' } as const
   const STATE_TEXT = { running: 'In esecuzione', armed: 'In attesa del trigger', stopped: 'Fermo' } as const
   const STATE_COLOR = { running: '#3fd68a', armed: '#ff9f43', stopped: '#8a94a1' } as const
+  const VIEWS: { mode: ViewMode; label: string }[] = [
+    { mode: 'time', label: 'Tempo' },
+    { mode: 'spectrum', label: 'Spettro' },
+    { mode: 'xy', label: 'XY' },
+  ]
 
   let devColor = $derived(status ? DEVICE_COLOR[status.source] : '#8a94a1')
   let devLabel = $derived(status ? DEVICE_LABEL[status.source] : 'In avvio')
@@ -40,6 +47,16 @@
   </div>
 
   <div class="chip" role="status" style="gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:{stateColor};display:inline-block"></span>{stateText}</div>
+
+  <div style="display:flex;align-items:center;gap:6px">
+    <div class="segrow" role="group" aria-label="Vista">
+      {#each VIEWS as view (view.mode)}
+        <button class="seg {view.mode === mode ? 'on' : ''}" aria-pressed={view.mode === mode}
+          onclick={() => onmode(view.mode)}>{view.label}</button>
+      {/each}
+    </div>
+    <span class="kbd" title="Tasto F: cambia vista">F</span>
+  </div>
 
   <div style="flex:1 1 10px"></div>
 

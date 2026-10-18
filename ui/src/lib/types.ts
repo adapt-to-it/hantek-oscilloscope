@@ -105,3 +105,32 @@ export interface MeasureSnapshot {
   phaseDeg: number | null
   delayS: number | null
 }
+
+// Specchio di crates/h6022-view/src/analysis.rs.
+export type WindowName = 'rectangular' | 'hann' | 'hamming' | 'blackmanHarris' | 'flatTop'
+export interface PeakView {
+  frequency: number
+  dbv: number
+}
+export interface ChannelSpectrum {
+  dbv: number[]
+  peaks: PeakView[]
+  thdPct: number | null
+}
+export interface SpectrumView {
+  sequence: number
+  binHz: number
+  nyquistHz: number
+  channels: [ChannelSpectrum | null, ChannelSpectrum | null]
+}
+export interface XyView {
+  sequence: number
+  x: number[]
+  y: number[]
+}
+export type ViewMode = 'time' | 'spectrum' | 'xy'
+export interface DisplayOptions {
+  mode: ViewMode
+  window: WindowName
+  logFrequency: boolean
+}
