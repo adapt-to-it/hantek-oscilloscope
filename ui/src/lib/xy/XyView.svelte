@@ -111,10 +111,12 @@
     void viewKey
     void side
     if (raf === 0) raf = requestAnimationFrame(draw)
-    return () => {
-      if (raf !== 0) cancelAnimationFrame(raf)
-      raf = 0
-    }
+  })
+
+  // Il ridisegno programmato si annulla solo alla chiusura della vista, come in Scope.
+  $effect(() => () => {
+    if (raf !== 0) cancelAnimationFrame(raf)
+    raf = 0
   })
 </script>
 

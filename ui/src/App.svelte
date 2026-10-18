@@ -7,6 +7,8 @@
     AcquisitionSettings,
     ChannelSettings,
     DisplayFrame,
+    DecodeView,
+    DecoderSettings,
     DisplayOptions,
     MeasureSnapshot,
     SpectrumView as SpectrumData,
@@ -17,6 +19,8 @@
   } from './lib/types'
   import SpectrumView from './lib/spectrum/SpectrumView.svelte'
   import XyView from './lib/xy/XyView.svelte'
+  import DecoderStrip from './lib/decoder/DecoderStrip.svelte'
+  import { channelLabel, defaultDecoder } from './lib/shell/controls/decoder'
   import MeasureGrid from './lib/measures/MeasureGrid.svelte'
   import { formatHz } from './lib/shell/format'
   import TopBar from './lib/shell/TopBar.svelte'
@@ -28,6 +32,7 @@
   const ERROR_MS = 5000
   const MEASURE_INTERVAL_MS = 250
   const ANALYSIS_INTERVAL_MS = 100
+  const DECODE_INTERVAL_MS = 200
 
   let view = $state<ViewSettings | null>(null)
   let status = $state<Status | null>(null)
@@ -37,6 +42,9 @@
   let display = $state<DisplayOptions>({ mode: 'time', window: 'flatTop', logFrequency: false })
   let spectrum = $state<SpectrumData | null>(null)
   let xy = $state<XyData | null>(null)
+  let decoder = $state<DecoderSettings>(defaultDecoder())
+  let decoded = $state<DecodeView | null>(null)
+  let decodeError = $state<string | null>(null)
   const triggerLevel = $derived(acq?.triggerLevel ?? 0)
   const info = $derived(status ? `Frequenza ${formatHz(status.sampleRateHz)}, record ${status.recordLength} campioni` : undefined)
   let fps = $state(0)
@@ -131,6 +139,26 @@
     }
   }
 
+  /** Decodifica il frame più recente se il decoder è attivo; gli errori restano nella striscia. */
+  async function refreshDecode() {
+    if (!decoder.enabled) return
+    try {
+      decoded = await api.decode(decoder.params)
+      decodeError = null
+    } catch (e) {
+      decodeError = String(e)
+    }
+  }
+
+  function applyDecoder(next: DecoderSettings) {
+    decoder = next
+    if (!next.enabled) {
+      decoded = null
+      decodeError = null
+    }
+    refreshDecode()
+  }
+
   async function refreshMeasures() {
     try {
       measures = await api.getMeasurements()
@@ -171,10 +199,12 @@
     const timer = setInterval(refreshStatus, STATUS_INTERVAL_MS)
     const measureTimer = setInterval(refreshMeasures, MEASURE_INTERVAL_MS)
     const analysisTimer = setInterval(refreshAnalysis, ANALYSIS_INTERVAL_MS)
+    const decodeTimer = setInterval(refreshDecode, DECODE_INTERVAL_MS)
     return () => {
       clearInterval(timer)
       clearInterval(measureTimer)
       clearInterval(analysisTimer)
+      clearInterval(decodeTimer)
       clearTimeout(errorTimer)
     }
   })
@@ -201,6 +231,15 @@
         {:else}
           <Scope {frame} {view} {triggerLevel} oncolumns={onColumns} onoffset={onOffset} ontriggerlevel={onTriggerLevel} />
         {/if}
+        {#if decoder.enabled && display.mode === 'time'}
+          <DecoderStrip
+            view={decoded}
+            error={decodeError}
+            tStart={frame?.tStart ?? 0}
+            tEnd={frame?.tEnd ?? 0}
+            channelLabel={channelLabel(decoder.params)}
+          />
+        {/if}
         <MeasureGrid snapshot={measures} enabled={[view.channels[0].enabled, view.channels[1].enabled]} />
       {/if}
     </div>
@@ -211,9 +250,11 @@
           {view}
           {acq}
           {display}
+          {decoder}
           {info}
           onchange={applyView}
           onacq={applyAcq}
+          ondecoder={applyDecoder}
           ondisplay={(next) => {
             display = next
             refreshAnalysis()

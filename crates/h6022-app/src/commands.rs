@@ -207,3 +207,14 @@ pub fn xy(state: State<'_, AppState>) -> Option<XyView> {
 pub fn initial_mode() -> Option<String> {
     std::env::var("H6022_MODE").ok().filter(|m| matches!(m.as_str(), "time" | "spectrum" | "xy"))
 }
+
+/// Decodifica il frame più recente con i parametri dello strumento MCP `decode`.
+/// `None` se non è ancora arrivato un frame; errore se i parametri non sono validi.
+#[tauri::command]
+pub fn decode(
+    state: State<'_, AppState>,
+    params: h6022_server::api_decode::DecodeParams,
+) -> Result<Option<h6022_server::api_decode::DecodeView>, String> {
+    let Some(frame) = state.engine.latest_frame() else { return Ok(None) };
+    h6022_server::decode_tools::decode_view(&frame, params).map(Some).map_err(|e| e.message.to_string())
+}

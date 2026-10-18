@@ -204,16 +204,19 @@
   }
 
   // Ridisegno con requestAnimationFrame solo quando cambiano frame, view o dimensioni.
+  // Un ridisegno già programmato non viene annullato: legge lo stato più recente quando parte.
+  // Annullarlo a ogni aggiornamento lo rinvierebbe all'infinito con frame più frequenti del refresh.
   $effect(() => {
     void frame
     void viewKey
     void width
     void height
     if (raf === 0) raf = requestAnimationFrame(draw)
-    return () => {
-      if (raf !== 0) cancelAnimationFrame(raf)
-      raf = 0
-    }
+  })
+
+  $effect(() => () => {
+    if (raf !== 0) cancelAnimationFrame(raf)
+    raf = 0
   })
 </script>
 

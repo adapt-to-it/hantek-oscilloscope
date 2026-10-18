@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Contenuto dell'aside, tab "Controlli": fisarmonica con Orizzontale, un canale per volta, Trigger e Display.
+  // Contenuto dell'aside, tab "Controlli": fisarmonica con Orizzontale, un canale per volta, Trigger, Display e Decoder.
   // Una sola sezione aperta alla volta. Ogni modifica produce un oggetto nuovo; l'applicazione al motore la fa il genitore.
-  import type { AcquisitionSettings, ChannelSettings, DisplayOptions, ViewSettings } from '../types'
+  import type { AcquisitionSettings, ChannelSettings, DecoderSettings, DisplayOptions, ViewSettings } from '../types'
   import { CH_COLORS } from '../types'
   import { formatTime, formatVolts } from './format'
   import { triggerSummary } from './controls/trigger'
@@ -9,21 +9,25 @@
   import ChannelSection from './controls/ChannelSection.svelte'
   import TriggerSection from './controls/TriggerSection.svelte'
   import DisplaySection, { WINDOW_OPTIONS } from './controls/DisplaySection.svelte'
+  import DecoderSection from './controls/DecoderSection.svelte'
+  import { decoderSummary } from './controls/decoder'
 
   interface Props {
     view: ViewSettings
     acq: AcquisitionSettings
     display: DisplayOptions
+    decoder: DecoderSettings
     onchange: (view: ViewSettings) => void
     onacq: (acq: AcquisitionSettings) => void
     ondisplay: (display: DisplayOptions) => void
+    ondecoder: (decoder: DecoderSettings) => void
     /** Riga informativa della sezione Orizzontale, per esempio la frequenza di campionamento. */
     info?: string
   }
 
-  let { view, acq, display, onchange, onacq, ondisplay, info }: Props = $props()
+  let { view, acq, display, decoder, onchange, onacq, ondisplay, ondecoder, info }: Props = $props()
 
-  type SectionId = 'horizontal' | 'ch1' | 'ch2' | 'trigger' | 'display'
+  type SectionId = 'horizontal' | 'ch1' | 'ch2' | 'trigger' | 'display' | 'decoder'
 
   interface Section {
     id: SectionId
@@ -81,6 +85,14 @@
       channel: null,
       dim: false,
     },
+    {
+      id: 'decoder',
+      name: 'Decoder',
+      color: '#e8ebef',
+      summary: decoderSummary(decoder),
+      channel: null,
+      dim: false,
+    },
   ])
 
   function toggle(id: SectionId) {
@@ -117,6 +129,8 @@
             <TriggerSection {acq} {onacq} />
           {:else if section.id === 'display'}
             <DisplaySection {display} {ondisplay} />
+          {:else if section.id === 'decoder'}
+            <DecoderSection {decoder} {ondecoder} />
           {:else if section.channel !== null}
             <ChannelSection index={section.channel} {view} {acq} {onchange} {onacq} />
           {/if}

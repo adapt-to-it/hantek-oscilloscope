@@ -81,6 +81,7 @@ fn main() {
             commands::spectrum,
             commands::xy,
             commands::initial_mode,
+            commands::decode,
         ])
         .setup(|app| {
             // SIGINT e SIGTERM chiudono l'app con la stessa sequenza della chiusura della finestra.

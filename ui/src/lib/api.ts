@@ -1,5 +1,5 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
-import type { AcquisitionSettings, MeasureSnapshot, SpectrumView, Status, ViewSettings, ViewMode, WindowName, XyView } from './types'
+import type { AcquisitionSettings, DecodeParams, DecodeView, MeasureSnapshot, SpectrumView, Status, ViewSettings, ViewMode, WindowName, XyView } from './types'
 import type { RunCommand } from './shell/keys'
 
 // Wrapper tipizzati dei comandi definiti in crates/h6022-app/src/commands.rs.
@@ -64,4 +64,9 @@ export function getXy(): Promise<XyView | null> {
 /** Vista iniziale richiesta con H6022_MODE, se presente. */
 export function getInitialMode(): Promise<ViewMode | null> {
   return invoke<ViewMode | null>('initial_mode')
+}
+
+/** Decodifica il frame più recente; null se non c'è ancora un frame. Rifiutata se i parametri non sono validi. */
+export function decode(params: DecodeParams): Promise<DecodeView | null> {
+  return invoke<DecodeView | null>('decode', { params })
 }

@@ -1,0 +1,59 @@
+eight:1.45;text-wrap:pretty">{{noDataNote}}</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div class="mono" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;padding:7px 14px;border-top:1px solid #1b2128;background:#0a0c0f;font-size:12px">
+          <button class="lnk mono" onClick="{{openCh1}}" style="color:#f5c842;padding:2px 0;font-size:12px">CH1 {{v1Label}}/div</button>
+          <button class="lnk mono" onClick="{{openCh2}}" style="color:#43c6f3;padding:2px 0;font-size:12px">CH2 {{v2Label}}/div</button>
+          <span>{{tLabel}}/div</span>
+          <span>fs {{fsLabel}}</span>
+          <span style="color:{{trigStateColor}};font-weight:600">{{trigState}}</span>
+          <div style="flex:1"></div>
+          <span style="color:#9aa3af">{{viewNote}}</span>
+        </div>
+      </section>
+
+      <!-- STRISCIA DEL DECODER -->
+      <sc-if value="{{showStrip}}" hint-placeholder-val="{{ false }}">
+        <section class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#9aa3af">
+            <span style="font-weight:700;color:#e8ebef">Decoder {{protoLabel}}</span><span>{{decCh}}</span>
+          </div>
+          <sc-if value="{{decOk}}" hint-placeholder-val="{{ true }}">
+            <div style="position:relative;height:28px">
+              <sc-for list="{{blocks}}" as="b" hint-placeholder-count="6">
+                <div class="blk" style="left:{{b.left}};width:{{b.width}};background:{{b.bg}};color:{{b.fg}}" title="{{b.title}}">{{b.txt}}</div>
+              </sc-for>
+              <sc-if value="{{noFrames}}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:0;top:0;right:0;height:28px;border:1px dashed #333b47;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#8a94a1">{{noFramesTxt}}</div></sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{decErr}}" hint-placeholder-val="{{ false }}">
+            <div role="alert" style="padding:6px 10px;border-radius:6px;background:#3a1714;color:#ffb3a6;font-size:13px">{{decErr}}</div>
+          </sc-if>
+          <div class="mono" style="font-size:12px;color:#c3cad4">{{decSummary}}</div>
+        </section>
+      </sc-if>
+
+      <!-- MISURE -->
+      <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+          <div class="card" style="padding:8px 10px 10px;display:flex;flex-direction:column;gap:2px">
+            <div class="mrow" style="min-height:30px;border-bottom:1px solid #20262e;border-radius:0">
+              <span style="font-size:12px;font-weight:700;color:#e8ebef;letter-spacing:.02em">{{g.title}}</span>
+              <span style="font-size:12px;font-weight:700;color:#f5c842;text-align:right">CH1</span>
+              <span style="font-size:12px;font-weight:700;color:#43c6f3;text-align:right">CH2</span>
+              <span></span>
+            </div>
+            <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="6">
+              <div class="mrow tipw {{r.force}}">
+                <span>{{r.label}}</span>
+                <span class="mono" style="text-align:right;color:{{r.ca}}">{{r.a}}</span>
+                <span class="mono" style="text-align:right;color:{{r.cb}}">{{r.b}}</span>
+                <span style="display:flex;justify-content:flex-end">
+                  <sc-if value="{{r.hasChart}}" hint-placeholder-val="{{ true }}"><button class="ibtn" onClick="{{r.chart}}" aria-label="Mostra l’andamento di {{r.label}} nel tempo" title="Andamento nel tempo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v16h18"></path><path d="M7 15l4-5 3 3 5-7"></path></svg></button></sc-if>
+                </span>
+                <sc-if value="{{r.hasTip}}" hint-placeholder-val="{{ false }}"><div class="tip up"><b>{{r.tipT}}</b>{{r.tipX}}</div></sc-if>
+              </div>
+            </sc-for>
+          </div>

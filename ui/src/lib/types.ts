@@ -134,3 +134,42 @@ export interface DisplayOptions {
   window: WindowName
   logFrequency: boolean
 }
+
+// Decoder: parametri e risposta dello strumento MCP `decode` (nomi snake_case come in Rust).
+export type ProtocolName = 'uart' | 'i2c' | 'can' | 'onewire' | 'manchester' | 'pwm' | 'servo' | 'ir_nec' | 'ir_rc5'
+export type ParityName = 'none' | 'even' | 'odd'
+export interface DecodeParams {
+  protocol: ProtocolName
+  channel: 1 | 2
+  threshold_v: number | null
+  baud: number | null
+  data_bits: number | null
+  parity: ParityName | null
+  stop_bits: number | null
+  inverted: boolean | null
+  bitrate: number | null
+  bit_period_s: number | null
+  ieee: boolean | null
+  max_annotations: number | null
+}
+export interface AnnotationView {
+  start_s: number
+  end_s: number
+  /** data, address, id, ack, nack, start, stop, command, crc, reset, error e altre. */
+  kind: string
+  text: string
+  value: number | null
+  error: boolean
+}
+export interface DecodeView {
+  protocol: string
+  channel: number
+  annotations: AnnotationView[]
+  truncated: boolean
+  summary: string
+}
+/** Stato del pannello Decoder. `params` va al backend solo se `enabled`. */
+export interface DecoderSettings {
+  enabled: boolean
+  params: DecodeParams
+}

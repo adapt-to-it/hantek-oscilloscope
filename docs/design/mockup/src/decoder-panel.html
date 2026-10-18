@@ -1,0 +1,89 @@
+grow" role="group" aria-label="Canale dei cursori"><sc-for list="{{curChOpts}}" as="o" hint-placeholder-count="2"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- TAB DECODER -->
+      <sc-if value="{{tabDecoder}}" hint-placeholder-val="{{ false }}">
+        <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+          <div class="rw"><span class="lb" style="font-size:14px;font-weight:700;color:#e8ebef">Attiva decoder</span><button class="tgl {{decOnCls}}" role="switch" aria-checked="{{decOnX}}" aria-label="Attiva decoder" onClick="{{toggleDec}}"></button></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;color:#c3cad4">Protocollo</span>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px"><sc-for list="{{protoOpts}}" as="o" hint-placeholder-count="9"><button class="opt {{o.cls}}" style="padding:0 4px" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div>
+          </div>
+          <div class="rw"><span class="lb">{{decChLabel}}</span>
+            <div class="segrow" role="group" aria-label="Canale da decodificare"><sc-for list="{{decChOpts}}" as="o" hint-placeholder-count="2"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+          <div class="rw"><span class="lb">Soglia automatica</span>
+            <div style="display:flex;align-items:center;gap:10px"><span class="mono" style="font-size:13px;color:#9aa3af">1.5 V</span><button class="tgl {{thrCls}}" role="switch" aria-checked="{{thrX}}" aria-label="Soglia automatica" onClick="{{toggleThr}}"></button></div></div>
+
+          <sc-if value="{{isUart}}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1px solid #20262e">
+              <div class="rw"><span class="lb">Baud automatico</span><button class="tgl {{baudAutoCls}}" role="switch" aria-checked="{{baudAutoX}}" aria-label="Baud automatico" onClick="{{toggleBaudAuto}}"></button></div>
+              <div class="rw" style="opacity:{{baudDim}}"><span class="lb">Velocità</span>
+                <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{baudDown}}" aria-label="Riduci velocità">−</button><span class="mono" style="min-width:96px;text-align:center;font-size:13px">{{baudLabel}}</span><button class="step" onClick="{{baudUp}}" aria-label="Aumenta velocità">+</button></div></div>
+              <div class="rw"><span class="lb">Bit di dati</span>
+                <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{bitsDown}}" aria-label="Meno bit">−</button><span class="mono" style="min-width:40px;text-align:center;font-size:14px;font-weight:600">{{bits}}</span><button class="step" onClick="{{bitsUp}}" aria-label="Più bit">+</button></div></div>
+              <div class="rw"><span class="lb">Parità</span><div class="segrow" role="group" aria-label="Parità"><sc-for list="{{parityOpts}}" as="o" hint-placeholder-count="3"><button class="seg {{o.cls}}" style="padding:0 9px" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+              <div class="rw"><span class="lb">Bit di stop</span><div class="segrow" role="group" aria-label="Bit di stop"><sc-for list="{{stopOpts}}" as="o" hint-placeholder-count="3"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+              <div class="rw"><span class="lb">Linea invertita</span><button class="tgl {{invCls}}" role="switch" aria-checked="{{invX}}" aria-label="Linea invertita" onClick="{{toggleInv}}"></button></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{isCan}}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1px solid #20262e">
+              <div class="rw"><span class="lb">Bitrate</span><div class="segrow" role="group" aria-label="Bitrate CAN"><sc-for list="{{canOpts}}" as="o" hint-placeholder-count="4"><button class="seg {{o.cls}}" style="padding:0 7px;font-size:12px" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+              <div class="rw"><span class="lb">Linea invertita</span><button class="tgl {{invCls}}" role="switch" aria-checked="{{invX}}" aria-label="Linea invertita" onClick="{{toggleInv}}"></button></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{noParams}}" hint-placeholder-val="{{ false }}">
+            <div style="padding-top:8px;border-top:1px solid #20262e;font-size:13px;color:#8a94a1">Questo protocollo non ha parametri.</div>
+          </sc-if>
+
+          <div style="display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid #20262e">
+            <span style="font-size:13px;font-weight:700">Legenda della striscia</span>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px">
+              <sc-for list="{{legend}}" as="l" hint-placeholder-count="10">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#c3cad4"><span style="width:26px;height:14px;border-radius:4px;background:{{l.bg}};flex:none"></span>{{l.t}}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- TAB STRUMENTI -->
+      <sc-if value="{{tabStrumenti}}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #20262e">
+            <h3 style="font-size:14px;font-weight:700">Registrazione su file</h3>
+            <div class="rw"><span class="lb">Formato</span><div class="segrow" role="group" aria-label="Formato di registrazione"><sc-for list="{{fmtOpts}}" as="o" hint-placeholder-count="3"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+            <div class="rw"><span class="lb">Durata massima</span>
+              <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{durDown}}" aria-label="Riduci durata">−</button><span class="mono" style="min-width:64px;text-align:center;font-size:14px;font-weight:600">{{durLabel}}</span><button class="step" onClick="{{durUp}}" aria-label="Aumenta durata">+</button></div></div>
+            <button class="btn {{recCls}}" onClick="{{toggleRec}}" style="width:100%">
+              <span style="width:10px;height:10px;border-radius:50%;background:currentColor;display:inline-block"></span>{{recLabel2}}
+            </button>
+            <sc-if value="{{rec}}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:6px"><div style="height:6px;border-radius:3px;background:#232932;overflow:hidden"><div style="width:38%;height:100%;background:#ff7a6b"></div></div><span class="mono" style="font-size:12px;color:#9aa3af">In registrazione · si ferma dopo {{durLabel}}</span></div>
+            </sc-if>
+            <sc-if value="{{hasRec}}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:10px;background:#0d1013;border:1px solid #232932">
+                <div class="mono" style="font-size:12px;color:#e8ebef">registrazione-001{{fmtExt}} · {{durLabel}}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px"><button class="opt">Cerca pacchetto</button><button class="opt">Cerca forma d’onda</button></div>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #20262e">
+            <h3 style="font-size:14px;font-weight:700">Esporta per analizzatore logico</h3>
+            <div style="display:flex;gap:8px"><button class="btn" style="flex:1">VCD</button><button class="btn" style="flex:1">sigrok .sr</button></div>
+            <span style="font-size:12px;color:#8a94a1;line-height:1.45">Include le annotazioni del decoder. Si apre in PulseView o GTKWave.</span>
+          </div>
+
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #20262e">
+            <div style="display:flex;align-items:center;justify-content:space-between"><h3 style="font-size:14px;font-weight:700">Classificazione del segnale</h3><button class="btn" onClick="{{doClassify}}" style="height:32px">Analizza</button></div>
+            <sc-if value="{{classified}}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{classRows}}" as="r" hint-placeholder-count="2">
+                  <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:10px;background:#0d1013;border:1px solid #232932">
+                    <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-weight:700;color:{{r.color}}">{{r.ch}}</span><span class="mono" style="font-size:12px;color:#c3cad4">{{r.detail}}</span></div>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px"><sc-for list="{{r.kinds}}" as="k" hint-placeholder-count="6"><s

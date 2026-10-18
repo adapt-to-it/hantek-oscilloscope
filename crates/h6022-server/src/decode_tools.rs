@@ -26,14 +26,8 @@ use crate::tools::{H6022Mcp, channel, internal, invalid, wave_of};
 impl H6022Mcp {
     #[tool(description = "Decodifica un protocollo sull'ultimo frame e restituisce le annotazioni con il riepilogo.")]
     pub async fn decode(&self, params: Parameters<DecodeParams>) -> Result<Json<DecodeView>, ErrorData> {
-        let p = params.0;
-        let limit = annotations_of(p.max_annotations)?;
         let frame = self.latest()?;
-        let all = decode_frame(&frame, &p)?;
-        let summary = protocol_summary(&all);
-        let truncated = all.len() > limit;
-        let annotations = all.iter().take(limit).map(annotation_view).collect();
-        Ok(Json(DecodeView { protocol: p.protocol, channel: p.channel, annotations, truncated, summary }))
+        decode_view(&frame, params.0).map(Json)
     }
 
     #[tool(description = "Classifica il segnale di un canale sull'ultimo frame e suggerisce i decoder adatti.")]
@@ -185,6 +179,16 @@ fn protocol_of(p: &DecodeParams) -> Result<Protocol, ErrorData> {
 }
 
 /// Decodifica il canale richiesto dell'ultimo frame; per i2c l'altro canale è SDA.
+/// Decodifica un frame e prepara la risposta: la usano lo strumento MCP `decode` e l'app desktop.
+pub fn decode_view(frame: &Frame, p: DecodeParams) -> Result<DecodeView, ErrorData> {
+    let limit = annotations_of(p.max_annotations)?;
+    let all = decode_frame(frame, &p)?;
+    let summary = protocol_summary(&all);
+    let truncated = all.len() > limit;
+    let annotations = all.iter().take(limit).map(annotation_view).collect();
+    Ok(DecodeView { protocol: p.protocol, channel: p.channel, annotations, truncated, summary })
+}
+
 fn decode_frame(frame: &Frame, p: &DecodeParams) -> Result<Vec<Annotation>, ErrorData> {
     let protocol = protocol_of(p)?;
     let ch = channel(p.channel)?;
