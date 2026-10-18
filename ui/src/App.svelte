@@ -305,7 +305,9 @@
       {/if}
     </div>
 
-    <aside class="card" style="flex:0 1 330px;min-width:300px;display:flex;flex-direction:column;min-height:420px;overflow:auto">
+    <!-- Il contenuto del pannello non allunga la riga: scorre dentro la sidebar. -->
+    <aside class="card" style="flex:0 1 330px;min-width:300px;min-height:420px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;overflow:auto">
       {#if view && acq}
         <ControlPanel
           {view}
@@ -326,6 +328,7 @@
           }}
         />
       {/if}
+      </div>
     </aside>
   </main>
 

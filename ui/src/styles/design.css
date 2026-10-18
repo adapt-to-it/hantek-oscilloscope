@@ -1,6 +1,12 @@
 
 body{margin:0;background:#0b0d10;font-family:'Instrument Sans',system-ui,sans-serif;color:#e8ebef}
 *{box-sizing:border-box}
+:root{color-scheme:dark}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#2a313b;border-radius:5px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:#3a4350;background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
 h2,h3{margin:0}
 .mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}

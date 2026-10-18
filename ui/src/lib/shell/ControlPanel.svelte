@@ -122,7 +122,7 @@
 </script>
 
 <div style="display:flex;flex-direction:column">
-  <div style="padding:10px 12px;border-bottom:1px solid #20262e">
+  <div style="position:sticky;top:0;z-index:5;background:#12151a;padding:10px 12px;border-bottom:1px solid #20262e">
     <div class="segrow" role="group" aria-label="Pannello" data-help="panelTabs" style="display:flex;width:100%">
       {#each TABS as option (option.id)}
         <button class="seg {tab === option.id ? 'on' : ''}" style="flex:1" aria-pressed={tab === option.id}
