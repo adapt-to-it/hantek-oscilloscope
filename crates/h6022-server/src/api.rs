@@ -29,6 +29,45 @@ pub enum SlopeName {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum LogicOpName {
+    And,
+    Or,
+}
+
+/// Condizione di un canale nel trigger logico: un fronte, un livello rispetto alla soglia o nessuna.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum CondName {
+    Rising,
+    Falling,
+    Either,
+    High,
+    Low,
+    Ignore,
+}
+
+/// Trigger logico: una condizione per canale combinate con `op`.
+/// Il canale sorgente usa `trigger_level_v`, l'altro `other_level_v`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct LogicTrigger {
+    pub op: LogicOpName,
+    pub ch1: CondName,
+    pub ch2: CondName,
+    pub other_level_v: f32,
+}
+
+/// Trigger A → B: fronte A sul canale sorgente a `trigger_level_v`, poi il primo fronte B
+/// sull'altro canale a `other_level_v` che arriva almeno `delay_s` secondi dopo A.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct SequenceTrigger {
+    pub slope_a: SlopeName,
+    pub slope_b: SlopeName,
+    pub other_level_v: f32,
+    pub delay_s: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum WindowName {
     Rectangular,
@@ -64,10 +103,14 @@ pub struct ConfigView {
     /// Frazione 0..1 del frame prima del trigger.
     pub pretrigger: f32,
     pub trigger_source: u8,
-    /// "edge", "pulse_width", "runt", "window", "timeout" o "pattern".
+    /// "edge", "pulse_width", "runt", "window", "timeout", "pattern", "logic" o "sequence".
     pub trigger_kind: String,
     /// Solo per i trigger "edge" e "timeout".
     pub trigger_slope: Option<SlopeName>,
+    /// Solo per il trigger "logic".
+    pub trigger_logic: Option<LogicTrigger>,
+    /// Solo per il trigger "sequence".
+    pub trigger_sequence: Option<SequenceTrigger>,
     pub trigger_level_v: f32,
     pub trigger_hysteresis_v: f32,
     pub trigger_holdoff_s: f64,
@@ -94,7 +137,12 @@ pub struct ConfigPatch {
     /// 1 o 2.
     pub trigger_source: Option<u8>,
     /// Imposta un trigger a fronte con questa pendenza.
+    /// `trigger_slope`, `trigger_logic` e `trigger_sequence` si escludono a vicenda.
     pub trigger_slope: Option<SlopeName>,
+    /// Imposta un trigger logico. Richiede due canali.
+    pub trigger_logic: Option<LogicTrigger>,
+    /// Imposta un trigger A → B. Richiede due canali.
+    pub trigger_sequence: Option<SequenceTrigger>,
     pub trigger_level_v: Option<f32>,
     pub trigger_hysteresis_v: Option<f32>,
     pub trigger_holdoff_s: Option<f64>,

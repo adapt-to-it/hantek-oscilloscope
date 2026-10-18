@@ -5,7 +5,9 @@ use std::sync::mpsc::Receiver;
 use std::sync::{Arc, MutexGuard};
 use std::time::{Duration, Instant};
 
-use h6022_core::{EngineConfig, EngineHandle, Frame, RunState, Slope, TriggerKind, TriggerMode};
+use h6022_core::{
+    EngineConfig, EngineHandle, Frame, LogicCond, LogicOp, RunState, Slope, TriggerKind, TriggerMode,
+};
 use h6022_dsp::measure::{Measurements, delay_seconds, measure as measure_wave, phase_degrees};
 use h6022_dsp::resample::min_max_decimate;
 use h6022_dsp::spectrum::spectrum as spectrum_of;
@@ -18,9 +20,10 @@ use rmcp::{ErrorData, Json, ServerHandler, tool, tool_handler, tool_router};
 
 use crate::AppState;
 use crate::api::{
-    AnalysisView, AnalyzeParams, CaptureParams, ChannelMeasures, ConfigPatch, ConfigView, CouplingName, FormatName,
-    FrameView, MeasureParams, MeasureView, ModeName, PeakView, RecordParams, RecordSummaryView, RecordingView,
-    SignalKind, SlopeName, SnapshotParams, SpectrumParams, SpectrumView, StatusView, TraceView, WindowName,
+    AnalysisView, AnalyzeParams, CaptureParams, ChannelMeasures, CondName, ConfigPatch, ConfigView, CouplingName,
+    FormatName, FrameView, LogicOpName, LogicTrigger, MeasureParams, MeasureView, ModeName, PeakView, RecordParams,
+    RecordSummaryView, RecordingView, SequenceTrigger, SignalKind, SlopeName, SnapshotParams, SpectrumParams,
+    SpectrumView, StatusView, TraceView, WindowName,
 };
 
 #[derive(Clone)]
@@ -92,8 +95,18 @@ impl H6022Mcp {
         if let Some(s) = patch.trigger_source {
             cfg.trigger.source = channel(s)?;
         }
+        let kinds = [patch.trigger_slope.is_some(), patch.trigger_logic.is_some(), patch.trigger_sequence.is_some()];
+        if kinds.iter().filter(|&&set| set).count() > 1 {
+            return Err(invalid("usa uno solo tra trigger_slope, trigger_logic e trigger_sequence"));
+        }
         if let Some(s) = patch.trigger_slope {
             cfg.trigger.kind = TriggerKind::Edge { slope: slope(s) };
+        }
+        if let Some(l) = patch.trigger_logic {
+            cfg.trigger.kind = logic_kind(l)?;
+        }
+        if let Some(q) = patch.trigger_sequence {
+            cfg.trigger.kind = sequence_kind(q)?;
         }
         if let Some(l) = patch.trigger_level_v {
             cfg.trigger.level = l;
@@ -106,6 +119,11 @@ impl H6022Mcp {
         }
         if cfg.acquisition.mode == ChannelMode::Single && (touches_ch2 || cfg.trigger.source == Channel::Ch2) {
             return Err(invalid("CH2 non attivo con un solo canale"));
+        }
+        if cfg.acquisition.mode == ChannelMode::Single
+            && matches!(cfg.trigger.kind, TriggerKind::Logic { .. } | TriggerKind::Sequence { .. })
+        {
+            return Err(invalid("i trigger logic e sequence richiedono due canali"));
         }
 
         self.state.engine.set_config(cfg).map_err(|e| invalid(e.to_string()))?;
@@ -680,9 +698,83 @@ fn config_view(c: &EngineConfig) -> ConfigView {
         },
         trigger_kind: trigger_kind.to_string(),
         trigger_slope,
+        trigger_logic: match c.trigger.kind {
+            TriggerKind::Logic { op, conds, other_level } => Some(LogicTrigger {
+                op: match op {
+                    LogicOp::And => LogicOpName::And,
+                    LogicOp::Or => LogicOpName::Or,
+                },
+                ch1: cond_name(conds[0]),
+                ch2: cond_name(conds[1]),
+                other_level_v: other_level,
+            }),
+            _ => None,
+        },
+        trigger_sequence: match c.trigger.kind {
+            TriggerKind::Sequence { slope_a, slope_b, other_level, delay } => Some(SequenceTrigger {
+                slope_a: slope_name(slope_a),
+                slope_b: slope_name(slope_b),
+                other_level_v: other_level,
+                delay_s: delay,
+            }),
+            _ => None,
+        },
         trigger_level_v: c.trigger.level,
         trigger_hysteresis_v: c.trigger.hysteresis,
         trigger_holdoff_s: c.trigger.holdoff,
+    }
+}
+
+/// Trigger logico validato: livello finito e almeno una condizione diversa da `ignore`.
+fn logic_kind(l: LogicTrigger) -> Result<TriggerKind, ErrorData> {
+    if !l.other_level_v.is_finite() {
+        return Err(invalid("trigger_logic.other_level_v deve essere finito"));
+    }
+    if l.ch1 == CondName::Ignore && l.ch2 == CondName::Ignore {
+        return Err(invalid("trigger_logic: serve una condizione su almeno un canale"));
+    }
+    let op = match l.op {
+        LogicOpName::And => LogicOp::And,
+        LogicOpName::Or => LogicOp::Or,
+    };
+    Ok(TriggerKind::Logic { op, conds: [cond(l.ch1), cond(l.ch2)], other_level: l.other_level_v })
+}
+
+/// Trigger A → B validato: livello finito, ritardo finito e non negativo.
+fn sequence_kind(q: SequenceTrigger) -> Result<TriggerKind, ErrorData> {
+    if !q.other_level_v.is_finite() {
+        return Err(invalid("trigger_sequence.other_level_v deve essere finito"));
+    }
+    if !(q.delay_s.is_finite() && q.delay_s >= 0.0) {
+        return Err(invalid("trigger_sequence.delay_s deve essere finito e non negativo"));
+    }
+    Ok(TriggerKind::Sequence {
+        slope_a: slope(q.slope_a),
+        slope_b: slope(q.slope_b),
+        other_level: q.other_level_v,
+        delay: q.delay_s,
+    })
+}
+
+fn cond(name: CondName) -> LogicCond {
+    match name {
+        CondName::Rising => LogicCond::Edge(Slope::Rising),
+        CondName::Falling => LogicCond::Edge(Slope::Falling),
+        CondName::Either => LogicCond::Edge(Slope::Either),
+        CondName::High => LogicCond::High,
+        CondName::Low => LogicCond::Low,
+        CondName::Ignore => LogicCond::Ignore,
+    }
+}
+
+fn cond_name(c: LogicCond) -> CondName {
+    match c {
+        LogicCond::Edge(Slope::Rising) => CondName::Rising,
+        LogicCond::Edge(Slope::Falling) => CondName::Falling,
+        LogicCond::Edge(Slope::Either) => CondName::Either,
+        LogicCond::High => CondName::High,
+        LogicCond::Low => CondName::Low,
+        LogicCond::Ignore => CondName::Ignore,
     }
 }
 
@@ -800,6 +892,57 @@ mod tests {
         assert_eq!(set.sample_rate_hz, 2e6);
         let got = block_on(mcp.get_config()).unwrap().0;
         assert_eq!(got, set);
+    }
+
+    fn logic(ch1: CondName, ch2: CondName, other_level_v: f32) -> LogicTrigger {
+        LogicTrigger { op: LogicOpName::And, ch1, ch2, other_level_v }
+    }
+
+    fn sequence(delay_s: f64) -> SequenceTrigger {
+        SequenceTrigger { slope_a: SlopeName::Rising, slope_b: SlopeName::Falling, other_level_v: 2.0, delay_s }
+    }
+
+    #[test]
+    fn set_config_imposta_trigger_logico_e_sequenza() {
+        let mcp = H6022Mcp::new(state());
+        let l = logic(CondName::Rising, CondName::High, 2.5);
+        let set = block_on(mcp.set_config(Parameters(ConfigPatch { trigger_logic: Some(l), ..Default::default() })))
+            .unwrap()
+            .0;
+        assert_eq!(set.trigger_kind, "logic");
+        assert_eq!(set.trigger_logic, Some(l));
+        assert_eq!(set.trigger_sequence, None);
+
+        let q = sequence(1e-6);
+        let set = block_on(mcp.set_config(Parameters(ConfigPatch { trigger_sequence: Some(q), ..Default::default() })))
+            .unwrap()
+            .0;
+        assert_eq!(set.trigger_kind, "sequence");
+        assert_eq!(set.trigger_sequence, Some(q));
+        assert_eq!(set.trigger_logic, None);
+        assert_eq!(block_on(mcp.get_config()).unwrap().0, set);
+    }
+
+    #[test]
+    fn set_config_rifiuta_trigger_non_validi_senza_cambiare_config() {
+        let mcp = H6022Mcp::new(state());
+        let prima = block_on(mcp.get_config()).unwrap().0;
+        let casi = [
+            ConfigPatch { trigger_logic: Some(logic(CondName::Ignore, CondName::Ignore, 1.0)), ..Default::default() },
+            ConfigPatch { trigger_logic: Some(logic(CondName::High, CondName::Rising, f32::NAN)), ..Default::default() },
+            ConfigPatch { trigger_sequence: Some(sequence(-1e-6)), ..Default::default() },
+            ConfigPatch { trigger_sequence: Some(sequence(f64::INFINITY)), ..Default::default() },
+            ConfigPatch {
+                trigger_slope: Some(SlopeName::Rising),
+                trigger_sequence: Some(sequence(0.0)),
+                ..Default::default()
+            },
+            ConfigPatch { channels: Some(1), trigger_sequence: Some(sequence(0.0)), ..Default::default() },
+        ];
+        for patch in casi {
+            assert!(block_on(mcp.set_config(Parameters(patch.clone()))).is_err(), "{patch:?}");
+            assert_eq!(block_on(mcp.get_config()).unwrap().0, prima);
+        }
     }
 
     #[test]
