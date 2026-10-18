@@ -1,0 +1,158 @@
+//! Comandi invocati dal frontend.
+
+use std::sync::atomic::Ordering;
+use std::sync::mpsc::RecvTimeoutError;
+use std::thread;
+use std::time::{Duration, Instant};
+
+use serde::Serialize;
+use tauri::State;
+use tauri::ipc::{Channel, InvokeResponseBody};
+
+use h6022_core::{RunState, TriggerMode};
+use h6022_view::settings::ViewSettings;
+use h6022_view::trace::encode_display;
+
+use crate::state::AppState;
+
+/// Intervallo minimo tra due frame inviati al display (circa 60 al secondo).
+pub const DISPLAY_INTERVAL_MS: u64 = 16;
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Status {
+    /// "hardware" o "simulator".
+    pub source: &'static str,
+    /// "running", "armed" o "stopped".
+    pub run_state: &'static str,
+    /// "auto", "normal", "single" o "roll".
+    pub trigger_mode: &'static str,
+    pub frames: u64,
+    pub sample_rate_hz: f64,
+    pub sample_rate_measured_hz: f64,
+    pub record_length: usize,
+    pub server: String,
+}
+
+#[tauri::command]
+pub fn status(state: State<'_, AppState>) -> Status {
+    let config = state.engine.config();
+    let stats = state.engine.stats();
+    Status {
+        source: state.source,
+        run_state: match state.engine.state() {
+            RunState::Running => "running",
+            RunState::Armed => "armed",
+            RunState::Stopped => "stopped",
+        },
+        trigger_mode: match config.mode {
+            TriggerMode::Auto => "auto",
+            TriggerMode::Normal => "normal",
+            TriggerMode::Single => "single",
+            TriggerMode::Roll => "roll",
+        },
+        frames: stats.frames,
+        sample_rate_hz: config.acquisition.sample_rate.hz() as f64,
+        sample_rate_measured_hz: stats.sample_rate_measured,
+        record_length: config.record_length,
+        server: state.server_status.lock().unwrap().clone(),
+    }
+}
+
+#[tauri::command]
+pub fn get_view(state: State<'_, AppState>) -> ViewSettings {
+    *state.view.lock().unwrap()
+}
+
+/// Applica la vista alla configurazione del motore. Se il motore la rifiuta, la vista resta quella di prima.
+#[tauri::command]
+pub fn set_view(state: State<'_, AppState>, view: ViewSettings) -> Result<(), String> {
+    let mut config = state.engine.config();
+    view.apply(&mut config);
+    state.engine.set_config(config).map_err(|e| e.to_string())?;
+    *state.view.lock().unwrap() = view;
+    Ok(())
+}
+
+/// `command`: "run", "stop" o "single".
+#[tauri::command]
+pub fn run_command(state: State<'_, AppState>, command: String) -> Result<(), String> {
+    let mut previous = state.previous_mode.lock().unwrap();
+    match command.as_str() {
+        "run" => {
+            if let Some(mode) = previous.take() {
+                let mut config = state.engine.config();
+                config.mode = mode;
+                state.engine.set_config(config).map_err(|e| e.to_string())?;
+            }
+            state.engine.run();
+        }
+        "stop" => state.engine.pause(),
+        "single" => {
+            let mut config = state.engine.config();
+            if config.mode != TriggerMode::Single {
+                *previous = Some(config.mode);
+            }
+            config.mode = TriggerMode::Single;
+            state.engine.set_config(config).map_err(|e| e.to_string())?;
+            state.engine.run();
+        }
+        other => return Err(format!("comando sconosciuto: {other}")),
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_columns(state: State<'_, AppState>, columns: usize) {
+    state.columns.store(columns, Ordering::Relaxed);
+}
+
+/// Avvia un thread che invia a `channel` ogni frame codificato con `h6022_view::trace::encode_display`.
+#[tauri::command]
+pub fn subscribe_display(state: State<'_, AppState>, channel: Channel<InvokeResponseBody>) {
+    let generation = state.display_generation.fetch_add(1, Ordering::SeqCst) + 1;
+    let current = state.display_generation.clone();
+    let frames = state.engine.subscribe();
+    let view = state.view.clone();
+    let columns = state.columns.clone();
+    thread::spawn(move || {
+        let interval = Duration::from_millis(DISPLAY_INTERVAL_MS);
+        let mut last = Instant::now() - interval;
+        while current.load(Ordering::SeqCst) == generation {
+            // Il timeout serve a ricontrollare la generazione; un canale chiuso vuol dire motore fermo.
+            let mut frame = match frames.recv_timeout(Duration::from_millis(200)) {
+                Ok(frame) => frame,
+                Err(RecvTimeoutError::Timeout) => continue,
+                Err(RecvTimeoutError::Disconnected) => break,
+            };
+            // Solo il frame più recente.
+            while let Ok(newer) = frames.try_recv() {
+                frame = newer;
+            }
+            let wait = interval.saturating_sub(last.elapsed());
+            if !wait.is_zero() {
+                thread::sleep(wait);
+            }
+            last = Instant::now();
+            let settings = *view.lock().unwrap();
+            let enabled = [settings.channels[0].enabled, settings.channels[1].enabled];
+            let bytes = encode_display(&frame, enabled, &settings.viewport(columns.load(Ordering::Relaxed)));
+            if channel.send(InvokeResponseBody::Raw(bytes)).is_err() {
+                break;
+            }
+        }
+    });
+}
+
+
+#[tauri::command]
+pub fn get_trigger_level(state: State<'_, AppState>) -> f32 {
+    state.engine.config().trigger.level
+}
+
+#[tauri::command]
+pub fn set_trigger_level(state: State<'_, AppState>, volts: f32) -> Result<(), String> {
+    let mut config = state.engine.config();
+    config.trigger.level = volts;
+    state.engine.set_config(config).map_err(|e| e.to_string())
+}

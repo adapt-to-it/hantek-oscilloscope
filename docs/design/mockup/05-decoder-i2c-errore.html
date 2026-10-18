@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Oscilloscopio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0b0d10;font-family:'Instrument Sans',system-ui,sans-serif;color:#e8ebef}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+h2,h3{margin:0}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.card{background:#12151a;border:1px solid #232932;border-radius:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 14px;border-radius:8px;border:1px solid #2a313b;background:#181c22;font-size:14px;font-weight:600;white-space:nowrap}
+.btn:hover{background:#222833;border-color:#3a4350}
+.btn.run{background:#3fd68a;border-color:#3fd68a;color:#06210f}
+.btn.run:hover{background:#5be4a0}
+.btn.stop{background:#2a1613;border-color:#6a3029;color:#ff9a8a}
+.btn.stop:hover{background:#3a1e19}
+.btn.on{background:#2c3443;border-color:#4a5568;color:#fff}
+.btn.rec{background:#3a1714;border-color:#8a3a30;color:#ffb3a6}
+.chip{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:999px;background:#0f1215;border:1px solid #232932;font-size:13px;font-weight:600;white-space:nowrap}
+button.chip:hover{background:#181c22}
+.kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 5px;border-radius:5px;border:1px solid #333b47;background:#0f1215;color:#9aa3af;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500}
+.btn:focus-visible,.seg:focus-visible,.step:focus-visible,.tgl:focus-visible,.lnk:focus-visible,.opt:focus-visible,.acc-t:focus-visible,.chip:focus-visible,input:focus-visible{outline:2px solid #8ab4ff;outline-offset:2px}
+.step{width:34px;height:34px;border-radius:8px;border:1px solid #2a313b;background:#181c22;font-size:18px;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.step:hover{background:#222833;border-color:#3a4350}
+.segrow{display:inline-flex;padding:3px;gap:2px;border-radius:9px;background:#0d1013;border:1px solid #232932}
+.seg{height:28px;padding:0 11px;border-radius:6px;border:0;background:transparent;color:#a4adb9;font-size:13px;font-weight:600;white-space:nowrap}
+.seg:hover{color:#e8ebef}
+.seg.on{background:#2c3443;color:#fff}
+.opt{height:32px;padding:0 10px;border-radius:8px;border:1px solid #2a313b;background:#0d1013;color:#a4adb9;font-size:13px;font-weight:600}
+.opt:hover{color:#e8ebef;border-color:#3a4350}
+.opt.on{background:#2c3443;border-color:#4a5568;color:#fff}
+.tgl{width:40px;height:22px;border-radius:999px;background:#2a313b;border:0;position:relative;flex:none;padding:0}
+.tgl::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#cfd5dd;transition:left .12s}
+.tgl.on{background:#3fd68a}
+.tgl.on::after{left:21px;background:#06210f}
+.tgl.on.c1{background:#f5c842}
+.tgl.on.c1::after{background:#1a1403}
+.tgl.on.c2{background:#43c6f3}
+.tgl.on.c2::after{background:#021820}
+.lnk{background:transparent;border:0;padding:6px 0;color:#9db8ff;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.lnk:hover{color:#c3d4ff}
+.acc-h{display:flex;align-items:center;gap:10px;padding:0 14px;min-height:44px}
+.acc-t{flex:1;display:flex;align-items:center;gap:8px;background:transparent;border:0;padding:10px 0;text-align:left;font-size:14px;font-weight:700}
+.rw{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px}
+.rw>span.lb{font-size:13px;color:#c3cad4}
+.tipw{position:relative}
+.tip{display:none;position:absolute;left:0;right:0;top:100%;z-index:30;padding:10px 12px;border-radius:9px;background:#0b0d10;border:1px solid #4a5568;box-shadow:0 8px 24px #000a;font-size:13px;line-height:1.45;color:#c3cad4;pointer-events:none}
+.tip b{display:block;color:#fff;font-size:13px;margin-bottom:2px}
+.tip.up{top:auto;bottom:100%}
+.exp .tipw:hover>.tip{display:block}
+.tipw.force>.tip{display:block}
+.mrow{display:grid;grid-template-columns:1fr 76px 76px 28px;gap:6px;align-items:center;padding:0 4px;min-height:30px;font-size:13px;color:#c3cad4}
+.ibtn{width:26px;height:26px;border-radius:6px;border:1px solid transparent;background:transparent;color:#8a94a1;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.ibtn:hover{background:#222833;border-color:#3a4350;color:#e8ebef}
+.ibtn:focus-visible{outline:2px solid #8ab4ff;outline-offset:1px}
+.mrow:hover{background:#181c22;border-radius:6px}
+.blk{position:absolute;top:0;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#0b0d10}
+</style>
+</helmet>
+
+<div class="app {{expCls}}" style="display:flex;flex-direction:column;height:100vh;min-height:720px;background:#0b0d10;position:relative">
+
+  <!-- BARRA SUPERIORE -->
+  <header style="position:relative;z-index:40;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 16px;background:#0f1216;border-bottom:1px solid #20262e">
+    <div style="position:relative">
+      <button class="chip" onClick="{{toggleDev}}" aria-expanded="{{devExpanded}}" aria-label="Stato del dispositivo: {{devLabel}}">
+        <span style="width:8px;height:8px;border-radius:50%;background:{{devDot}};display:inline-block"></span>
+        <span>Hantek 6022BE</span><span style="color:#9aa3af;font-weight:500">{{devLabel}}</span>
+      </button>
+      <sc-if value="{{devOpen}}" hint-placeholder-val="{{ false }}">
+        <div class="card" style="position:absolute;left:0;top:42px;width:320px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:#0b0d10;border-color:#3a4350;box-shadow:0 12px 32px #000b">
+          <div style="font-size:14px;font-weight:700">Dispositivo</div>
+          <div class="rw" style="min-height:26px"><span class="lb">Stato</span><span class="mono" style="font-size:13px;color:{{devDot}}">{{devLabel}}</span></div>
+          <div class="rw" style="min-height:26px"><span class="lb">Firmware</span><span class="mono" style="font-size:13px;color:#9aa3af">[versione firmware]</span></div>
+          <div class="rw" style="min-height:26px"><span class="lb">Calibrazione EEPROM</span><span class="mono" style="font-size:13px;color:#9aa3af">[stato lettura]</span></div>
+          <div style="font-size:13px;line-height:1.45;color:#9aa3af;text-wrap:pretty;border-top:1px solid #20262e;padding-top:10px">{{devNote}}</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn {{runCls}}" onClick="{{toggleRun}}" style="min-width:112px">
+        <sc-if value="{{running}}" hint-placeholder-val="{{ true }}">
+          <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="2" width="10" height="10" rx="1.5" fill="currentColor"></rect></svg>
+        </sc-if>
+        <sc-if value="{{stopped}}" hint-placeholder-val="{{ false }}">
+          <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="currentColor"></path></svg>
+        </sc-if>
+        {{runLabel}} <span class="kbd">Spazio</span>
+      </button>
+      <button class="btn" onClick="{{doSingle}}">Singolo <span class="kbd">S</span></button>
+    </div>
+
+    <div class="chip" role="status" style="gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:{{pillDot}};display:inline-block"></span>{{pillText}}</div>
+
+    <div style="flex:1 1 10px"></div>
+
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="segrow" role="group" aria-label="Vista">
+        <sc-for list="{{views}}" as="o" hint-placeholder-count="3">
+          <button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button>
+        </sc-for>
+      </div>
+      <span class="kbd" title="Tasto F: alterna Tempo e Spettro">F</span>
+    </div>
+
+    <button class="btn {{explCls2}}" aria-pressed="{{explPressed}}" onClick="{{toggleExpl}}">Spiegazioni <span class="kbd">i</span></button>
+    <button class="btn" aria-label="Salva un’immagine PNG della finestra" style="padding:0 12px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+      <span class="kbd">P</span>
+    </button>
+    <div class="chip mono" style="font-size:12px;font-weight:500;color:{{mcpColor}}" title="Server MCP per Claude Code"><span style="width:8px;height:8px;border-radius:50%;background:{{mcpColor}};display:inline-block"></span>{{mcpText}}</div>
+  </header>
+
+  <sc-if value="{{errMsg}}" hint-placeholder-val="{{ false }}">
+    <div role="alert" style="display:flex;align-items:center;gap:10px;padding:9px 16px;background:#3a1714;border-bottom:1px solid #6a3029;color:#ffb3a6;font-size:13px;font-weight:500">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2.5 20h19z"></path><path d="M12 10v5M12 18v.01"></path></svg>
+      {{errMsg}}
+    </div>
+  </sc-if>
+
+  <!-- AREA DI LAVORO -->
+  <main style="flex:1;min-height:0;display:flex;flex-wrap:wrap;gap:14px;padding:14px 16px;overflow:auto;align-items:stretch">
+
+    <!-- SINISTRA: display, decoder, misure -->
+    <div style="flex:1 1 640px;min-width:0;display:flex;flex-direction:column;gap:12px">
+
+      <section class="card" style="flex:1;min-height:300px;display:flex;flex-direction:column;overflow:hidden;background:#06080a">
+        <div style="position:relative;flex:1;min-height:240px;overflow:hidden" onMouseMove="{{onMove}}" onMouseLeave="{{onLeave}}">
+
+          <sc-if value="{{isTempo}}" hint-placeholder-val="{{ true }}">
+            <svg viewBox="0 0 1000 800" preserveAspectRatio="none" role="img" aria-label="Vista Tempo: tracce dei canali" style="position:absolute;left:0;top:0;width:100%;height:100%">
+              <path d="M100 0V800M200 0V800M300 0V800M400 0V800M600 0V800M700 0V800M800 0V800M900 0V800M0 100H1000M0 200H1000M0 300H1000M0 500H1000M0 600H1000M0 700H1000" stroke="#1b2128" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"></path>
+              <path d="M500 0V800M0 400H1000" stroke="#38414d" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"></path>
+              <path d="{{tickD}}" stroke="#4a5563" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"></path>
+              <line x1="0" x2="1000" y1="{{trigY}}" y2="{{trigY}}" stroke="#ff9f43" stroke-width="1" stroke-dasharray="5 6" opacity="0.65" vector-effect="non-scaling-stroke"></line>
+              <path d="{{p2}}" transform="translate(3 0)" stroke="#43c6f3" stroke-width="2" fill="none" opacity="{{g1}}" vector-effect="non-scaling-stroke"></path>
+              <path d="{{p2}}" transform="translate(-2 1)" stroke="#43c6f3" stroke-width="2" fill="none" opacity="{{g2}}" vector-effect="non-scaling-stroke"></path>
+              <path d="{{p2}}" transform="translate(5 -1)" stroke="#43c6f3" stroke-width="2" fill="none" opacity="{{g3}}" vector-effect="non-scaling-stroke"></path>
+              <path d="{{p1}}" transform="translate(3 0)" stroke="#f5c842" stroke-width="2" fill="none" opacity="{{g1}}" vector-effect="non-scaling-stroke"></path>
+              <path d="{{p1}}" transform="translate(-2 1)" stroke="#f5c842" stroke-width="2" fill="none" opacity="{{g2}}" vector-effect="non-scaling-stroke"></path>
+              <path d="{{p1}}" transform="translate(5 -1)" stroke="#f5c842" stroke-width="2" fill="none" opacity="{{g3}}" vector-effect="non-scaling-stroke"></path>
+              <path d="{{pm}}" stroke="#b794f6" stroke-width="2" fill="none" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+              <path d="{{p2}}" stroke="#43c6f3" stroke-width="2" fill="{{fill2}}" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+              <path d="{{p1}}" stroke="#f5c842" stroke-width="2" fill="{{fill1}}" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+              <path d="M{{cx1}} 0V800M{{cx2}} 0V800" stroke="#cfd5dd" stroke-width="1" stroke-dasharray="4 5" opacity="{{opCurT}}" vector-effect="non-scaling-stroke"></path>
+              <path d="M0 {{cy1}}H1000M0 {{cy2}}H1000" stroke="#cfd5dd" stroke-width="1" stroke-dasharray="4 5" opacity="{{opCurV}}" vector-effect="non-scaling-stroke"></path>
+            </svg>
+          </sc-if>
+
+          <sc-if value="{{isSpec}}" hint-placeholder-val="{{ false }}">
+            <svg viewBox="0 0 1000 800" preserveAspectRatio="none" role="img" aria-label="Vista Spettro: FFT dei canali in dBV" style="position:absolute;left:0;top:0;width:100%;height:100%">
+              <path d="{{specGrid}}" stroke="#1b2128" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"></path>
+              <path d="{{specMajor}}" stroke="#2c343f" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"></path>
+              <path d="{{sp2}}" stroke="#43c6f3" stroke-width="1.6" fill="none" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+              <path d="{{sp1}}" stroke="#f5c842" stroke-width="1.6" fill="none" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+            </svg>
+          </sc-if>
+
+          <sc-if value="{{isXY}}" hint-placeholder-val="{{ false }}">
+            <svg viewBox="0 0 1000 800" preserveAspectRatio="none" role="img" aria-label="Vista XY: CH1 in orizzontale, CH2 in verticale" style="position:absolute;left:0;top:0;width:100%;height:100%">
+              <path d="M100 0V800M200 0V800M300 0V800M400 0V800M600 0V800M700 0V800M800 0V800M900 0V800M0 100H1000M0 200H1000M0 300H1000M0 500H1000M0 600H1000M0 700H1000" stroke="#1b2128" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"></path>
+              <path d="M500 0V800M0 400H1000" stroke="#38414d" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"></path>
+              <path d="{{tickD}}" stroke="#4a5563" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"></path>
+              <path d="{{xyD}}" stroke="#f5c842" stroke-opacity="0.3" stroke-width="7" stroke-linecap="round" fill="none" vector-effect="non-scaling-stroke"></path>
+            </svg>
+          </sc-if>
+
+          <!-- marcatori vista Tempo -->
+          <sc-if value="{{isTempo}}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div class="mono" style="position:absolute;left:0;top:{{z1}};transform:translateY(-50%);opacity:{{op1}};width:26px;height:20px;padding-right:6px;background:#f5c842;color:#1a1403;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%)">1</div>
+              <div class="mono" style="position:absolute;left:0;top:{{z2}};transform:translateY(-50%);opacity:{{op2}};width:26px;height:20px;padding-right:6px;background:#43c6f3;color:#021820;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%)">2</div>
+              <div class="mono" style="position:absolute;left:0;top:{{zm}};transform:translateY(-50%);opacity:{{opm}};width:26px;height:20px;padding-right:6px;background:#b794f6;color:#1a0f33;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%)">M</div>
+              <div class="mono" style="position:absolute;right:0;top:{{zt}};transform:translateY(-50%);height:22px;padding:0 8px 0 14px;background:#ff9f43;color:#241200;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;clip-path:polygon(0 50%,10px 0,100% 0,100% 100%,10px 100%);cursor:ns-resize" title="Trascina per cambiare il livello di trigger">T <span style="font-weight:500">{{levelLabel}}</span></div>
+              <div style="position:absolute;top:0;left:{{tmLeft}};transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:11px solid {{srcColor}}" title="Istante del trigger (t = 0)"></div>
+              <sc-if value="{{hasCursors}}" hint-placeholder-val="{{ false }}">
+                <div class="mono" style="position:absolute;left:12px;top:14px;min-width:150px;padding:8px 10px;border-radius:8px;background:#0b0d10ee;border:1px solid #333b47;font-size:12px;line-height:1.55;color:#dde2e8">
+                  <sc-for list="{{curLines}}" as="l" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#9aa3af">{{l.k}}</span><span>{{l.v}}</span></div></sc-for>
+                </div>
+              </sc-if>
+              <div style="position:absolute;left:36px;bottom:10px;font-size:12px;color:#7f8996">Trascina 1, 2, T e i cursori per regolarli</div>
+            </div>
+          </sc-if>
+
+          <!-- etichette vista Spettro -->
+          <sc-if value="{{isSpec}}" hint-placeholder-val="{{ false }}">
+            <div>
+              <sc-for list="{{dbLabels}}" as="d" hint-placeholder-count="8">
+                <div class="mono" style="position:absolute;left:8px;top:{{d.top}};transform:translateY(-50%);padding:0 4px;background:#06080a;font-size:11px;color:#9aa3af">{{d.t}}</div>
+              </sc-for>
+              <sc-for list="{{fLabels}}" as="d" hint-placeholder-count="4">
+                <div class="mono" style="position:absolute;bottom:8px;left:{{d.left}};transform:translateX(-50%);padding:0 4px;background:#06080a;font-size:11px;color:#9aa3af">{{d.t}}</div>
+              </sc-for>
+              <sc-for list="{{pins}}" as="p" hint-placeholder-count="6">
+                <div class="mono" style="position:absolute;left:{{p.left}};top:{{p.top}};transform:translate(-50%,-135%);width:20px;height:20px;border-radius:50%;background:#0b0d10;border:2px solid {{p.color}};color:{{p.color}};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{p.n}}</div>
+              </sc-for>
+              <div style="position:absolute;right:12px;top:12px;min-width:210px;padding:10px 12px;border-radius:10px;background:#0b0d10ee;border:1px solid #333b47;display:flex;flex-direction:column;gap:5px">
+                <div style="font-size:12px;font-weight:700;color:#c3cad4">Picchi</div>
+                <sc-for list="{{peakRows}}" as="p" hint-placeholder-count="6">
+                  <div class="mono" style="display:flex;align-items:center;gap:8px;font-size:12px;color:#dde2e8"><span style="width:18px;height:18px;border-radius:50%;border:2px solid {{p.color}};color:{{p.color}};font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">{{p.n}}</span><span style="min-width:72px">{{p.f}}</span><span style="color:#9aa3af">{{p.db}}</span></div>
+                </sc-for>
+              </div>
+              <sc-if value="{{hasHov}}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;top:0;bottom:0;left:{{hovLeft}};width:1px;background:#cfd5dd99"></div>
+                <div class="mono" style="position:absolute;top:44px;left:{{hovTagLeft}};transform:{{hovTrans}};padding:7px 10px;border-radius:8px;background:#0b0d10;border:1px solid #4a5568;font-size:12px;line-height:1.5;white-space:nowrap">
+                  <div style="color:#fff;font-weight:600">{{hovF}}</div>
+                  <div style="color:#f5c842">CH1 {{hovD1}}</div>
+                  <div style="color:#43c6f3">CH2 {{hovD2}}</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{xyHint}}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:12px;bottom:10px;font-size:12px;color:#8a94a1;max-width:420px;line-height:1.4">{{xyHint}}</div>
+          </sc-if>
+
+          <sc-if value="{{noData}}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:0;top:0;right:0;bottom:0;background:#06080af2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:24px">
+              <div style="font-size:18px;font-weight:600">In attesa di dati</div>
+              <div style="font-size:13px;color:#9aa3af;max-width:340px;line-height:1.45;text-wrap:pretty">{{noDataNote}}</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div class="mono" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;padding:7px 14px;border-top:1px solid #1b2128;background:#0a0c0f;font-size:12px">
+          <button class="lnk mono" onClick="{{openCh1}}" style="color:#f5c842;padding:2px 0;font-size:12px">CH1 {{v1Label}}/div</button>
+          <button class="lnk mono" onClick="{{openCh2}}" style="color:#43c6f3;padding:2px 0;font-size:12px">CH2 {{v2Label}}/div</button>
+          <span>{{tLabel}}/div</span>
+          <span>fs {{fsLabel}}</span>
+          <span style="color:{{trigStateColor}};font-weight:600">{{trigState}}</span>
+          <div style="flex:1"></div>
+          <span style="color:#9aa3af">{{viewNote}}</span>
+        </div>
+      </section>
+
+      <!-- STRISCIA DEL DECODER -->
+      <sc-if value="{{showStrip}}" hint-placeholder-val="{{ false }}">
+        <section class="card" style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#9aa3af">
+            <span style="font-weight:700;color:#e8ebef">Decoder {{protoLabel}}</span><span>{{decCh}}</span>
+          </div>
+          <sc-if value="{{decOk}}" hint-placeholder-val="{{ true }}">
+            <div style="position:relative;height:28px">
+              <sc-for list="{{blocks}}" as="b" hint-placeholder-count="6">
+                <div class="blk" style="left:{{b.left}};width:{{b.width}};background:{{b.bg}};color:{{b.fg}}" title="{{b.title}}">{{b.txt}}</div>
+              </sc-for>
+              <sc-if value="{{noFrames}}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:0;top:0;right:0;height:28px;border:1px dashed #333b47;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#8a94a1">{{noFramesTxt}}</div></sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{decErr}}" hint-placeholder-val="{{ false }}">
+            <div role="alert" style="padding:6px 10px;border-radius:6px;background:#3a1714;color:#ffb3a6;font-size:13px">{{decErr}}</div>
+          </sc-if>
+          <div class="mono" style="font-size:12px;color:#c3cad4">{{decSummary}}</div>
+        </section>
+      </sc-if>
+
+      <!-- MISURE -->
+      <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:12px">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+          <div class="card" style="padding:8px 10px 10px;display:flex;flex-direction:column;gap:2px">
+            <div class="mrow" style="min-height:30px;border-bottom:1px solid #20262e;border-radius:0">
+              <span style="font-size:12px;font-weight:700;color:#e8ebef;letter-spacing:.02em">{{g.title}}</span>
+              <span style="font-size:12px;font-weight:700;color:#f5c842;text-align:right">CH1</span>
+              <span style="font-size:12px;font-weight:700;color:#43c6f3;text-align:right">CH2</span>
+              <span></span>
+            </div>
+            <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="6">
+              <div class="mrow tipw {{r.force}}">
+                <span>{{r.label}}</span>
+                <span class="mono" style="text-align:right;color:{{r.ca}}">{{r.a}}</span>
+                <span class="mono" style="text-align:right;color:{{r.cb}}">{{r.b}}</span>
+                <span style="display:flex;justify-content:flex-end">
+                  <sc-if value="{{r.hasChart}}" hint-placeholder-val="{{ true }}"><button class="ibtn" onClick="{{r.chart}}" aria-label="Mostra l’andamento di {{r.label}} nel tempo" title="Andamento nel tempo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v16h18"></path><path d="M7 15l4-5 3 3 5-7"></path></svg></button></sc-if>
+                </span>
+                <sc-if value="{{r.hasTip}}" hint-placeholder-val="{{ false }}"><div class="tip up"><b>{{r.tipT}}</b>{{r.tipX}}</div></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </section>
+      <div style="display:flex;flex-wrap:wrap;gap:6px 24px;font-size:13px;color:#c3cad4;padding:0 4px">
+        <span>Fase CH1–CH2 <span class="mono" style="color:#8a94a1;margin-left:6px">—</span></span>
+        <span>Ritardo CH1–CH2 <span class="mono" style="color:#8a94a1;margin-left:6px">—</span></span>
+        <span style="color:#8a94a1">— = non calcolabile nella finestra attuale (servono almeno due fronti di salita)</span>
+      </div>
+    </div>
+
+    <!-- DESTRA: pannello -->
+    <aside class="card" style="flex:0 1 330px;min-width:300px;display:flex;flex-direction:column;min-height:420px;overflow:hidden">
+      <div style="padding:10px 12px;border-bottom:1px solid #20262e">
+        <div class="segrow" role="tablist" aria-label="Pannello" style="display:flex;width:100%">
+          <sc-for list="{{tabs}}" as="o" hint-placeholder-count="3">
+            <button class="seg {{o.cls}}" style="flex:1" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}<sc-if value="{{o.badge}}" hint-placeholder-val="{{ false }}"><span style="margin-left:6px;width:7px;height:7px;border-radius:50%;background:{{o.badgeColor}};display:inline-block"></span></sc-if></button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto">
+
+      <!-- TAB CONTROLLI -->
+      <sc-if value="{{tabControlli}}" hint-placeholder-val="{{ true }}">
+        <div>
+          <!-- Orizzontale -->
+          <div style="border-bottom:1px solid #20262e">
+            <div class="acc-h">
+              <button class="acc-t" onClick="{{toggleHor}}" aria-expanded="{{oHorX}}"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{chevHor}}"></path></svg>Orizzontale<span class="mono" style="font-weight:500;font-size:12px;color:#9aa3af;margin-left:auto">{{tLabel}}/div</span></button>
+            </div>
+            <sc-if value="{{oHor}}" hint-placeholder-val="{{ true }}">
+              <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:4px">
+                <div class="rw"><span class="lb">Tempo/div</span>
+                  <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{tDown}}" aria-label="Riduci tempo per divisione">−</button><span class="mono" style="min-width:74px;text-align:center;font-size:14px;font-weight:600">{{tLabel}}</span><button class="step" onClick="{{tUp}}" aria-label="Aumenta tempo per divisione">+</button></div></div>
+                <div class="rw"><span class="lb">Offset</span>
+                  <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{hDown}}" aria-label="Sposta a sinistra">−</button><span class="mono" style="min-width:74px;text-align:center;font-size:13px">{{hoffLabel}}</span><button class="step" onClick="{{hUp}}" aria-label="Sposta a destra">+</button><button class="lnk" onClick="{{doCentra}}">Centra</button></div></div>
+                <div class="tipw {{fPre}}"><div class="rw"><span class="lb">Pretrigger</span>
+                  <div style="display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-end"><input type="range" min="0" max="100" value="{{pre}}" onInput="{{onPre}}" onChange="{{onPre}}" aria-label="Pretrigger" style="width:120px;accent-color:#ff9f43"><span class="mono" style="min-width:42px;text-align:right;font-size:13px">{{pre}} %</span></div></div>
+                  <div class="tip"><b>Pretrigger</b>Quanta parte della schermata mostra il segnale prima del trigger. Al 50 % l’istante del trigger sta al centro.</div></div>
+                <div class="mono" style="font-size:12px;color:#8a94a1;padding-top:4px">Frequenza {{fsLabel}}, record {{recLabel}} campioni</div>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- Canali -->
+          <sc-for list="{{chans}}" as="c" hint-placeholder-count="2">
+            <div style="border-bottom:1px solid #20262e;opacity:{{c.dim}}">
+              <div class="acc-h">
+                <button class="acc-t" onClick="{{c.toggleOpen}}" aria-expanded="{{c.openX}}"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{c.chev}}"></path></svg><span style="color:{{c.color}}">{{c.name}}</span><span class="mono" style="font-weight:500;font-size:12px;color:#9aa3af;margin-left:auto">{{c.summary}}</span></button>
+                <button class="tgl {{c.tglCls}}" role="switch" aria-checked="{{c.pressed}}" aria-label="{{c.name}} attivo" onClick="{{c.toggle}}"></button>
+              </div>
+              <sc-if value="{{c.open}}" hint-placeholder-val="{{ true }}">
+                <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:4px">
+                  <div class="rw"><span class="lb">V/div</span>
+                    <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{c.vDown}}" aria-label="Riduci volt per divisione">−</button><span class="mono" style="min-width:74px;text-align:center;font-size:14px;font-weight:600">{{c.vLabel}}</span><button class="step" onClick="{{c.vUp}}" aria-label="Aumenta volt per divisione">+</button></div></div>
+                  <div class="rw"><span class="lb">Offset</span>
+                    <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{c.oDown}}" aria-label="Sposta in basso">−</button><span class="mono" style="min-width:74px;text-align:center;font-size:13px">{{c.oLabel}}</span><button class="step" onClick="{{c.oUp}}" aria-label="Sposta in alto">+</button><button class="lnk" onClick="{{c.oReset}}">Azzera</button></div></div>
+                  <div class="rw"><span class="lb">Sonda</span>
+                    <div class="segrow" role="group" aria-label="Sonda {{c.name}}"><sc-for list="{{c.probe}}" as="o" hint-placeholder-count="2"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+                  <div class="rw"><span class="lb">Accoppiamento</span>
+                    <div class="segrow" role="group" aria-label="Accoppiamento {{c.name}}"><sc-for list="{{c.coup}}" as="o" hint-placeholder-count="2"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+
+          <!-- Trigger -->
+          <div style="border-bottom:1px solid #20262e">
+            <div class="acc-h">
+              <button class="acc-t" onClick="{{toggleTrig}}" aria-expanded="{{oTrigX}}"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{chevTrig}}"></path></svg><span style="color:#ff9f43">Trigger</span><span class="mono" style="font-weight:500;font-size:12px;color:#9aa3af;margin-left:auto">{{trigSummary}}</span></button>
+            </div>
+            <sc-if value="{{oTrig}}" hint-placeholder-val="{{ true }}">
+              <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:6px">
+                <div class="tipw {{fMode}}"><div class="rw"><span class="lb">Modo</span>
+                  <div class="segrow" role="group" aria-label="Modo trigger"><sc-for list="{{modeOpts}}" as="o" hint-placeholder-count="4"><button class="seg {{o.cls}}" style="padding:0 9px" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+                  <div class="tip"><b>Modo del trigger</b>Auto mostra il segnale anche senza trigger. Normal aggiorna solo quando scatta. Single acquisisce un frame e si ferma. Roll scorre in continuo, per segnali lenti.</div></div>
+                <div class="rw"><span class="lb">Sorgente</span>
+                  <div class="segrow" role="group" aria-label="Sorgente trigger"><sc-for list="{{srcOpts}}" as="o" hint-placeholder-count="2"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+                <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0">
+                  <span class="lb" style="font-size:13px;color:#c3cad4">Tipo</span>
+                  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px"><sc-for list="{{typeOpts}}" as="o" hint-placeholder-count="6"><button class="opt {{o.cls}}" style="padding:0 4px" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div>
+                </div>
+                <sc-for list="{{tparams}}" as="p" hint-placeholder-count="3">
+                  <div class="tipw {{p.force}}">
+                    <div class="rw"><span class="lb">{{p.label}}</span>
+                      <sc-if value="{{p.hasSeg}}" hint-placeholder-val="{{ false }}"><div class="segrow" role="group" aria-label="{{p.label}}"><sc-for list="{{p.opts}}" as="o" hint-placeholder-count="3"><button class="seg {{o.cls}}" style="padding:0 9px" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></sc-if>
+                      <sc-if value="{{p.hasVal}}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{p.dec}}" aria-label="Riduci {{p.label}}">−</button><span class="mono" style="min-width:74px;text-align:center;font-size:14px;font-weight:600">{{p.val}}</span><button class="step" onClick="{{p.inc}}" aria-label="Aumenta {{p.label}}">+</button></div></sc-if>
+                    </div>
+                    <sc-if value="{{p.hasTip}}" hint-placeholder-val="{{ false }}"><div class="tip"><b>{{p.tipT}}</b>{{p.tipX}}</div></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- Display -->
+          <div>
+            <div class="acc-h">
+              <button class="acc-t" onClick="{{toggleDisp}}" aria-expanded="{{oDispX}}"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{chevDisp}}"></path></svg>Display<span class="mono" style="font-weight:500;font-size:12px;color:#9aa3af;margin-left:auto">{{dispSummary}}</span></button>
+            </div>
+            <sc-if value="{{oDisp}}" hint-placeholder-val="{{ true }}">
+              <div style="padding:0 14px 16px;display:flex;flex-direction:column;gap:6px">
+                <div class="tipw {{fWin}}" style="display:flex;flex-direction:column;gap:6px;padding:4px 0">
+                  <span style="font-size:13px;color:#c3cad4">Finestra FFT</span>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{winOpts}}" as="o" hint-placeholder-count="5"><button class="opt {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div>
+                  <div class="tip"><b>Finestra FFT</b>Flat-top dà ampiezze precise. Hann e Blackman-Harris separano meglio frequenze vicine. Rettangolare va bene per segnali periodici sulla finestra.</div>
+                </div>
+                <div class="rw"><span class="lb">Asse delle frequenze logaritmico</span><button class="tgl {{logCls}}" role="switch" aria-checked="{{logX}}" aria-label="Asse delle frequenze logaritmico" onClick="{{toggleLog}}"></button></div>
+                <div class="tipw {{fPers}}"><div class="rw"><span class="lb">Persistenza</span><button class="tgl {{persCls}}" role="switch" aria-checked="{{persX}}" aria-label="Persistenza" onClick="{{togglePers}}"></button></div>
+                  <div class="tip"><b>Persistenza</b>Mantiene visibili le ultime 8 schermate, sempre più sfumate. Serve a vedere jitter, glitch e segnali instabili.</div></div>
+                <div class="rw"><span class="lb">Cursori</span>
+                  <div class="segrow" role="group" aria-label="Modo cursori"><sc-for list="{{curOpts}}" as="o" hint-placeholder-count="4"><button class="seg {{o.cls}}" style="padding:0 8px;font-size:12px" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+                <div class="rw"><span class="lb">Cursori di tensione su</span>
+                  <div class="segrow" role="group" aria-label="Canale dei cursori"><sc-for list="{{curChOpts}}" as="o" hint-placeholder-count="2"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- TAB DECODER -->
+      <sc-if value="{{tabDecoder}}" hint-placeholder-val="{{ false }}">
+        <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+          <div class="rw"><span class="lb" style="font-size:14px;font-weight:700;color:#e8ebef">Attiva decoder</span><button class="tgl {{decOnCls}}" role="switch" aria-checked="{{decOnX}}" aria-label="Attiva decoder" onClick="{{toggleDec}}"></button></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;color:#c3cad4">Protocollo</span>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px"><sc-for list="{{protoOpts}}" as="o" hint-placeholder-count="9"><button class="opt {{o.cls}}" style="padding:0 4px" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div>
+          </div>
+          <div class="rw"><span class="lb">{{decChLabel}}</span>
+            <div class="segrow" role="group" aria-label="Canale da decodificare"><sc-for list="{{decChOpts}}" as="o" hint-placeholder-count="2"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+          <div class="rw"><span class="lb">Soglia automatica</span>
+            <div style="display:flex;align-items:center;gap:10px"><span class="mono" style="font-size:13px;color:#9aa3af">1.5 V</span><button class="tgl {{thrCls}}" role="switch" aria-checked="{{thrX}}" aria-label="Soglia automatica" onClick="{{toggleThr}}"></button></div></div>
+
+          <sc-if value="{{isUart}}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1px solid #20262e">
+              <div class="rw"><span class="lb">Baud automatico</span><button class="tgl {{baudAutoCls}}" role="switch" aria-checked="{{baudAutoX}}" aria-label="Baud automatico" onClick="{{toggleBaudAuto}}"></button></div>
+              <div class="rw" style="opacity:{{baudDim}}"><span class="lb">Velocità</span>
+                <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{baudDown}}" aria-label="Riduci velocità">−</button><span class="mono" style="min-width:96px;text-align:center;font-size:13px">{{baudLabel}}</span><button class="step" onClick="{{baudUp}}" aria-label="Aumenta velocità">+</button></div></div>
+              <div class="rw"><span class="lb">Bit di dati</span>
+                <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{bitsDown}}" aria-label="Meno bit">−</button><span class="mono" style="min-width:40px;text-align:center;font-size:14px;font-weight:600">{{bits}}</span><button class="step" onClick="{{bitsUp}}" aria-label="Più bit">+</button></div></div>
+              <div class="rw"><span class="lb">Parità</span><div class="segrow" role="group" aria-label="Parità"><sc-for list="{{parityOpts}}" as="o" hint-placeholder-count="3"><button class="seg {{o.cls}}" style="padding:0 9px" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+              <div class="rw"><span class="lb">Bit di stop</span><div class="segrow" role="group" aria-label="Bit di stop"><sc-for list="{{stopOpts}}" as="o" hint-placeholder-count="3"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+              <div class="rw"><span class="lb">Linea invertita</span><button class="tgl {{invCls}}" role="switch" aria-checked="{{invX}}" aria-label="Linea invertita" onClick="{{toggleInv}}"></button></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{isCan}}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1px solid #20262e">
+              <div class="rw"><span class="lb">Bitrate</span><div class="segrow" role="group" aria-label="Bitrate CAN"><sc-for list="{{canOpts}}" as="o" hint-placeholder-count="4"><button class="seg {{o.cls}}" style="padding:0 7px;font-size:12px" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+              <div class="rw"><span class="lb">Linea invertita</span><button class="tgl {{invCls}}" role="switch" aria-checked="{{invX}}" aria-label="Linea invertita" onClick="{{toggleInv}}"></button></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{noParams}}" hint-placeholder-val="{{ false }}">
+            <div style="padding-top:8px;border-top:1px solid #20262e;font-size:13px;color:#8a94a1">Questo protocollo non ha parametri.</div>
+          </sc-if>
+
+          <div style="display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid #20262e">
+            <span style="font-size:13px;font-weight:700">Legenda della striscia</span>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px">
+              <sc-for list="{{legend}}" as="l" hint-placeholder-count="10">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#c3cad4"><span style="width:26px;height:14px;border-radius:4px;background:{{l.bg}};flex:none"></span>{{l.t}}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- TAB STRUMENTI -->
+      <sc-if value="{{tabStrumenti}}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #20262e">
+            <h3 style="font-size:14px;font-weight:700">Registrazione su file</h3>
+            <div class="rw"><span class="lb">Formato</span><div class="segrow" role="group" aria-label="Formato di registrazione"><sc-for list="{{fmtOpts}}" as="o" hint-placeholder-count="3"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+            <div class="rw"><span class="lb">Durata massima</span>
+              <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{durDown}}" aria-label="Riduci durata">−</button><span class="mono" style="min-width:64px;text-align:center;font-size:14px;font-weight:600">{{durLabel}}</span><button class="step" onClick="{{durUp}}" aria-label="Aumenta durata">+</button></div></div>
+            <button class="btn {{recCls}}" onClick="{{toggleRec}}" style="width:100%">
+              <span style="width:10px;height:10px;border-radius:50%;background:currentColor;display:inline-block"></span>{{recLabel2}}
+            </button>
+            <sc-if value="{{rec}}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:6px"><div style="height:6px;border-radius:3px;background:#232932;overflow:hidden"><div style="width:38%;height:100%;background:#ff7a6b"></div></div><span class="mono" style="font-size:12px;color:#9aa3af">In registrazione · si ferma dopo {{durLabel}}</span></div>
+            </sc-if>
+            <sc-if value="{{hasRec}}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:10px;background:#0d1013;border:1px solid #232932">
+                <div class="mono" style="font-size:12px;color:#e8ebef">registrazione-001{{fmtExt}} · {{durLabel}}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px"><button class="opt">Cerca pacchetto</button><button class="opt">Cerca forma d’onda</button></div>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #20262e">
+            <h3 style="font-size:14px;font-weight:700">Esporta per analizzatore logico</h3>
+            <div style="display:flex;gap:8px"><button class="btn" style="flex:1">VCD</button><button class="btn" style="flex:1">sigrok .sr</button></div>
+            <span style="font-size:12px;color:#8a94a1;line-height:1.45">Include le annotazioni del decoder. Si apre in PulseView o GTKWave.</span>
+          </div>
+
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #20262e">
+            <div style="display:flex;align-items:center;justify-content:space-between"><h3 style="font-size:14px;font-weight:700">Classificazione del segnale</h3><button class="btn" onClick="{{doClassify}}" style="height:32px">Analizza</button></div>
+            <sc-if value="{{classified}}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{classRows}}" as="r" hint-placeholder-count="2">
+                  <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:10px;background:#0d1013;border:1px solid #232932">
+                    <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-weight:700;color:{{r.color}}">{{r.ch}}</span><span class="mono" style="font-size:12px;color:#c3cad4">{{r.detail}}</span></div>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px"><sc-for list="{{r.kinds}}" as="k" hint-placeholder-count="6"><span style="padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600;background:{{k.bg}};color:{{k.fg}};border:1px solid {{k.bd}}">{{k.t}}</span></sc-for></div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{notClassified}}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;color:#8a94a1;line-height:1.45">Riconosce clock, PWM, seriale, burst, sinusoide e rumore.</span></sc-if>
+          </div>
+
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #20262e">
+            <h3 style="font-size:14px;font-weight:700;color:#b794f6">Matematica</h3>
+            <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{mathOpts}}" as="o" hint-placeholder-count="6"><button class="opt {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div>
+            <span style="font-size:12px;color:#8a94a1;line-height:1.45">{{mathNote}}</span>
+          </div>
+
+          <div style="padding:14px 14px 18px;display:flex;flex-direction:column;gap:10px">
+            <h3 style="font-size:14px;font-weight:700">Filtri digitali</h3>
+            <div class="rw"><span class="lb">Applica a</span><div class="segrow" role="group" aria-label="Canale del filtro"><sc-for list="{{fApOpts}}" as="o" hint-placeholder-count="2"><button class="seg {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{fTypeOpts}}" as="o" hint-placeholder-count="4"><button class="opt {{o.cls}}" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div>
+            <div class="rw"><span class="lb">Frequenza di taglio</span>
+              <div style="display:flex;align-items:center;gap:6px"><button class="step" onClick="{{fcDown}}" aria-label="Riduci frequenza di taglio">−</button><span class="mono" style="min-width:74px;text-align:center;font-size:14px;font-weight:600">{{fcLabel}}</span><button class="step" onClick="{{fcUp}}" aria-label="Aumenta frequenza di taglio">+</button></div></div>
+          </div>
+        </div>
+      </sc-if>
+
+      </div>
+    </aside>
+  </main>
+
+  <footer class="mono" style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 20px;padding:7px 16px;background:#0f1216;border-top:1px solid #20262e;font-size:12px;color:#9aa3af">
+    <span>Motore: {{engine}} · {{fps}} frame/s</span>
+    <span>Campionamento {{fsLabel}} · misurato 7.55 MHz</span>
+  </footer>
+
+  <!-- MODALE: ANDAMENTO DELLA MISURA -->
+  <sc-if value="{{trendOpen}}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:0;top:0;right:0;bottom:0;z-index:60;background:#05070ad9;display:flex;align-items:center;justify-content:center;padding:20px" onClick="{{closeTrend}}">
+      <div class="card" role="dialog" aria-modal="true" aria-label="Andamento della misura {{trendTitle}}" onClick="{{stopProp}}" style="width:min(900px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:16px 18px;background:#0e1115;border-color:#3a4350;box-shadow:0 20px 60px #000c">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+            <h2 style="font-size:18px;font-weight:700">Andamento di {{trendTitle}}</h2>
+            <span style="font-size:13px;color:#9aa3af">Ultimi 60 s · una misura per frame</span>
+          </div>
+          <button class="btn" onClick="{{closeTrend}}" aria-label="Chiudi" style="height:34px;padding:0 10px">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"></path></svg>
+            <span class="kbd">Esc</span>
+          </button>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px">
+          <button class="btn {{pauseCls}}" aria-pressed="{{pausePressed}}" onClick="{{togglePause}}" style="min-width:120px">
+            <sc-if value="{{trendLive}}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><rect x="2.5" y="2" width="3.2" height="10" rx="1" fill="currentColor"></rect><rect x="8.3" y="2" width="3.2" height="10" rx="1" fill="currentColor"></rect></svg></sc-if>
+            <sc-if value="{{trendPaused}}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="currentColor"></path></svg></sc-if>
+            {{pauseLabel}}
+          </button>
+          <div class="chip" role="status" style="height:32px"><span style="width:8px;height:8px;border-radius:50%;background:{{trendDot}};display:inline-block"></span>{{trendStatus}}</div>
+          <div style="flex:1"></div>
+          <sc-for list="{{trendLegend}}" as="l" hint-placeholder-count="2">
+            <div class="mono" style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:12px;height:3px;border-radius:2px;background:{{l.color}}"></span><span style="color:{{l.color}};font-weight:600">{{l.ch}}</span><span>{{l.now}}</span></div>
+          </sc-for>
+        </div>
+
+        <div style="position:relative;height:300px;border:1px solid #232932;border-radius:10px;background:#06080a;overflow:hidden;cursor:crosshair" onMouseMove="{{onTrendMove}}" onMouseLeave="{{onTrendLeave}}">
+          <svg viewBox="0 0 1000 400" preserveAspectRatio="none" role="img" aria-label="Andamento nel tempo della misura {{trendTitle}}" style="position:absolute;left:0;top:0;width:100%;height:100%">
+            <path d="M0 100H1000M0 200H1000M0 300H1000M200 0V400M400 0V400M600 0V400M800 0V400" stroke="#1b2128" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"></path>
+            <path d="{{tp2}}" stroke="#43c6f3" stroke-width="2" fill="none" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+            <path d="{{tp1}}" stroke="#f5c842" stroke-width="2" fill="none" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+          </svg>
+          <div class="mono" style="position:absolute;left:8px;top:6px;padding:0 4px;background:#06080a;font-size:11px;color:#9aa3af">{{yTop}}</div>
+          <div class="mono" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);padding:0 4px;background:#06080a;font-size:11px;color:#9aa3af">{{yMid}}</div>
+          <div class="mono" style="position:absolute;left:8px;bottom:6px;padding:0 4px;background:#06080a;font-size:11px;color:#9aa3af">{{yBot}}</div>
+          <sc-if value="{{hasTHov}}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="position:absolute;top:0;bottom:0;left:{{tHovLeft}};width:1px;background:#cfd5dd99"></div>
+              <div class="mono" style="position:absolute;top:10px;left:{{tHovLeft}};transform:{{tHovTrans}};padding:7px 10px;border-radius:8px;background:#0b0d10;border:1px solid #4a5568;font-size:12px;line-height:1.5;white-space:nowrap">
+                <div style="color:#fff;font-weight:600">{{tHovTime}}</div>
+                <sc-for list="{{tHovVals}}" as="v" hint-placeholder-count="2"><div style="color:{{v.color}}">{{v.ch}} {{v.val}}</div></sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+        <div class="mono" style="display:flex;justify-content:space-between;font-size:11px;color:#9aa3af;margin-top:-8px;padding:0 2px"><span>−60 s</span><span>−45 s</span><span>−30 s</span><span>−15 s</span><span>ora</span></div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:10px">
+          <sc-for list="{{trendStats}}" as="s" hint-placeholder-count="2">
+            <div style="padding:10px 12px;border-radius:10px;background:#12151a;border:1px solid #232932;display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:700;color:{{s.color}}">{{s.ch}}</span>
+              <div class="mono" style="display:flex;justify-content:space-between;font-size:12px;color:#c3cad4"><span>min {{s.min}}</span><span>media {{s.avg}}</span><span>max {{s.max}}</span></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+
+<script type="text/x-dc" data-dc-script data-props='{"device":{"editor":"enum","options":["Reale","Simulatore","Scollegato"],"default":"Reale"},"mcp":{"editor":"enum","options":["Attivo","Spento","Porta occupata"],"default":"Attivo"},"initView":{"editor":null},"initTab":{"editor":null},"initOpen":{"editor":null},"initDecoder":{"editor":null},"initProto":{"editor":null},"initExp":{"editor":null},"initTip":{"editor":null},"initCursors":{"editor":null},"initPers":{"editor":null},"initT":{"editor":null},"initDev":{"editor":null},"initClassified":{"editor":null},"initDecCh2":{"editor":null},"initTrend":{"editor":null},"initTrendPause":{"editor":null},"initTrendHov":{"editor":null},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = this.props || {};
+    const has = (v) => v !== undefined && v !== null && v !== '';
+    const yes = (v) => String(v) === 'true';
+    const op = {};
+    String(has(P.initOpen) ? P.initOpen : 'hor,ch1,trig').split(',').forEach((k) => { op[k.trim()] = true; });
+    const D = {
+      running: true, single: false, view: has(P.initView) ? P.initView : 'Tempo', tab: has(P.initTab) ? P.initTab : 'Controlli',
+      oHor: !!op.hor, oCh1: !!op.ch1, oCh2: !!op.ch2, oTrig: !!op.trig, oDisp: !!op.disp,
+      ch1: true, ch2: !yes(P.initDecCh2), t: has(P.initT) ? Number(P.initT) : 9, v1: 6, v2: 6, o1: 0, o2: -3, c1: 'DC', c2: 'DC', p1: 'x1', p2: 'x1',
+      hoff: 0, pre: 50, src: 'CH1', ttype: 'Edge', mode: 'Auto',
+      slope: 'Salita', pwPol: 'Alto', pwCond: '<', winEv: 'Entra', patA: 'Alto', patB: 'X',
+      vals: { level: 1.5, hyst: 100, hold: 0, pwA: 45, pwB: 90, runtLo: 0.5, runtHi: 2, winLo: 0.5, winHi: 2.5, tmo: 100 },
+      fftWin: 'Flat-top', logAxis: true, pers: yes(P.initPers), cursors: has(P.initCursors) ? P.initCursors : 'Off', curCh: 'CH1',
+      expl: yes(P.initExp), hov: null, devOpen: yes(P.initDev),
+      decOn: yes(P.initDecoder), proto: has(P.initProto) ? P.initProto : 'UART', decCh: 'CH1', thrAuto: true, baudAuto: true, baudIdx: 3, bits: 8, parity: 'Nessuna', stopb: '1', inv: false, canRate: '500 k',
+      trend: has(P.initTrend) ? P.initTrend : null, trendPause: yes(P.initTrendPause), trendHov: has(P.initTrendHov) ? Number(P.initTrendHov) : null,
+      rec: false, hasRec: false, fmt: 'CSV', durIdx: 3, classified: yes(P.initClassified), math: 'Off', fAp: 'CH1', fType: 'Nessuno', fcIdx: 7,
+    };
+    const S = Object.assign({}, D, this.state);
+    const set = (o) => () => this.setState(o);
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+    const tr = (x) => String(parseFloat(Number(x).toPrecision(3)));
+    const fmtT = (us) => { const a = Math.abs(us); if (a === 0) return '0 s'; if (a < 1) return tr(us * 1000) + ' ns'; if (a < 1000) return tr(us) + ' µs'; if (a < 1e6) return tr(us / 1000) + ' ms'; return tr(us / 1e6) + ' s'; };
+    const fmtV = (v) => { const a = Math.abs(v); if (a === 0) return '0 V'; if (a < 1) return tr(v * 1000) + ' mV'; return tr(v) + ' V'; };
+    const fmtF = (hz) => { if (hz < 1e3) return tr(hz) + ' Hz'; if (hz < 1e6) return tr(hz / 1e3) + ' kHz'; return tr(hz / 1e6) + ' MHz'; };
+    const seg = (opts, cur, key) => opts.map((o) => ({ label: o, cls: o === cur ? 'on' : '', pressed: o === cur ? 'true' : 'false', pick: () => this.setState({ [key]: o }) }));
+
+    const TV = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6, 2e6, 5e6, 1e7];
+    const VV = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5];
+    const tdiv = TV[S.t];
+    const dev = has(P.device) ? P.device : 'Reale';
+    const mcp = has(P.mcp) ? P.mcp : 'Attivo';
+    const noDev = dev === 'Scollegato';
+    const ch1 = S.ch1, ch2 = S.ch2;
+
+    /* --- segnali simulati: CH1 quadra 11 kHz 0-3.03 V, CH2 quadra 1 kHz 0-2.02 V --- */
+    const x0 = clamp(S.pre * 10 - S.hoff * 100, -3000, 4000);
+    const tAt = (x) => ((x - x0) / 100) * tdiv;
+    const ch1v = (t) => ((((t + 456) % 90.9) + 90.9) % 90.9) < 45.45 ? 3.03 : 0;
+    const ch2v = (t) => { const u = (((t + 456) % 1000) + 1000) % 1000; return u < 501 ? 2.02 : 0; };
+    const band1 = tdiv / 100 * 4 > 90.9;
+    const band2 = tdiv / 100 * 4 > 1000;
+    const isTempo = S.view === 'Tempo', isSpec = S.view === 'Spettro', isXY = S.view === 'XY';
+    const vd1 = VV[S.v1], vd2 = VV[S.v2];
+    const N0 = 300;
+    let a1 = [], a2 = [];
+    if (isTempo || isXY) {
+      for (let i = -N0; i <= 1000; i++) { const t = tAt(i); a1.push(ch1v(t)); a2.push(ch2v(t)); }
+    }
+    const dtS = tdiv * 1e-6 / 100;
+    const FC = [100, 200, 500, 1e3, 2e3, 5e3, 1e4, 2e4, 5e4, 1e5, 2e5];
+    const fc = FC[S.fcIdx];
+    const lp = (a, f) => { const RC = 1 / (2 * Math.PI * f); const al = dtS / (RC + dtS); const o = [a[0]]; for (let i = 1; i < a.length; i++) o.push(o[i - 1] + al * (a[i] - o[i - 1])); return o; };
+    const hp = (a, f) => { const RC = 1 / (2 * Math.PI * f); const k = RC / (RC + dtS); const o = [0]; for (let i = 1; i < a.length; i++) o.push(k * (o[i - 1] + a[i] - a[i - 1])); return o; };
+    if (a1.length && S.fType !== 'Nessuno' && !band1) {
+      const run = (a) => S.fType === 'Passa-basso' ? lp(a, fc) : S.fType === 'Passa-alto' ? hp(a, fc) : lp(hp(a, fc / 2), fc * 2);
+      if (S.fAp === 'CH1') a1 = run(a1); else a2 = run(a2);
+    }
+    const pathFrom = (a, vd, off) => { let d = ''; for (let i = 0; i <= 1000; i++) { const y = clamp(400 - off * 100 - (a[i + N0] / vd) * 100, -60, 860); d += (i ? 'L' : 'M') + i + ' ' + y.toFixed(1); } return d; };
+    const bandPath = (hi, vd, off) => { const yt = clamp(400 - off * 100 - (hi / vd) * 100, -60, 860); const yb = clamp(400 - off * 100, -60, 860); return 'M0 ' + yt.toFixed(1) + 'H1000V' + yb.toFixed(1) + 'H0Z'; };
+    let p1 = '', p2 = '', fill1 = 'none', fill2 = 'none';
+    if (isTempo && !noDev) {
+      if (ch1) { if (band1) { p1 = bandPath(3.03, vd1, S.o1); fill1 = 'rgba(245,200,66,.3)'; } else p1 = pathFrom(a1, vd1, S.o1); }
+      if (ch2) { if (band2) { p2 = bandPath(2.02, vd2, S.o2); fill2 = 'rgba(67,198,243,.3)'; } else p2 = pathFrom(a2, vd2, S.o2); }
+    }
+    /* matematica */
+    let pm = '', mNote = 'Scegli un’operazione tra i canali: la traccia M compare nella vista Tempo.';
+    if (S.math !== 'Off') {
+      if (!isTempo) mNote = 'La traccia M si vede nella vista Tempo.';
+      else if (band1 || noDev) mNote = 'Anteprima non disponibile a questa base tempi: riduci Tempo/div.';
+      else {
+        let m = [];
+        const n = a1.length;
+        if (S.math === 'CH1+CH2') { m = a1.map((v, i) => v + a2[i]); mNote = 'M = CH1 + CH2, con la scala V/div di CH1.'; }
+        else if (S.math === 'CH1−CH2') { m = a1.map((v, i) => v - a2[i]); mNote = 'M = CH1 − CH2, con la scala V/div di CH1.'; }
+        else if (S.math === 'CH1×CH2') { m = a1.map((v, i) => v * a2[i] / 3); mNote = 'M = CH1 × CH2 (divisa per 3 per restare nello schermo).'; }
+        else if (S.math === 'd/dt CH1') { const dd = a1.map((v, i) => i ? v - a1[i - 1] : 0); const mx = Math.max.apply(null, dd.map(Math.abs)) || 1; m = dd.map((v) => v / mx * 2 * vd1); mNote = 'M = derivata di CH1, normalizzata a ±2 divisioni.'; }
+        else { let acc = 0; const ii = a1.map((v) => { acc += v; return acc; }); const mean = ii.reduce((s, v) => s + v, 0) / n; const cc = ii.map((v) => v - mean); const mx = Math.max.apply(null, cc.map(Math.abs)) || 1; m = cc.map((v) => v / mx * 2 * vd1); mNote = 'M = integrale di CH1, normalizzato a ±2 divisioni.'; }
+        pm = pathFrom(m, vd1, 0);
+      }
+    }
+    const trigSrcAmp = S.src === 'CH1' ? 3.03 : 2.02;
+    const srcOn = S.src === 'CH1' ? ch1 : ch2;
+    const lvl = S.vals.level;
+    const trigOffV = S.src === 'CH1' ? S.o1 : S.o2;
+    const trigVd = S.src === 'CH1' ? vd1 : vd2;
+    const trigY = clamp(400 - trigOffV * 100 - (lvl / trigVd) * 100, 0, 800);
+    const pct = (y) => clamp(y / 8, 3, 97) + '%';
+    const srcColor = S.src === 'CH1' ? '#f5c842' : '#43c6f3';
+
+    /* griglia, tacche */
+    let tickD = '';
+    for (let x = 20; x < 1000; x += 20) tickD += 'M' + x + ' 395V405';
+    for (let y = 20; y < 800; y += 20) tickD += 'M495 ' + y + 'H505';
+
+    /* cursori */
+    const curMode = S.cursors;
+    const curT = curMode === 'Tempo' || curMode === 'Entrambi';
+    const curV = curMode === 'Tensione' || curMode === 'Entrambi';
+    const t1u = -tdiv, t2u = tdiv;
+    const cx1 = x0 + (t1u / tdiv) * 100, cx2 = x0 + (t2u / tdiv) * 100;
+    const refOff = S.curCh === 'CH1' ? S.o1 : S.o2;
+    const refVd = S.curCh === 'CH1' ? vd1 : vd2;
+    const cy1 = 400 - refOff * 100, cy2 = cy1 - 100;
+    const curLines = [];
+    if (curT) { curLines.push({ k: 't1', v: fmtT(t1u) }, { k: 't2', v: fmtT(t2u) }, { k: 'Δt', v: fmtT(t2u - t1u) }, { k: '1/Δt', v: fmtF(1e6 / (t2u - t1u)) }); }
+    if (curV) { curLines.push({ k: 'V1', v: fmtV(0) }, { k: 'V2', v: fmtV(refVd) }, { k: 'ΔV', v: fmtV(refVd) }); }
+
+    /* XY */
+    let xyD = '';
+    if (isXY && ch1 && ch2 && !noDev) {
+      const pt = (vx, vy, j) => { const x = 500 + (vx / vd1) * 100 + j[0]; const y = 400 - (vy / vd2 + S.o2) * 100 + j[1]; return 'M' + x.toFixed(1) + ' ' + y.toFixed(1) + 'h0.01'; };
+      const corners = [[0, 0], [3.03, 0], [0, 2.02], [3.03, 2.02]];
+      corners.forEach((c, ci) => { for (let k = 0; k < 6; k++) xyD += pt(c[0], c[1], [((k * 5 + ci * 3) % 7 - 3) * 0.5, ((k * 3 + ci) % 5 - 2) * 0.5]); });
+      [0.35, 0.7].forEach((f) => { xyD += pt(3.03 * f, 0, [0, 0]) + pt(3.03 * f, 2.02, [0, 0]) + pt(0, 2.02 * f, [0, 0]) + pt(3.03, 2.02 * f, [0, 0]); });
+    }
+
+    /* spettro */
+    const f0a = 1e6 / 90.9, f0b = 1000;
+    const wmul = { 'Rettangolare': 0.5, 'Hann': 1, 'Hamming': 1, 'Blackman-Harris': 1.5, 'Flat-top': 2 }[S.fftWin] || 1;
+    const ampDb = (f, f0, A) => {
+      const nC = Math.round(f / f0); let p = 0;
+      for (let n = nC - 3; n <= nC + 3; n++) {
+        if (n < 1 || n % 2 === 0) continue;
+        const fn = n * f0; const rms = (2 * A / Math.PI) / n / Math.SQRT2;
+        const s = Math.max(450 * wmul, 0.008 * fn * wmul);
+        p += rms * rms * Math.exp(-((f - fn) * (f - fn)) / (2 * s * s));
+      }
+      p += Math.pow(10, -9.6) * (1 + 0.6 * Math.sin(f / 5300));
+      return 10 * Math.log10(p);
+    };
+    const LOGX = S.logAxis, FMAX = 4e5;
+    const xOf = (f) => LOGX ? (Math.log10(f) - 3) * 250 : f / FMAX * 1000;
+    const fAt = (fr) => LOGX ? Math.pow(10, 3 + fr * 4) : fr * FMAX;
+    const yDb = (db) => clamp((20 - db) / 140 * 800, 0, 800);
+    let sp1 = '', sp2 = '', specGrid = '', specMajor = '', dbLabels = [], fLabels = [], pins = [], peakRows = [];
+    if (isSpec && !noDev) {
+      for (let i = 0; i <= 1400; i++) {
+        const x = i / 1400 * 1000; const f = fAt(i / 1400);
+        if (ch1) sp1 += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + yDb(ampDb(f, f0a, 3.03)).toFixed(1);
+        if (ch2) sp2 += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + yDb(ampDb(f, f0b, 2.02)).toFixed(1);
+      }
+      for (let db = 0; db >= -120; db -= 20) { specGrid += 'M0 ' + yDb(db).toFixed(1) + 'H1000'; }
+      if (LOGX) {
+        [1, 2, 3, 4, 5, 6, 7, 8, 9].forEach((m) => [1e3, 1e4, 1e5, 1e6].forEach((b) => { const f = m * b; if (m !== 1 && f > 1000 && f < 1e7) specGrid += 'M' + xOf(f).toFixed(1) + ' 0V800'; }));
+        [1e4, 1e5, 1e6].forEach((f) => { specMajor += 'M' + xOf(f).toFixed(1) + ' 0V800'; });
+        fLabels = [{ t: '1 kHz', left: '2.5%' }, { t: '10 kHz', left: '25%' }, { t: '100 kHz', left: '50%' }, { t: '1 MHz', left: '75%' }, { t: '10 MHz', left: '97%' }];
+      } else {
+        [1, 2, 3].forEach((k) => { specMajor += 'M' + (k * 250) + ' 0V800'; });
+        fLabels = [{ t: '0', left: '1.5%' }, { t: '100 kHz', left: '25%' }, { t: '200 kHz', left: '50%' }, { t: '300 kHz', left: '75%' }, { t: '400 kHz', left: '96%' }];
+      }
+      for (let db = 20; db >= -120; db -= 20) dbLabels.push({ t: db + ' dBV', top: (yDb(db) / 8) + '%' });
+      const mk = (n, f0, A, num, color) => { const f = n * f0; const db = ampDb(f, f0, A); pins.push({ n: String(num), left: (xOf(f) / 10) + '%', top: (yDb(db) / 8) + '%', color }); peakRows.push({ n: String(num), f: fmtF(f), db: db.toFixed(1) + ' dBV', color }); };
+      if (ch1) { mk(1, f0a, 3.03, 1, '#f5c842'); mk(3, f0a, 3.03, 2, '#f5c842'); mk(5, f0a, 3.03, 3, '#f5c842'); }
+      if (ch2) { mk(3, f0b, 2.02, ch1 ? 4 : 1, '#43c6f3'); mk(5, f0b, 2.02, ch1 ? 5 : 2, '#43c6f3'); mk(7, f0b, 2.02, ch1 ? 6 : 3, '#43c6f3'); }
+    }
+    const hasHov = isSpec && S.hov !== null && !noDev;
+    const hovF = hasHov ? fAt(S.hov) : 0;
+
+    /* stato */
+    const fsM = Math.min(48, 1600 / tdiv);
+    const fsLabel = fsM >= 1 ? tr(fsM) + ' MHz' : tr(fsM * 1000) + ' kHz';
+    const recN = tdiv >= 33.4 ? 16000 : Math.round(fsM * 10 * tdiv);
+    const twoCh = ch1 && ch2;
+    const errMsg = (!noDev && twoCh && fsM > 24) ? 'Frequenza di campionamento non supportata con due canali (' + fsLabel + '): disattiva un canale o aumenta Tempo/div.' : '';
+    const trigOK = srcOn && lvl > 0.05 && lvl < trigSrcAmp - 0.05;
+    let pillText, pillDot, trigState, trigStateColor;
+    if (noDev) { pillText = 'Nessun dispositivo'; pillDot = '#ff7a6b'; trigState = 'NO DATA'; trigStateColor = '#ff9a8a'; }
+    else if (!S.running) { pillText = S.single ? 'Singolo acquisito' : 'Acquisizione ferma'; pillDot = S.single ? '#ff9f43' : '#9aa3af'; trigState = 'STOP'; trigStateColor = '#9aa3af'; }
+    else if (S.mode === 'Roll') { pillText = 'Roll · scorrimento continuo'; pillDot = '#3fd68a'; trigState = 'ROLL'; trigStateColor = '#3fd68a'; }
+    else if (trigOK || S.ttype !== 'Edge') { pillText = 'Agganciato al trigger'; pillDot = '#3fd68a'; trigState = "TRIG'D"; trigStateColor = '#3fd68a'; }
+    else if (S.mode === 'Auto') { pillText = 'Auto · senza trigger'; pillDot = '#ff9f43'; trigState = 'AUTO'; trigStateColor = '#ff9f43'; }
+    else { pillText = 'In attesa di trigger'; pillDot = '#ff9f43'; trigState = 'WAIT'; trigStateColor = '#ff9f43'; }
+    const engine = noDev ? 'fermo' : !S.running ? 'fermo' : (trigOK || S.mode === 'Auto' || S.mode === 'Roll' || S.ttype !== 'Edge') ? 'in esecuzione' : 'in attesa di trigger';
+    const devDot = dev === 'Reale' ? '#3fd68a' : dev === 'Simulatore' ? '#ff9f43' : '#ff7a6b';
+    const devNote = dev === 'Reale' ? 'Dispositivo collegato via USB. Le misure vengono dal segnale reale.' : dev === 'Simulatore' ? 'Nessun 6022BE collegato: i segnali sono simulati. Collega lo strumento via USB per misurare segnali reali.' : 'Nessun dispositivo trovato. Controlla il cavo USB e riprova.';
+    const mcpText = mcp === 'Attivo' ? 'MCP · 127.0.0.1:6022/mcp' : mcp === 'Spento' ? 'MCP spento' : 'MCP: porta 6022 occupata';
+    const mcpColor = mcp === 'Attivo' ? '#3fd68a' : mcp === 'Spento' ? '#9aa3af' : '#ff7a6b';
+
+    /* canali */
+    const chans = [1, 2].map((n) => {
+      const on = S['ch' + n]; const open = S['oCh' + n];
+      return {
+        name: 'CH' + n, color: n === 1 ? '#f5c842' : '#43c6f3', dim: on ? 1 : 0.6,
+        open, openX: open ? 'true' : 'false', chev: open ? 'M2 4.5 6 8.5 10 4.5' : 'M4.5 2 8.5 6 4.5 10',
+        toggleOpen: () => this.setState({ ['oCh' + n]: !open }),
+        summary: on ? tr(VV[S['v' + n]]) + ' V · ' + S['c' + n] + ' · ' + S['p' + n] : 'spento',
+        tglCls: on ? 'on c' + n : '', pressed: on ? 'true' : 'false', toggle: () => this.setState({ ['ch' + n]: !on }),
+        vLabel: fmtV(VV[S['v' + n]]) + '/div',
+        vDown: () => this.setState({ ['v' + n]: clamp(S['v' + n] - 1, 0, 8) }), vUp: () => this.setState({ ['v' + n]: clamp(S['v' + n] + 1, 0, 8) }),
+        oLabel: (S['o' + n] > 0 ? '+' : '') + S['o' + n].toFixed(2) + ' div',
+        oDown: () => this.setState({ ['o' + n]: clamp(S['o' + n] - 0.5, -4, 4) }), oUp: () => this.setState({ ['o' + n]: clamp(S['o' + n] + 0.5, -4, 4) }),
+        oReset: () => this.setState({ ['o' + n]: n === 1 ? 0 : -3 }),
+        probe: seg(['x1', 'x10'], S['p' + n], 'p' + n), coup: seg(['DC', 'AC'], S['c' + n], 'c' + n),
+      };
+    });
+
+    /* trigger */
+    const VS = {
+      level: { l: 'Livello', u: 'V', st: 0.1, mn: -5, mx: 5 }, hyst: { l: 'Isteresi', u: 'mV', st: 50, mn: 0, mx: 2000 }, hold: { l: 'Holdoff', u: 'µs', st: 10, mn: 0, mx: 100000 },
+      pwA: { l: 'Larghezza', u: 'µs', st: 5, mn: 1, mx: 10000 }, pwB: { l: 'Fino a', u: 'µs', st: 5, mn: 1, mx: 10000 },
+      runtLo: { l: 'Soglia bassa', u: 'V', st: 0.1, mn: -5, mx: 5 }, runtHi: { l: 'Soglia alta', u: 'V', st: 0.1, mn: -5, mx: 5 },
+      winLo: { l: 'Soglia bassa', u: 'V', st: 0.1, mn: -5, mx: 5 }, winHi: { l: 'Soglia alta', u: 'V', st: 0.1, mn: -5, mx: 5 }, tmo: { l: 'Timeout', u: 'µs', st: 10, mn: 1, mx: 100000 },
+    };
+    const TIPS = {
+      level: ['Livello', 'Tensione di soglia che il segnale deve attraversare per far scattare il trigger. Puoi anche trascinare il triangolo a destra del display.'],
+      hyst: ['Isteresi', 'Margine attorno al livello di trigger. Il segnale deve superarlo prima che un nuovo trigger sia accettato, così il rumore non causa trigger multipli.'],
+      hold: ['Holdoff', 'Tempo minimo tra due trigger consecutivi. Utile con segnali a raffica o con molti fronti ravvicinati, per agganciare sempre lo stesso punto.'],
+    };
+    const vrow = (key) => {
+      const d = VS[key]; const v = S.vals[key]; const tip = TIPS[key];
+      const show = d.u === 'V' ? fmtV(v) : d.u === 'mV' ? fmtV(v / 1000) : fmtT(v);
+      const bump = (dir) => () => this.setState({ vals: Object.assign({}, S.vals, { [key]: Math.round(clamp(v + dir * d.st, d.mn, d.mx) * 100) / 100 }) });
+      return { label: d.l, hasSeg: false, opts: [], hasVal: true, val: show, dec: bump(-1), inc: bump(1), hasTip: !!tip, tipT: tip ? tip[0] : '', tipX: tip ? tip[1] : '', force: P.initTip === key ? 'force' : '' };
+    };
+    const srow = (label, opts, cur, key) => ({ label, hasSeg: true, opts: seg(opts, cur, key), hasVal: false, val: '', dec: null, inc: null, hasTip: false, tipT: '', tipX: '', force: '' });
+    let tparams = [];
+    const tt = S.ttype;
+    if (tt === 'Edge') tparams = [srow('Fronte', ['Salita', 'Discesa', 'Entrambi'], S.slope, 'slope'), vrow('level')];
+    else if (tt === 'PulseWidth') { tparams = [srow('Impulso', ['Alto', 'Basso'], S.pwPol, 'pwPol'), srow('Condizione', ['<', '>', 'Dentro', 'Fuori'], S.pwCond, 'pwCond'), vrow('pwA')]; if (S.pwCond === 'Dentro' || S.pwCond === 'Fuori') tparams.push(vrow('pwB')); tparams.push(vrow('level')); }
+    else if (tt === 'Runt') tparams = [vrow('runtLo'), vrow('runtHi')];
+    else if (tt === 'Window') tparams = [srow('Evento', ['Entra', 'Esce'], S.winEv, 'winEv'), vrow('winLo'), vrow('winHi')];
+    else if (tt === 'Timeout') tparams = [vrow('level'), vrow('tmo')];
+    else tparams = [srow('CH1', ['Alto', 'Basso', 'X'], S.patA, 'patA'), srow('CH2', ['Alto', 'Basso', 'X'], S.patB, 'patB')];
+    tparams.push(vrow('hyst'), vrow('hold'));
+
+    /* misure */
+    const dash = '—';
+    const fr1 = tdiv >= 20, fr2 = tdiv >= 200;
+    const r1 = Math.round(tdiv * 10 / 90.9), r2 = Math.round(tdiv * 10 / 1000);
+    const m1 = { Vpp: '3.03 V', Vmax: '3.03 V', Vmin: '0 V', Vmedia: '1.52 V', Vrms: '2.14 V', 'Vac rms': '1.51 V', Vtop: '3.02 V', Vbase: '5.92 mV', Ampiezza: '3.02 V', Salita: '49.8 ns', Discesa: '49.8 ns', Overshoot: '0.2 %' };
+    const m2 = { Vpp: '2.02 V', Vmax: '2.02 V', Vmin: '0 V', Vmedia: '1.01 V', Vrms: '1.43 V', 'Vac rms': '1.01 V', Vtop: '2.02 V', Vbase: '3.95 mV', Ampiezza: '2.01 V', Salita: '49.8 ns', Discesa: '49.8 ns', Overshoot: '0.2 %' };
+    const TT = { 'Vac rms': ['Vac rms', 'Valore efficace della sola parte alternata, senza la componente continua.'], Salita: ['Tempo di salita', 'Tempo che il fronte impiega per passare dal 10 % al 90 % dell’ampiezza. Più è breve, più il fronte è ripido.'], Duty: ['Duty cycle', 'Percentuale del periodo in cui il segnale resta a livello alto.'] };
+    const num = (s) => { const m = /^(-?[\d.]+)\s*(\S*)$/.exec(String(s)); return m ? { v: parseFloat(m[1]), u: m[2] } : null; };
+    const row = (label, a, b) => { const tip = TT[label]; const noA = a === dash, noB = b === dash; return { label, a, b, ca: noA ? '#8a94a1' : '#e8ebef', cb: noB ? '#8a94a1' : '#e8ebef', hasTip: !!tip, tipT: tip ? tip[0] : '', tipX: tip ? tip[1] : '', force: '', hasChart: !!(num(a) || num(b)), chart: () => this.setState({ trend: label, trendHov: null }) }; };
+    const mk2 = (k) => row(k, ch1 ? m1[k] : dash, ch2 ? m2[k] : dash);
+    const groups = [
+      { title: 'Tensione', rows: ['Vpp', 'Vmax', 'Vmin', 'Vmedia', 'Vrms', 'Vac rms'].map(mk2) },
+      { title: 'Livelli e fronti', rows: ['Vtop', 'Vbase', 'Ampiezza', 'Salita', 'Discesa', 'Overshoot'].map(mk2) },
+      { title: 'Tempo', rows: [
+        row('Frequenza', ch1 && fr1 ? '11.0 kHz' : dash, ch2 && fr2 ? '1.00 kHz' : dash),
+        row('Periodo', ch1 && fr1 ? '90.9 µs' : dash, ch2 && fr2 ? '1.00 ms' : dash),
+        row('Duty', ch1 && fr1 ? '50.0 %' : dash, ch2 && fr2 ? '50.0 %' : dash),
+        row('Larghezza +', ch1 && fr1 ? '45.5 µs' : dash, ch2 && fr2 ? '500 µs' : dash),
+        row('Larghezza −', ch1 && fr1 ? '45.5 µs' : dash, ch2 && fr2 ? '500 µs' : dash),
+        row('Fronti', ch1 ? r1 + ' / ' + Math.max(0, r1 - 1) : dash, ch2 ? r2 + ' / ' + r2 : dash),
+      ] },
+    ];
+
+    /* andamento di una misura nel tempo (dati simulati) */
+    const NT = 120;
+    let tr0 = null;
+    groups.forEach((g) => g.rows.forEach((r) => { if (r.label === S.trend) tr0 = r; }));
+    const trendOpen = !!tr0;
+    let tp1 = '', tp2 = '', yTop = '', yMid = '', yBot = '', trendLegend = [], trendStats = [], tHovVals = [], hasTHov = false, tHovTime = '', tHovLeft = '0%', tHovTrans = 'translateX(10px)';
+    if (tr0) {
+      const sers = [];
+      [[tr0.a, 'CH1', '#f5c842', 1], [tr0.b, 'CH2', '#43c6f3', 2]].forEach((c) => {
+        const n = num(c[0]); if (!n) return;
+        const sp = Math.max(Math.abs(n.v) * 0.015, 0.01); const vals = [];
+        for (let i = 0; i < NT; i++) vals.push(n.v + sp * (0.5 * Math.sin(i * 0.31 + c[3]) + 0.3 * Math.sin(i * 1.13 + c[3] * 2) + 0.2 * (((i * 7919 + c[3] * 104729) % 100) / 50 - 1)));
+        sers.push({ ch: c[1], color: c[2], u: n.u, vals });
+      });
+      let lo = Infinity, hi = -Infinity;
+      sers.forEach((s) => s.vals.forEach((v) => { lo = Math.min(lo, v); hi = Math.max(hi, v); }));
+      const pad = (hi - lo) * 0.15 || 0.01; lo -= pad; hi += pad;
+      const u = sers.length ? sers[0].u : '';
+      const f = (v, un) => tr(v) + (un ? ' ' + un : '');
+      yTop = f(hi, u); yMid = f((hi + lo) / 2, u); yBot = f(lo, u);
+      const pth = (vals) => vals.map((v, i) => (i ? 'L' : 'M') + (i / (NT - 1) * 1000).toFixed(1) + ' ' + ((hi - v) / (hi - lo) * 400).toFixed(1)).join('');
+      sers.forEach((s) => {
+        if (s.ch === 'CH1') tp1 = pth(s.vals); else tp2 = pth(s.vals);
+        const mn = Math.min.apply(null, s.vals), mx = Math.max.apply(null, s.vals), av = s.vals.reduce((a, b) => a + b, 0) / NT;
+        trendLegend.push({ ch: s.ch, color: s.color, now: f(s.vals[NT - 1], s.u) });
+        trendStats.push({ ch: s.ch, color: s.color, min: f(mn, s.u), max: f(mx, s.u), avg: f(av, s.u) });
+      });
+      if (S.trendHov !== null) {
+        hasTHov = true; const idx = Math.round(S.trendHov * (NT - 1));
+        const secs = Math.round((1 - idx / (NT - 1)) * 60);
+        tHovTime = secs === 0 ? 'ora' : '−' + secs + ' s';
+        tHovLeft = (idx / (NT - 1) * 100) + '%'; tHovTrans = S.trendHov > 0.7 ? 'translateX(calc(-100% - 10px))' : 'translateX(10px)';
+        sers.forEach((s) => tHovVals.push({ ch: s.ch, color: s.color, val: f(s.vals[idx], s.u) }));
+      }
+    }
+
+    /* decoder */
+    const UB = [[9.2, 4.1, 'start', 'start'], [13.7, 36.3, "0x55 'U'", 'data'], [50, 4.5, 'stop', 'stop'], [54.7, 4.5, 'start', 'start'], [59.2, 36.2, "0x55 'U'", 'data'], [95.6, 4.2, 'stop', 'stop']];
+    const COL = { data: ['#6fc4f0', '#06141c'], address: ['#ff9f43', '#241200'], id: ['#b794f6', '#1a0f33'], ack: ['#5fd68d', '#06210f'], nack: ['#ff9a8a', '#2a0e0a'], start: ['#8a94a1', '#0b0d10'], stop: ['#8a94a1', '#0b0d10'], command: ['#4fd6c4', '#032420'], crc: ['#f5d742', '#241d00'], reset: ['#b08968', '#1a0f05'], error: ['#e5392b', '#ffffff'] };
+    const proto = S.proto;
+    const dOk = !(proto === 'I2C' && (!ch1 || !ch2));
+    const decErr = !dOk ? 'I2C richiede CH1 (SCL) e CH2 (SDA) attivi.' : '';
+    const decCh = proto === 'I2C' ? (S.decCh + ' = SCL, ' + (S.decCh === 'CH1' ? 'CH2' : 'CH1') + ' = SDA') : S.decCh;
+    const toPos = (tu, wu) => ({ l: (x0 / 100 + tu / tdiv) * 10, w: wu / tdiv * 10 });
+    let blocks = [], decSummary = '0 byte, 0 errori', noFrames = false, noFramesTxt = '';
+    const addBlock = (tu, wu, txt, kind, title) => { const p = toPos(tu, wu); if (p.l + p.w < 0 || p.l > 100 || p.w < 0.25) return; const l = Math.max(0, p.l); const w = Math.min(100, p.l + p.w) - l; const fits = w * 9 >= txt.length * 7.5 + 10; blocks.push({ left: l + '%', width: w + '%', txt: fits ? txt : '', bg: COL[kind][0], fg: COL[kind][1], title: title || txt }); };
+    if (dOk && proto === 'UART') {
+      const bad = S.bits !== 8 || S.inv;
+      UB.forEach((b, i) => { const isSecond = i >= 3; let kind = b[3], txt = b[2]; if (bad && b[3] === 'data' && isSecond) { kind = 'error'; txt = 'errore framing'; } addBlock(10 * b[0] - 500, 10 * b[1], txt, kind, kind === 'error' ? 'Errore di framing' : ''); });
+      decSummary = bad ? '2 byte, 1 errore: 55 ??' : '2 byte, 0 errori: 55 55 "UU"';
+    } else if (dOk && proto === 'PWM') {
+      for (let k = -6; k < 12; k++) addBlock(-456 + 90.9 * k, 90.9, 'duty 50.0 %', 'data');
+      decSummary = '11 periodi, duty 50.0 %';
+    } else if (dOk) {
+      noFrames = true; noFramesTxt = 'Nessun frame ' + proto + ' trovato su questi segnali';
+    }
+    const showStrip = S.decOn && isTempo && !noDev;
+    const protos = ['UART', 'I2C', 'CAN', '1-Wire', 'Manchester', 'PWM', 'Servo', 'IR NEC', 'IR RC5'];
+    const legend = [['Dati', 'data'], ['Indirizzo', 'address'], ['ID CAN', 'id'], ['Ack', 'ack'], ['Nack', 'nack'], ['Start / stop', 'start'], ['Comando', 'command'], ['CRC', 'crc'], ['Reset / presenza', 'reset'], ['Errore', 'error']].map((l) => ({ t: l[0], bg: COL[l[1]][0] }));
+    const BR = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200];
+
+    /* strumenti */
+    const DUR = [1, 2, 5, 10, 30, 60, 300];
+    const kinds = ['Clock', 'PWM', 'Seriale', 'Burst', 'Sinusoide', 'Rumore'];
+    const kindRow = (hit) => kinds.map((k) => ({ t: k, bg: k === hit ? '#2c3443' : 'transparent', fg: k === hit ? '#fff' : '#8a94a1', bd: k === hit ? '#4a5568' : '#232932' }));
+    const classRows = [];
+    if (ch1) classRows.push({ ch: 'CH1', color: '#f5c842', detail: '11.0 kHz · duty 50 %', kinds: kindRow('Clock') });
+    if (ch2) classRows.push({ ch: 'CH2', color: '#43c6f3', detail: '1.00 kHz · duty 50 %', kinds: kindRow('Clock') });
+    const mathNotes = mNote;
+
+    /* spiegazioni forzate */
+    const force = (k) => (P.initTip === k ? 'force' : '');
+    const tabs = ['Controlli', 'Decoder', 'Strumenti'].map((o) => ({ label: o, cls: o === S.tab ? 'on' : '', pressed: o === S.tab ? 'true' : 'false', pick: () => this.setState({ tab: o }), badge: (o === 'Decoder' && S.decOn) || (o === 'Strumenti' && S.rec), badgeColor: o === 'Decoder' ? '#3fd68a' : '#ff7a6b' }));
+    const viewNote = isTempo ? (S.pers ? 'persistenza · ultime 8 schermate' : 'vista Tempo') : isSpec ? ('Spettro · ' + S.fftWin + ' · asse ' + (LOGX ? 'log' : 'lineare')) : 'XY · CH1 → X, CH2 → Y';
+
+    return {
+      expCls: S.expl ? 'exp' : '',
+      /* barra */
+      devLabel: dev, devDot, devNote, devOpen: S.devOpen, devExpanded: S.devOpen ? 'true' : 'false', toggleDev: () => this.setState({ devOpen: !S.devOpen }),
+      running: S.running, stopped: !S.running, runCls: S.running ? 'stop' : 'run', runLabel: S.running ? 'Ferma' : 'Avvia',
+      toggleRun: () => this.setState({ running: !S.running, single: false }), doSingle: () => this.setState({ running: false, single: true }),
+      pillText, pillDot, views: seg(['Tempo', 'Spettro', 'XY'], S.view, 'view'),
+      explCls2: S.expl ? 'on' : '', explPressed: S.expl ? 'true' : 'false', toggleExpl: () => this.setState({ expl: !S.expl }),
+      mcpText, mcpColor, errMsg,
+      /* display */
+      isTempo, isSpec, isXY, tickD, trigY, p1, p2, pm, fill1, fill2,
+      g1: S.pers && isTempo ? 0.4 : 0, g2: S.pers && isTempo ? 0.24 : 0, g3: S.pers && isTempo ? 0.12 : 0,
+      cx1, cx2, cy1, cy2, opCurT: curT ? 0.85 : 0, opCurV: curV ? 0.85 : 0,
+      hasCursors: curT || curV, curLines,
+      z1: pct(400 - S.o1 * 100), z2: pct(400 - S.o2 * 100), zm: '50%', zt: pct(trigY), tmLeft: clamp(x0 / 10, 0, 100) + '%',
+      op1: ch1 ? 1 : 0, op2: ch2 ? 1 : 0, opm: pm ? 1 : 0, srcColor, levelLabel: fmtV(lvl),
+      specGrid, specMajor, sp1, sp2, dbLabels, fLabels, pins, peakRows,
+      hasHov, hovLeft: (S.hov === null ? 0 : S.hov * 100) + '%', hovTagLeft: (S.hov === null ? 0 : S.hov * 100) + '%', hovTrans: (S.hov !== null && S.hov > 0.7) ? 'translateX(calc(-100% - 10px))' : 'translateX(10px)',
+      hovF: hasHov ? fmtF(hovF) : '', hovD1: hasHov ? ampDb(hovF, f0a, 3.03).toFixed(1) + ' dBV' : '', hovD2: hasHov ? ampDb(hovF, f0b, 2.02).toFixed(1) + ' dBV' : '',
+      onMove: (e) => { if (!isSpec) return; const r = e.currentTarget.getBoundingClientRect(); this.setState({ hov: clamp((e.clientX - r.left) / r.width, 0, 1) }); },
+      onLeave: () => { if (S.hov !== null) this.setState({ hov: null }); },
+      xyD, xyHint: isXY ? (ch1 && ch2 ? 'Con due onde quadre la figura si riduce a pochi punti. Con due sinusoidi compare un’ellisse o una figura di Lissajous.' : '') : '',
+      noData: noDev || (isXY && !(ch1 && ch2)),
+      noDataNote: noDev ? 'Collega il 6022BE via USB, oppure avvia l’app con il simulatore.' : 'La vista XY richiede CH1 e CH2 attivi.',
+      v1Label: fmtV(vd1), v2Label: fmtV(vd2), tLabel: fmtT(tdiv), fsLabel, trigState, trigStateColor, viewNote,
+      openCh1: () => this.setState({ tab: 'Controlli', oCh1: true }), openCh2: () => this.setState({ tab: 'Controlli', oCh2: true }),
+      /* decoder strip */
+      showStrip, protoLabel: proto, decCh, decOk: dOk, blocks, noFrames, noFramesTxt, decErr, decSummary,
+      groups,
+      /* pannello */
+      tabs, tabControlli: S.tab === 'Controlli', tabDecoder: S.tab === 'Decoder', tabStrumenti: S.tab === 'Strumenti',
+      oHor: S.oHor, oHorX: S.oHor ? 'true' : 'false', chevHor: S.oHor ? 'M2 4.5 6 8.5 10 4.5' : 'M4.5 2 8.5 6 4.5 10', toggleHor: () => this.setState({ oHor: !S.oHor }),
+      tDown: () => this.setState({ t: clamp(S.t - 1, 0, 24) }), tUp: () => this.setState({ t: clamp(S.t + 1, 0, 24) }),
+      hoffLabel: (S.hoff > 0 ? '+' : '') + S.hoff.toFixed(2) + ' div', hDown: () => this.setState({ hoff: clamp(S.hoff - 0.5, -4, 4) }), hUp: () => this.setState({ hoff: clamp(S.hoff + 0.5, -4, 4) }), doCentra: () => this.setState({ hoff: 0 }),
+      pre: S.pre, onPre: (e) => this.setState({ pre: clamp(Number(e.target.value), 0, 100) }), fPre: force('pre'),
+      recLabel: String(recN).replace(/\B(?=(\d{3})+(?!\d))/g, '.'),
+      chans,
+      oTrig: S.oTrig, oTrigX: S.oTrig ? 'true' : 'false', chevTrig: S.oTrig ? 'M2 4.5 6 8.5 10 4.5' : 'M4.5 2 8.5 6 4.5 10', toggleTrig: () => this.setState({ oTrig: !S.oTrig }),
+      trigSummary: S.src + ' · ' + S.ttype + ' · ' + S.mode,
+      modeOpts: seg(['Auto', 'Normal', 'Single', 'Roll'], S.mode, 'mode'), fMode: force('mode'), srcOpts: seg(['CH1', 'CH2'], S.src, 'src'),
+      typeOpts: seg(['Edge', 'PulseWidth', 'Runt', 'Window', 'Timeout', 'Pattern'], S.ttype, 'ttype'), tparams,
+      oDisp: S.oDisp, oDispX: S.oDisp ? 'true' : 'false', chevDisp: S.oDisp ? 'M2 4.5 6 8.5 10 4.5' : 'M4.5 2 8.5 6 4.5 10', toggleDisp: () => this.setState({ oDisp: !S.oDisp }),
+      dispSummary: S.cursors === 'Off' ? (S.pers ? 'persistenza' : 'base') : 'cursori ' + S.cursors.toLowerCase(),
+      winOpts: seg(['Rettangolare', 'Hann', 'Hamming', 'Blackman-Harris', 'Flat-top'], S.fftWin, 'fftWin'), fWin: force('win'),
+      logCls: S.logAxis ? 'on' : '', logX: S.logAxis ? 'true' : 'false', toggleLog: () => this.setState({ logAxis: !S.logAxis }),
+      persCls: S.pers ? 'on' : '', persX: S.pers ? 'true' : 'false', togglePers: () => this.setState({ pers: !S.pers }), fPers: force('pers'),
+      curOpts: seg(['Off', 'Tempo', 'Tensione', 'Entrambi'], S.cursors, 'cursors'), curChOpts: seg(['CH1', 'CH2'], S.curCh, 'curCh'),
+      /* decoder tab */
+      decOnCls: S.decOn ? 'on' : '', decOnX: S.decOn ? 'true' : 'false', toggleDec: () => this.setState({ decOn: !S.decOn }),
+      protoOpts: protos.map((o) => ({ label: o, cls: o === proto ? 'on' : '', pressed: o === proto ? 'true' : 'false', pick: () => this.setState({ proto: o }) })),
+      decChLabel: proto === 'I2C' ? 'Canale SCL' : 'Canale', decChOpts: seg(['CH1', 'CH2'], S.decCh, 'decCh'),
+      thrCls: S.thrAuto ? 'on' : '', thrX: S.thrAuto ? 'true' : 'false', toggleThr: () => this.setState({ thrAuto: !S.thrAuto }),
+      isUart: proto === 'UART', isCan: proto === 'CAN', noParams: proto !== 'UART' && proto !== 'CAN',
+      baudAutoCls: S.baudAuto ? 'on' : '', baudAutoX: S.baudAuto ? 'true' : 'false', toggleBaudAuto: () => this.setState({ baudAuto: !S.baudAuto }),
+      baudDim: S.baudAuto ? 0.5 : 1, baudLabel: BR[S.baudIdx] + ' bit/s',
+      baudDown: () => { if (!S.baudAuto) this.setState({ baudIdx: clamp(S.baudIdx - 1, 0, 7) }); }, baudUp: () => { if (!S.baudAuto) this.setState({ baudIdx: clamp(S.baudIdx + 1, 0, 7) }); },
+      bits: S.bits, bitsDown: () => this.setState({ bits: clamp(S.bits - 1, 5, 9) }), bitsUp: () => this.setState({ bits: clamp(S.bits + 1, 5, 9) }),
+      parityOpts: seg(['Nessuna', 'Pari', 'Dispari'], S.parity, 'parity'), stopOpts: seg(['1', '1.5', '2'], S.stopb, 'stopb'),
+      invCls: S.inv ? 'on' : '', invX: S.inv ? 'true' : 'false', toggleInv: () => this.setState({ inv: !S.inv }),
+      canOpts: seg(['125 k', '250 k', '500 k', '1 M'], S.canRate, 'canRate'), legend,
+      /* strumenti */
+      fmtOpts: seg(['CSV', 'NumPy', 'WAV'], S.fmt, 'fmt'), fmtExt: S.fmt === 'CSV' ? '.csv' : S.fmt === 'NumPy' ? '.npy' : '.wav',
+      durLabel: fmtT(DUR[S.durIdx] * 1e6), durDown: () => this.setState({ durIdx: clamp(S.durIdx - 1, 0, 6) }), durUp: () => this.setState({ durIdx: clamp(S.durIdx + 1, 0, 6) }),
+      rec: S.rec, hasRec: S.hasRec, recCls: S.rec ? 'rec' : '', recLabel2: S.rec ? 'Ferma registrazione' : 'Avvia registrazione',
+      toggleRec: () => this.setState({ rec: !S.rec, hasRec: S.rec ? true : S.hasRec }),
+      classified: S.classified, notClassified: !S.classified, doClassify: () => this.setState({ classified: true }), classRows,
+      mathOpts: seg(['Off', 'CH1+CH2', 'CH1−CH2', 'CH1×CH2', 'd/dt CH1', '∫ CH1'].map((x) => x), S.math === '∫ CH1' ? '∫ CH1' : S.math, 'math'), mathNote: mathNotes,
+      fApOpts: seg(['CH1', 'CH2'], S.fAp, 'fAp'), fTypeOpts: seg(['Nessuno', 'Passa-basso', 'Passa-alto', 'Passa-banda'], S.fType, 'fType'),
+      fcLabel: fmtF(fc), fcDown: () => this.setState({ fcIdx: clamp(S.fcIdx - 1, 0, 10) }), fcUp: () => this.setState({ fcIdx: clamp(S.fcIdx + 1, 0, 10) }),
+      trendOpen, trendTitle: S.trend || '', closeTrend: () => this.setState({ trend: null, trendHov: null }), stopProp: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+      trendLive: !S.trendPause, trendPaused: S.trendPause, pauseCls: S.trendPause ? 'on' : '', pausePressed: S.trendPause ? 'true' : 'false', pauseLabel: S.trendPause ? 'Riprendi' : 'Pausa',
+      togglePause: () => this.setState({ trendPause: !S.trendPause }),
+      trendDot: S.trendPause ? '#ff9f43' : '#3fd68a', trendStatus: S.trendPause ? 'In pausa · la serie è congelata, il cursore resta attivo' : 'Live · si aggiorna a ogni frame',
+      tp1, tp2, yTop, yMid, yBot, trendLegend, trendStats, hasTHov, tHovLeft, tHovTrans, tHovTime, tHovVals,
+      onTrendMove: (e) => { const r = e.currentTarget.getBoundingClientRect(); this.setState({ trendHov: clamp((e.clientX - r.left) / r.width, 0, 1) }); },
+      onTrendLeave: () => { if (S.trendHov !== null) this.setState({ trendHov: null }); },
+      engine, fps: S.running && !noDev ? '61.5' : '0',
+    };
+  }
+}
+</script>
+</body>
+</html>

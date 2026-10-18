@@ -1,0 +1,12 @@
+[package]
+name = "h6022-view"
+description = "Logica di visualizzazione condivisa: base dei tempi, scale e tracce per il display"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+h6022-usb = { path = "../h6022-usb" }
+h6022-core = { path = "../h6022-core" }
+h6022-dsp = { path = "../h6022-dsp" }
+serde.workspace = true

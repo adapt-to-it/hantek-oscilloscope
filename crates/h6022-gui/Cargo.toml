@@ -16,5 +16,6 @@ h6022-core = { path = "../h6022-core" }
 h6022-dsp = { path = "../h6022-dsp" }
 h6022-decode = { path = "../h6022-decode" }
 h6022-server = { path = "../h6022-server" }
+h6022-view = { path = "../h6022-view" }
 eframe.workspace = true
 image = { version = "0.25", default-features = false, features = ["png"] }

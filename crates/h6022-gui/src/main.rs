@@ -8,7 +8,7 @@ mod measure_panel;
 mod scope_view;
 mod spectrum_view;
 mod state;
-mod timebase;
+use h6022_view::timebase;
 
 use h6022_core::SampleSource;
 use h6022_core::hardware::HardwareSource;

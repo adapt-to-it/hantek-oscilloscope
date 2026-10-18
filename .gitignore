@@ -17,3 +17,7 @@
 /firmware/fx2lib/lib/interrupts/*.sym
 /firmware/fx2lib/lib/interrupts/*.asm
 /firmware/fx2lib/lib/interrupts/*.rst
+/ui/node_modules
+/ui/dist
+/crates/h6022-app/gen
+/docs/h6022-design-brief.zip
