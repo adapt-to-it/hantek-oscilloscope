@@ -11,6 +11,8 @@
     display: DisplayOptions
     cursors: CursorPositions
     triggerLevel: number
+    /** Frequenza della fondamentale per canale, dalle misure; null se la finestra non contiene due fronti di salita. */
+    frequencies?: [number | null, number | null]
     /** Colonne disponibili in pixel CSS: il genitore le passa a `set_columns`. */
     oncolumns?: (columns: number) => void
     /** Trascinamento dei marcatori 1, 2 (offsetDiv) e T (livello in volt). */
@@ -20,7 +22,7 @@
     oncursors?: (c: CursorPositions) => void
   }
 
-  let { frame, view, display, cursors, triggerLevel, oncolumns, onoffset, ontriggerlevel, oncursors }: Props = $props()
+  let { frame, view, display, cursors, triggerLevel, frequencies = [null, null], oncolumns, onoffset, ontriggerlevel, oncursors }: Props = $props()
 
   const NO_DATA_NOTE = "Nessun frame dal dispositivo: controlla la connessione e avvia l'acquisizione."
   const MATH_COLOR = '#b794f6'
@@ -73,6 +75,41 @@
   const showTime = $derived(frame !== null && (display.cursors === 'time' || display.cursors === 'both'))
   const showVolt = $derived(frame !== null && (display.cursors === 'voltage' || display.cursors === 'both'))
   const readout = $derived(cursorReadout(display.cursors, cursors))
+
+  // Un'etichetta per ogni linea verticale della griglia, in tempo relativo al trigger.
+  const timeLabels = $derived(
+    Array.from({ length: DIVISIONS_X + 1 }, (_, i) => ({
+      i,
+      text: fmtSI(timeRange.start + (i / DIVISIONS_X) * timeRange.span, 's'),
+    })),
+  )
+
+  // Puntatore sopra il grafico, in pixel CSS; null fuori dal grafico o durante un trascinamento.
+  let pointer = $state<{ x: number; y: number } | null>(null)
+
+  function trackPointer(e: PointerEvent): void {
+    if (!plot || drag || cursorDrag) return
+    const box = plot.getBoundingClientRect()
+    pointer = { x: e.clientX - box.left, y: e.clientY - box.top }
+  }
+
+  /** Tempo sotto il puntatore e valore di ogni canale attivo nella colonna corrispondente. */
+  const hoverReading = $derived.by(() => {
+    if (!pointer || !frame || width <= 0) return null
+    const { x, y } = pointer
+    const col = Math.min(frame.columns - 1, Math.max(0, Math.floor((x / width) * frame.columns)))
+    const rows = ([0, 1] as const).flatMap((ch) => {
+      const trace = frame.traces[ch]
+      if (!trace || !view.channels[ch].enabled) return []
+      const lo = trace.min[col]
+      const hi = trace.max[col]
+      if (Number.isNaN(lo) || Number.isNaN(hi)) return [{ ch, text: '—' }]
+      // Una colonna copre più campioni: con una escursione ampia mostra l'intervallo.
+      const text = hi - lo > view.channels[ch].voltsPerDiv / 10 ? `${fmtSI(lo, 'V')} … ${fmtSI(hi, 'V')}` : fmtSI((lo + hi) / 2, 'V')
+      return [{ ch, text }]
+    })
+    return { x, y, flip: x > width * 0.7, time: fmtSI(xToTime(x), 's'), rows }
+  })
 
   function zeroY(ch: 0 | 1): number {
     return height / 2 - view.channels[ch].offsetDiv * divH
@@ -355,8 +392,19 @@
 </script>
 
 <section class="card" style="flex:1;min-height:300px;display:flex;flex-direction:column;overflow:hidden;background:#06080a">
-  <div bind:this={plot} style="position:relative;flex:1;min-height:240px;overflow:hidden">
+  <div bind:this={plot} role="presentation" onpointermove={trackPointer} onpointerleave={() => (pointer = null)} style="position:relative;flex:1;min-height:240px;overflow:hidden;cursor:crosshair">
     <canvas bind:this={canvas} style="position:absolute;left:0;top:0;width:100%;height:100%;display:block"></canvas>
+
+    {#if hoverReading}
+      <div style="position:absolute;top:0;bottom:0;left:{hoverReading.x}px;width:1px;background:#cfd5dd55;pointer-events:none"></div>
+      <div style="position:absolute;left:0;right:0;top:{hoverReading.y}px;height:1px;background:#cfd5dd33;pointer-events:none"></div>
+      <div class="mono" style="position:absolute;top:{Math.max(8, hoverReading.y - 70)}px;left:{hoverReading.x}px;transform:{hoverReading.flip ? 'translateX(calc(-100% - 10px))' : 'translateX(10px)'};padding:6px 9px;border-radius:8px;background:#0b0d10ee;border:1px solid #4a5568;font-size:12px;line-height:1.5;white-space:nowrap;pointer-events:none;z-index:2">
+        <div style="color:#fff;font-weight:600">t {hoverReading.time}</div>
+        {#each hoverReading.rows as row (row.ch)}
+          <div style="color:{CH_COLORS[row.ch]}">CH{row.ch + 1} {row.text}</div>
+        {/each}
+      </div>
+    {/if}
 
     {#if frame}
       <div class="mono" role="slider" aria-label="Offset CH1" aria-valuenow={view.channels[0].offsetDiv} tabindex="-1" onpointerdown={(e) => startChannelDrag(e, 0)} onpointermove={moveDrag} onpointerup={endDrag} onpointercancel={endDrag} style="position:absolute;left:0;top:{zeroY(0)}px;transform:translateY(-50%);opacity:{view.channels[0].enabled ? 1 : 0.35};width:26px;height:20px;padding-right:6px;background:{CH_COLORS[0]};color:#1a1403;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,70% 0,100% 50%,70% 100%,0 100%);cursor:ns-resize;touch-action:none" title="Trascina per regolare l'offset di CH1">1</div>
@@ -395,9 +443,18 @@
     {/if}
   </div>
 
+  <div class="mono" aria-label="Asse dei tempi" style="position:relative;height:18px;border-top:1px solid #1b2128;background:#0a0c0f;font-size:11px;color:#8a94a1">
+    {#each timeLabels as label (label.i)}
+      <span style="position:absolute;top:2px;left:{(label.i / DIVISIONS_X) * 100}%;transform:translateX({label.i === 0 ? '2px' : label.i === DIVISIONS_X ? 'calc(-100% - 2px)' : '-50%'});white-space:nowrap">{label.text}</span>
+    {/each}
+  </div>
+
   <div class="mono" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;padding:7px 14px;border-top:1px solid #1b2128;background:#0a0c0f;font-size:12px">
-    <span style="color:{CH_COLORS[0]}">CH1 {fmtSI(view.channels[0].voltsPerDiv, 'V')}/div</span>
-    <span style="color:{CH_COLORS[1]}">CH2 {fmtSI(view.channels[1].voltsPerDiv, 'V')}/div</span>
+    {#each [0, 1] as const as ch (ch)}
+      <span style="color:{CH_COLORS[ch]}" title="Frequenza della fondamentale: serve almeno un periodo intero nella finestra">
+        CH{ch + 1} {fmtSI(view.channels[ch].voltsPerDiv, 'V')}/div · f {view.channels[ch].enabled && frequencies[ch] != null ? fmtSI(frequencies[ch], 'Hz') : '—'}
+      </span>
+    {/each}
     <span>{fmtSI(view.timePerDiv, 's')}/div</span>
     <span>fs {frame ? fmtSI(frame.sampleRate, 'Sa/s') : '—'}</span>
     <span style="color:{frame?.triggered ? '#ff9f43' : '#9aa3af'};font-weight:600">{frame ? (frame.triggered ? 'Triggerato' : 'Non triggerato') : '—'}</span>

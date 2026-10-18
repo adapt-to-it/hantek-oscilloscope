@@ -13,7 +13,7 @@
 
 <script lang="ts">
   // Corpo della sezione Display: finestra FFT e asse delle frequenze logaritmico.
-  import type { DisplayOptions, WindowName } from '../../types'
+  import type { DisplayOptions } from '../../types'
 
   interface Props {
     display: DisplayOptions

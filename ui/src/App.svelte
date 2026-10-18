@@ -289,7 +289,7 @@
         {:else if display.mode === 'xy'}
           <XyView data={xy} {view} />
         {:else}
-          <Scope {frame} {view} {display} {cursors} oncursors={(c) => (cursors = c)} {triggerLevel} oncolumns={onColumns} onoffset={onOffset} ontriggerlevel={onTriggerLevel} />
+          <Scope {frame} {view} {display} {cursors} oncursors={(c) => (cursors = c)} {triggerLevel} frequencies={[measures?.channels[0]?.frequency ?? null, measures?.channels[1]?.frequency ?? null]} oncolumns={onColumns} onoffset={onOffset} ontriggerlevel={onTriggerLevel} />
         {/if}
         {#if decoder.enabled && display.mode === 'time'}
           <DecoderStrip
