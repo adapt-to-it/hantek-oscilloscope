@@ -305,9 +305,7 @@ pub fn save_png(png: Vec<u8>) -> Result<String, String> {
     if !png.starts_with(b"\x89PNG\r\n\x1a\n") {
         return Err("i dati ricevuti non sono un PNG".into());
     }
-    let home = std::env::var_os("HOME").ok_or("HOME non impostata")?;
-    let dir = std::path::PathBuf::from(home).join("h6022-recordings");
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let dir = h6022_record::recordings_dir().map_err(|e| e.to_string())?;
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis())

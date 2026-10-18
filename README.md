@@ -1,7 +1,7 @@
 # Hantek Oscilloscope
 
 Open-source software for Hantek USB oscilloscopes. It currently supports the Hantek 6022BE.
-It runs on macOS, and Windows and Linux builds are in progress.
+It runs on macOS, Windows and Linux.
 
 It is a modern alternative to the original Hantek software and to OpenHantek. A single Rust
 engine drives the device. A desktop app, a command-line tool, an MCP server for AI agents and a
@@ -45,15 +45,65 @@ firmware, so unplugging it restores the original state.
 
 | OS | Status |
 |---|---|
-| macOS (Apple Silicon and Intel) | Tested |
-| Windows | In progress |
-| Linux | In progress |
+| macOS (Apple Silicon and Intel) | Tested with the device |
+| Windows | Builds and tests pass in CI, not yet tested with the device |
+| Linux | Builds and tests pass in CI, not yet tested with the device |
 
 The USB layer uses [nusb](https://github.com/kevinmehall/nusb) and does not depend on libusb.
 
+## Install
+
+Download the installer for your system from the
+[Releases](https://github.com/adapt-to-it/hantek-oscilloscope/releases) page.
+
+| OS | File |
+|---|---|
+| macOS | `.dmg`, universal build for Apple Silicon and Intel |
+| Windows | `.msi` or `-setup.exe` |
+| Linux | `.deb`, `.rpm` or `.AppImage` |
+
+Each release also contains the `h6022` command-line tool for every platform.
+
+### macOS
+
+If the release is not notarized, macOS blocks the first launch. Right-click the app, choose
+**Open**, then confirm.
+
+### Windows
+
+Windows needs the WinUSB driver for the oscilloscope. You install it once with
+[Zadig](https://zadig.akeo.ie):
+
+1. Connect the oscilloscope.
+2. In Zadig, choose **Options → List All Devices**.
+3. Select the device with ID `04B4 6022`, choose **WinUSB** and click **Replace Driver**.
+4. Start the app. It loads the firmware, and the device reconnects with ID `04B5 6022`.
+5. In Zadig, select the device `04B5 6022` and install **WinUSB** again.
+
+The original Hantek software stops working while WinUSB is installed. To restore it, reinstall
+the Hantek driver from Device Manager.
+
+### Linux
+
+The `.deb` and `.rpm` packages install a udev rule that gives the local user access to the
+device. With the `.AppImage` or the CLI, install the rule by hand:
+
+```bash
+sudo cp packaging/linux/60-hantek-oscilloscope.rules /etc/udev/rules.d/
+```
+
+```bash
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
+
 ## Build from source
 
-Requirements: Rust 1.88 or later, Node.js 20 or later.
+Requirements: Rust 1.88 or later, Node.js 20 or later. On Linux, also the WebKitGTK
+development packages:
+
+```bash
+sudo apt-get install libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+```
 
 ```bash
 cd ui && npm install && cd ..
@@ -109,6 +159,25 @@ ui/              Svelte interface
 firmware/        FX2LP firmware (C, SDCC)
 python/          Python client
 ```
+
+## Releases
+
+The CI workflow builds and tests every push and pull request on macOS, Windows and Linux. To
+publish a release, run this command from an up-to-date `main` branch:
+
+```bash
+scripts/release.sh 0.2.0
+```
+
+The script updates the version in `Cargo.toml`, `tauri.conf.json` and `ui/package.json`,
+commits, creates the `v0.2.0` tag and pushes it. The tag starts the Release workflow, which
+builds the installers and the CLI and attaches them to a GitHub Release. A version with a
+suffix, such as `0.2.0-beta.1`, becomes a pre-release.
+
+The macOS build is ad-hoc signed by default. To sign it with a Developer ID certificate and
+notarize it, add these repository secrets: `APPLE_CERTIFICATE` (base64 `.p12`),
+`APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`
+(app-specific password) and `APPLE_TEAM_ID`.
 
 ## License
 

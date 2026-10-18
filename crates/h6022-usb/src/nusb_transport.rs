@@ -1,4 +1,4 @@
-//! Trasporto USB reale su nusb (IOKit su macOS, senza libusb).
+//! Trasporto USB reale su nusb, senza libusb: IOKit su macOS, usbfs su Linux, WinUSB su Windows.
 
 use std::time::Duration;
 
@@ -21,7 +21,6 @@ pub struct UsbId {
 }
 
 pub struct NusbTransport {
-    device: nusb::Device,
     interface: nusb::Interface,
     id: UsbId,
 }
@@ -78,12 +77,13 @@ impl NusbTransport {
         };
         let device = info.open().wait().map_err(usb_err)?;
         // Su macOS il FX2 senza firmware può risultare non configurato: senza configurazione
-        // l'interfaccia 0 non esiste.
+        // l'interfaccia 0 non esiste. Su Windows la configura WinUSB e nusb non la cambia.
+        #[cfg(not(windows))]
         if device.active_configuration().map(|c| c.configuration_value()) != Ok(1) {
             device.set_configuration(1).wait().map_err(usb_err)?;
         }
         let interface = device.claim_interface(0).wait().map_err(usb_err)?;
-        Ok(Self { device, interface, id })
+        Ok(Self { interface, id })
     }
 
     pub fn id(&self) -> &UsbId {
@@ -103,7 +103,7 @@ impl Transport for NusbTransport {
             index,
             data,
         };
-        self.device.control_out(setup, CONTROL_TIMEOUT).wait().map_err(transfer_err)
+        self.interface.control_out(setup, CONTROL_TIMEOUT).wait().map_err(transfer_err)
     }
 
     fn control_in(&self, request: u8, value: u16, index: u16, len: u16) -> Result<Vec<u8>> {
@@ -115,7 +115,7 @@ impl Transport for NusbTransport {
             index,
             length: len,
         };
-        self.device.control_in(setup, CONTROL_TIMEOUT).wait().map_err(transfer_err)
+        self.interface.control_in(setup, CONTROL_TIMEOUT).wait().map_err(transfer_err)
     }
 
     fn open_bulk(&self, endpoint: u8, transfer_size: usize, queue_depth: usize) -> Result<NusbBulk> {

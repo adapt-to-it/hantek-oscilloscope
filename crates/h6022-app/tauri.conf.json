@@ -31,10 +31,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "app",
-      "dmg"
-    ],
+    "targets": "all",
     "category": "DeveloperTool",
     "icon": [
       "icons/32x32.png",
@@ -43,12 +40,24 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "shortDescription": "Oscilloscopio Hantek 6022BE con server MCP",
+    "shortDescription": "Hantek USB oscilloscope with MCP server",
     "copyright": "MIT OR Apache-2.0",
     "macOS": {
       "signingIdentity": "Developer ID Application: MARCO ABBATTISTA (38C8C426NW)",
       "hardenedRuntime": true,
       "minimumSystemVersion": "11.0"
+    },
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/lib/udev/rules.d/60-hantek-oscilloscope.rules": "../../packaging/linux/60-hantek-oscilloscope.rules"
+        }
+      },
+      "rpm": {
+        "files": {
+          "/usr/lib/udev/rules.d/60-hantek-oscilloscope.rules": "../../packaging/linux/60-hantek-oscilloscope.rules"
+        }
+      }
     }
   }
 }

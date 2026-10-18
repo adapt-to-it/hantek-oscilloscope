@@ -55,6 +55,19 @@ pub trait FrameWriter: Send {
     fn finish(self: Box<Self>) -> io::Result<RecordSummary>;
 }
 
+/// Cartella predefinita delle registrazioni, `~/h6022-recordings`, creata se manca.
+/// La home viene da `HOME` su macOS e Linux, da `USERPROFILE` su Windows.
+pub fn recordings_dir() -> io::Result<PathBuf> {
+    let home = std::env::var_os("HOME")
+        .filter(|h| !h.is_empty())
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "cartella home non trovata (HOME o USERPROFILE)"))?;
+    let dir = PathBuf::from(home).join("h6022-recordings");
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| io::Error::new(e.kind(), format!("cartella {}: {e}", dir.display())))?;
+    Ok(dir)
+}
+
 /// Crea il file (errore se esiste già) e lo scrittore del formato.
 pub fn create(path: &Path, format: Format) -> io::Result<Box<dyn FrameWriter>> {
     let file = File::create_new(path)?;

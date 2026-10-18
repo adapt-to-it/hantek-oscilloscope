@@ -1,0 +1,4 @@
+# Hantek 6022BE: accesso USB per gli utenti della sessione locale, senza root.
+# 04b4:6022 è il dispositivo senza firmware, 04b5:6022 dopo il caricamento del firmware.
+SUBSYSTEM=="usb", ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="6022", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="6022", MODE="0660", TAG+="uaccess"

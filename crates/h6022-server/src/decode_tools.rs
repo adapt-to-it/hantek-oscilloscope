@@ -267,9 +267,7 @@ fn export_target(raw: &str, format: ExportFormatName) -> Result<PathBuf, ErrorDa
         Some(_) => return Err(invalid("l'estensione del percorso non corrisponde al formato")),
     };
     if !path.is_absolute() {
-        let home = std::env::var_os("HOME").ok_or_else(|| internal("HOME non impostata"))?;
-        let dir = PathBuf::from(home).join("h6022-recordings");
-        std::fs::create_dir_all(&dir).map_err(|e| internal(format!("cartella {}: {e}", dir.display())))?;
+        let dir = h6022_record::recordings_dir().map_err(|e| internal(e.to_string()))?;
         path = dir.join(path);
     }
     Ok(path)

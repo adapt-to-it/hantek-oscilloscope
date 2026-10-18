@@ -628,9 +628,7 @@ pub(crate) fn recording_target(raw: &str, format: Option<FormatName>) -> Result<
         path.set_extension(format.extension());
     }
     if !path.is_absolute() {
-        let home = std::env::var_os("HOME").ok_or_else(|| internal("HOME non impostata"))?;
-        let dir = PathBuf::from(home).join("h6022-recordings");
-        std::fs::create_dir_all(&dir).map_err(|e| internal(format!("cartella {}: {e}", dir.display())))?;
+        let dir = h6022_record::recordings_dir().map_err(|e| internal(e.to_string()))?;
         path = dir.join(path);
     }
     Ok((path, format))
