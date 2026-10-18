@@ -98,6 +98,35 @@ impl App {
         }
     }
 
+    /// Prepara una vista iniziale da `H6022_SCENE`, per catturare le schermate.
+    /// Parole separate da virgola: `time`, `spectrum`, `xy`, `help`, `persistence`,
+    /// `cursors`, `decode=<protocollo>` (per esempio `decode=pwm`).
+    pub fn apply_scene(&mut self, scene: &str) {
+        for word in scene.split(',').map(str::trim) {
+            match word {
+                "time" => self.state.view = View::Time,
+                "spectrum" => self.state.view = View::Spectrum,
+                "xy" => self.state.view = View::Xy,
+                "help" => self.state.help = true,
+                "persistence" => self.state.persistence = true,
+                "cursors" => self.state.cursors.mode = crate::state::CursorMode::Both,
+                _ => {
+                    let Some(name) = word.strip_prefix("decode=") else {
+                        eprintln!("H6022_SCENE: parola sconosciuta {word:?}");
+                        continue;
+                    };
+                    match decode_panel::protocol_templates().iter().position(|p| p.name() == name) {
+                        Some(index) => {
+                            self.decode.enabled = true;
+                            self.decode.selected = index;
+                        }
+                        None => eprintln!("H6022_SCENE: protocollo sconosciuto {name:?}"),
+                    }
+                }
+            }
+        }
+    }
+
     /// Avvia il server MCP e WebSocket sul motore dell'app. Un errore resta visibile nella barra.
     pub fn start_server(&mut self, source: &'static str, port: u16) {
         let config = h6022_server::ServerConfig {

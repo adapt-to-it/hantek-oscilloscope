@@ -34,10 +34,18 @@ fn main() -> eframe::Result {
             }
         }
     };
+    // `H6022_WINDOW=LxA` cambia la dimensione iniziale della finestra, per esempio `1280x1300`.
+    let size = std::env::var("H6022_WINDOW")
+        .ok()
+        .and_then(|s| {
+            let (w, h) = s.split_once('x')?;
+            Some([w.parse().ok()?, h.parse().ok()?])
+        })
+        .unwrap_or([1280.0, 800.0]);
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_title("Hantek 6022BE")
-            .with_inner_size([1280.0, 800.0]),
+            .with_inner_size(size),
         renderer: eframe::Renderer::Wgpu,
         ..Default::default()
     };
@@ -52,6 +60,9 @@ fn main() -> eframe::Result {
                 ctx.request_repaint();
             });
             let mut app = app::App::new(cc.egui_ctx.clone(), source);
+            if let Ok(scene) = std::env::var("H6022_SCENE") {
+                app.apply_scene(&scene);
+            }
             if with_server {
                 app.start_server(name, port);
             }
