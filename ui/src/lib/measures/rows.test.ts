@@ -56,7 +56,7 @@ describe('measureGroups', () => {
 
   it('formatta tensioni, tempi e frequenze', () => {
     const groups = measureGroups(snapshot(channel(), channel({ vpp: 0.5 })), [true, true])
-    expect(find(groups, 'Tensione', 'Vpp')).toEqual({ label: 'Vpp', ch1: '4 V', ch2: '500 mV' })
+    expect(find(groups, 'Tensione', 'Vpp')).toEqual({ label: 'Vpp', field: 'vpp', ch1: '4 V', ch2: '500 mV' })
     expect(find(groups, 'Livelli e fronti', 'Salita').ch1).toBe('2 µs')
     expect(find(groups, 'Tempo', 'Periodo').ch1).toBe('1 ms')
     expect(find(groups, 'Tempo', 'Frequenza').ch1).toBe('11 kHz')

@@ -11,6 +11,9 @@
     DecoderSettings,
     RecordingView,
     DisplayOptions,
+    CursorPositions,
+    MathOp,
+    ToolSettings,
     MeasureSnapshot,
     SpectrumView as SpectrumData,
     Status,
@@ -23,6 +26,7 @@
   import DecoderStrip from './lib/decoder/DecoderStrip.svelte'
   import { channelLabel, defaultDecoder } from './lib/shell/controls/decoder'
   import MeasureGrid from './lib/measures/MeasureGrid.svelte'
+  import { MeasureHistory } from './lib/measures/history'
   import { formatHz } from './lib/shell/format'
   import TopBar from './lib/shell/TopBar.svelte'
   import ControlPanel from './lib/shell/ControlPanel.svelte'
@@ -40,7 +44,7 @@
   let frame = $state<DisplayFrame | null>(null)
   let acq = $state<AcquisitionSettings | null>(null)
   let measures = $state<MeasureSnapshot | null>(null)
-  let display = $state<DisplayOptions>({ mode: 'time', window: 'flatTop', logFrequency: false })
+  let display = $state<DisplayOptions>({ mode: 'time', window: 'flatTop', logFrequency: false, persistence: false, cursors: 'off', cursorChannel: 0 })
   let spectrum = $state<SpectrumData | null>(null)
   let xy = $state<XyData | null>(null)
   let decoder = $state<DecoderSettings>(defaultDecoder())
@@ -49,8 +53,17 @@
   let decodeError = $state<string | null>(null)
   const triggerLevel = $derived(acq?.triggerLevel ?? 0)
   const info = $derived(status ? `Frequenza ${formatHz(status.sampleRateHz)}, record ${status.recordLength} campioni` : undefined)
+  let tools = $state<ToolSettings>({ math: 'off', filter: { channel: 0, kind: 'none', cutoffHz: 10e3 } })
+  let cursors = $state<CursorPositions>({ t1: -1e-4, t2: 1e-4, v1: 1, v2: -1 })
+  let explain = $state(false)
+  const history = new MeasureHistory()
+  let historyVersion = $state(0)
+  /** Ultima operazione scelta: il tasto M la riattiva dopo averla spenta. */
+  let lastMath: MathOp = 'add'
   let fps = $state(0)
   let errorMsg = $state<string | null>(null)
+  let notice = $state<string | null>(null)
+  let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
   let errorTimer: ReturnType<typeof setTimeout> | undefined
   let lastPoll = 0
@@ -95,6 +108,9 @@
     if (!command) return
     event.preventDefault()
     if (command === 'view') setMode(nextMode(display.mode))
+    else if (command === 'explain') explain = !explain
+    else if (command === 'math') applyTools({ ...tools, math: tools.math === 'off' ? lastMath : 'off' })
+    else if (command === 'screenshot') saveScreenshot()
     else send(command)
   }
 
@@ -161,9 +177,46 @@
     refreshDecode()
   }
 
+  /** Applica gli strumenti; se il motore li rifiuta, ripristina quelli precedenti. */
+  async function applyTools(next: ToolSettings) {
+    const previous = tools
+    tools = next
+    if (next.math !== 'off') lastMath = next.math
+    try {
+      await api.setTools(next)
+    } catch (e) {
+      tools = previous
+      showError(`Strumenti non applicati: ${e}`)
+    }
+  }
+
+  function showNotice(message: string) {
+    notice = message
+    clearTimeout(noticeTimer)
+    noticeTimer = setTimeout(() => (notice = null), ERROR_MS)
+  }
+
+  /** Salva il canvas del display in PNG nella cartella delle registrazioni. */
+  async function saveScreenshot() {
+    const canvas = document.querySelector<HTMLCanvasElement>('main canvas')
+    if (!canvas) return showError('Nessun display da salvare')
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+    if (!blob) return showError('Immagine del display non creata')
+    try {
+      const path = await api.savePng(new Uint8Array(await blob.arrayBuffer()))
+      showNotice(`Immagine salvata: ${path}`)
+    } catch (e) {
+      showError(`Immagine non salvata: ${e}`)
+    }
+  }
+
   async function refreshMeasures() {
     try {
       measures = await api.getMeasurements()
+      if (measures && status?.runState !== 'stopped') {
+        history.push(measures, Date.now())
+        historyVersion++
+      }
     } catch (e) {
       showError(`Misure non disponibili: ${e}`)
     }
@@ -189,6 +242,7 @@
       .then(async (loaded) => {
         view = loaded
         acq = await api.getAcquisition()
+        tools = await api.getTools()
         const mode = await api.getInitialMode()
         if (mode) setMode(mode)
         await api.subscribeDisplay((buf) => {
@@ -208,15 +262,19 @@
       clearInterval(analysisTimer)
       clearInterval(decodeTimer)
       clearTimeout(errorTimer)
+      clearTimeout(noticeTimer)
     }
   })
 </script>
 
 <svelte:window onkeydown={onKey} />
 
-<div class="app" style="display:flex;flex-direction:column;height:100vh;min-height:720px;background:#0b0d10;position:relative">
-  <TopBar {status} {recording} mode={display.mode} onrun={onRun} onsingle={() => send('single')} onmode={setMode} />
+<div class="app {explain ? 'exp' : ''}" style="display:flex;flex-direction:column;height:100vh;min-height:720px;background:#0b0d10;position:relative">
+  <TopBar {status} {recording} mode={display.mode} triggered={frame?.triggered ?? null} {explain} onexplain={() => (explain = !explain)} onrun={onRun} onsingle={() => send('single')} onmode={setMode} />
 
+  {#if notice}
+    <div role="status" style="padding:9px 16px;background:#14261c;border-bottom:1px solid #295a3c;color:#9fe3bb;font-size:13px;font-weight:500">{notice}</div>
+  {/if}
   {#if errorMsg}
     <div role="alert" style="display:flex;align-items:center;gap:10px;padding:9px 16px;background:#3a1714;border-bottom:1px solid #6a3029;color:#ffb3a6;font-size:13px;font-weight:500">
       {errorMsg}
@@ -231,7 +289,7 @@
         {:else if display.mode === 'xy'}
           <XyView data={xy} {view} />
         {:else}
-          <Scope {frame} {view} {triggerLevel} oncolumns={onColumns} onoffset={onOffset} ontriggerlevel={onTriggerLevel} />
+          <Scope {frame} {view} {display} {cursors} oncursors={(c) => (cursors = c)} {triggerLevel} oncolumns={onColumns} onoffset={onOffset} ontriggerlevel={onTriggerLevel} />
         {/if}
         {#if decoder.enabled && display.mode === 'time'}
           <DecoderStrip
@@ -242,7 +300,7 @@
             channelLabel={channelLabel(decoder.params)}
           />
         {/if}
-        <MeasureGrid snapshot={measures} enabled={[view.channels[0].enabled, view.channels[1].enabled]} />
+        <MeasureGrid snapshot={measures} enabled={[view.channels[0].enabled, view.channels[1].enabled]} {history} version={historyVersion} />
       {/if}
     </div>
 
@@ -253,6 +311,8 @@
           {acq}
           {display}
           {decoder}
+          {tools}
+          ontools={applyTools}
           {info}
           {recording}
           onrecording={(r) => (recording = r)}

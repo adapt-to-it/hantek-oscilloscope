@@ -1,5 +1,5 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
-import type { AcquisitionSettings, DecodeParams, DecodeView, ExportParams, ExportView, RecordingView, RecordParams, RecordSummaryView, MeasureSnapshot, SpectrumView, Status, ViewSettings, ViewMode, WindowName, XyView } from './types'
+import type { AcquisitionSettings, ClassificationView, ToolSettings, DecodeParams, DecodeView, ExportParams, ExportView, RecordingView, RecordParams, RecordSummaryView, MeasureSnapshot, SpectrumView, Status, ViewSettings, ViewMode, WindowName, XyView } from './types'
 import type { RunCommand } from './shell/keys'
 
 // Wrapper tipizzati dei comandi definiti in crates/h6022-app/src/commands.rs.
@@ -88,4 +88,23 @@ export function recordingStatus(): Promise<RecordingView | null> {
 /** Rifiutata se non c'è ancora un frame o se il file esiste già. */
 export function exportLogic(params: ExportParams): Promise<ExportView> {
   return invoke<ExportView>('export_logic', { params })
+}
+
+export function getTools(): Promise<ToolSettings> {
+  return invoke<ToolSettings>('get_tools')
+}
+
+/** Rifiutata se il canale del filtro o la frequenza di taglio non sono validi. */
+export function setTools(tools: ToolSettings): Promise<void> {
+  return invoke<void>('set_tools', { tools })
+}
+
+/** `null` se non c'è ancora un frame o se il canale manca nel frame. */
+export function classify(channel: 1 | 2): Promise<ClassificationView | null> {
+  return invoke<ClassificationView | null>('classify', { channel })
+}
+
+/** Salva il PNG del display in ~/h6022-recordings; restituisce il percorso del file. */
+export function savePng(png: Uint8Array): Promise<string> {
+  return invoke<string>('save_png', { png: Array.from(png) })
 }

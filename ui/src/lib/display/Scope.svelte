@@ -1,22 +1,34 @@
 <script lang="ts">
   // Display del tempo su canvas. Contratto: props sotto, eventi tramite callback.
   import { CH_COLORS, DIVISIONS_X, DIVISIONS_Y } from '../types'
-  import type { DisplayFrame, ViewSettings } from '../types'
+  import type { ChannelTrace, CursorPositions, DisplayFrame, DisplayOptions, ViewSettings } from '../types'
+  import Tip from '../help/Tip.svelte'
+  import { cursorReadout } from './cursors'
 
   interface Props {
     frame: DisplayFrame | null
     view: ViewSettings
+    display: DisplayOptions
+    cursors: CursorPositions
     triggerLevel: number
     /** Colonne disponibili in pixel CSS: il genitore le passa a `set_columns`. */
     oncolumns?: (columns: number) => void
     /** Trascinamento dei marcatori 1, 2 (offsetDiv) e T (livello in volt). */
     onoffset?: (channel: 0 | 1, offsetDiv: number) => void
     ontriggerlevel?: (volts: number) => void
+    /** Trascinamento dei cursori: restituisce le posizioni complete. */
+    oncursors?: (c: CursorPositions) => void
   }
 
-  let { frame, view, triggerLevel, oncolumns, onoffset, ontriggerlevel }: Props = $props()
+  let { frame, view, display, cursors, triggerLevel, oncolumns, onoffset, ontriggerlevel, oncursors }: Props = $props()
 
   const NO_DATA_NOTE = "Nessun frame dal dispositivo: controlla la connessione e avvia l'acquisizione."
+  const MATH_COLOR = '#b794f6'
+  const CURSOR_COLOR = '#cfd5dd'
+  // Persistenza: ultime 8 schermate; la più vecchia in trasparenza 0.05, la più recente sotto la corrente 0.4.
+  const PERSIST_DEPTH = 8
+  const GHOST_ALPHA_NEAR = 0.4
+  const GHOST_ALPHA_FAR = 0.05
   const PREFIXES: [number, string][] = [
     [1e9, 'G'],
     [1e6, 'M'],
@@ -34,10 +46,16 @@
   let height = $state(0)
   let lastColumns = 0
   let raf = 0
+  // Frame precedenti per la persistenza, dal più vecchio al più recente. Non reattivo: lo legge solo draw.
+  let history: DisplayFrame[] = []
 
   const divH = $derived(height / DIVISIONS_Y)
   // Chiave serializzata: fa ridisegnare il canvas anche a modifiche in profondità di view.
   const viewKey = $derived(JSON.stringify(view))
+  const displayKey = $derived(JSON.stringify(display))
+  const cursorsKey = $derived(JSON.stringify(cursors))
+  // Chiave delle scale: cambiarle svuota la persistenza.
+  const scaleKey = $derived(JSON.stringify([view.timePerDiv, view.channels[0].voltsPerDiv, view.channels[1].voltsPerDiv]))
   // Posizione del trigger sull'asse x: t = 0 nel frame, null senza frame.
   const tmX = $derived(
     frame && frame.tEnd > frame.tStart ? (-frame.tStart / (frame.tEnd - frame.tStart)) * width : null,
@@ -46,8 +64,34 @@
     height / 2 - (triggerLevel / view.channels[0].voltsPerDiv + view.channels[0].offsetDiv) * divH,
   )
 
+  // Intervallo dell'asse x in secondi relativi al trigger: dal frame, altrimenti dalla base dei tempi.
+  const timeRange = $derived(
+    frame && frame.tEnd > frame.tStart
+      ? { start: frame.tStart, span: frame.tEnd - frame.tStart }
+      : { start: -(DIVISIONS_X / 2) * view.timePerDiv, span: DIVISIONS_X * view.timePerDiv },
+  )
+  const showTime = $derived(frame !== null && (display.cursors === 'time' || display.cursors === 'both'))
+  const showVolt = $derived(frame !== null && (display.cursors === 'voltage' || display.cursors === 'both'))
+  const readout = $derived(cursorReadout(display.cursors, cursors))
+
   function zeroY(ch: 0 | 1): number {
     return height / 2 - view.channels[ch].offsetDiv * divH
+  }
+
+  function timeToX(t: number): number {
+    return ((t - timeRange.start) / timeRange.span) * width
+  }
+
+  function xToTime(x: number): number {
+    return timeRange.start + (x / width) * timeRange.span
+  }
+
+  function voltToY(v: number, ch: 0 | 1): number {
+    return height / 2 - (v / view.channels[ch].voltsPerDiv + view.channels[ch].offsetDiv) * divH
+  }
+
+  function yToVolt(y: number, ch: 0 | 1): number {
+    return ((height / 2 - y) / divH - view.channels[ch].offsetDiv) * view.channels[ch].voltsPerDiv
   }
 
   function fmtSI(value: number, unit: string): string {
@@ -62,6 +106,10 @@
     | { target: 'ch'; ch: 0 | 1; startY: number; start: number; last: number }
     | { target: 'trig'; startY: number; start: number; last: number }
   let drag: Drag | null = null
+
+  // Trascinamento dei cursori: la posizione segue il puntatore in assoluto.
+  type CursorKey = 't1' | 't2' | 'v1' | 'v2'
+  let cursorDrag: CursorKey | null = null
 
   function snap(v: number, step: number): number {
     return Number((Math.round(v / step) * step).toPrecision(12))
@@ -106,6 +154,27 @@
     if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
   }
 
+  function startCursorDrag(e: PointerEvent, key: CursorKey): void {
+    cursorDrag = key
+    const el = e.currentTarget as HTMLElement
+    el.setPointerCapture(e.pointerId)
+  }
+
+  function moveCursorDrag(e: PointerEvent): void {
+    if (!cursorDrag || !plot) return
+    const box = plot.getBoundingClientRect()
+    const x = e.clientX - box.left
+    const y = e.clientY - box.top
+    const value = cursorDrag === 't1' || cursorDrag === 't2' ? xToTime(x) : yToVolt(y, display.cursorChannel)
+    oncursors?.({ ...cursors, [cursorDrag]: value })
+  }
+
+  function endCursorDrag(e: PointerEvent): void {
+    cursorDrag = null
+    const el = e.currentTarget as HTMLElement
+    if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
+  }
+
   // Colonne = larghezza CSS arrotondata; le dimensioni vengono aggiornate ad ogni resize.
   $effect(() => {
     if (!plot) return
@@ -121,6 +190,20 @@
     })
     ro.observe(plot)
     return () => ro.disconnect()
+  })
+
+  // Persistenza: ogni frame nuovo entra nello storico; senza persistenza lo storico resta vuoto.
+  $effect(() => {
+    if (!frame || !display.persistence) return
+    history.push(frame)
+    if (history.length > PERSIST_DEPTH) history.splice(0, history.length - PERSIST_DEPTH)
+  })
+
+  // Lo storico si svuota quando cambiano time/div o V/div e quando la persistenza si spegne.
+  $effect(() => {
+    void scaleKey
+    void display.persistence
+    history = []
   })
 
   function drawGrid(ctx: CanvasRenderingContext2D, w: number, h: number): void {
@@ -151,17 +234,25 @@
     ctx.stroke()
   }
 
-  function drawTraces(ctx: CanvasRenderingContext2D, f: DisplayFrame, w: number, h: number): void {
+  function drawTraces(ctx: CanvasRenderingContext2D, f: DisplayFrame, w: number, h: number, alpha: number): void {
     const colW = w / f.columns
-    for (const ch of [0, 1] as const) {
-      const trace = f.traces[ch]
-      const channel = view.channels[ch]
-      if (!trace || !channel.enabled) continue
+    // M usa la scala e l'offset di CH1 e non dipende dall'abilitazione dei canali.
+    const jobs: { trace: ChannelTrace | null; ch: 0 | 1; color: string; width: number; visible: boolean }[] = [
+      { trace: f.traces[0], ch: 0, color: CH_COLORS[0], width: 1.25, visible: view.channels[0].enabled },
+      { trace: f.traces[1], ch: 1, color: CH_COLORS[1], width: 1.25, visible: view.channels[1].enabled },
+      { trace: f.math, ch: 0, color: MATH_COLOR, width: 2, visible: true },
+    ]
+    ctx.globalAlpha = alpha
+    for (const job of jobs) {
+      const trace = job.trace
+      const channel = view.channels[job.ch]
+      if (!trace || !job.visible) continue
       const yOf = (volts: number): number =>
         h / 2 - (volts / channel.voltsPerDiv + channel.offsetDiv) * (h / DIVISIONS_Y)
       const len = Math.min(f.columns, trace.min.length, trace.max.length)
-      ctx.strokeStyle = CH_COLORS[ch]
-      ctx.lineWidth = 1.25
+      ctx.strokeStyle = job.color
+      ctx.lineWidth = job.width
+      ctx.lineJoin = 'round'
       ctx.beginPath()
       let prev: { x: number; y: number } | null = null
       for (let c = 0; c < len; c++) {
@@ -184,6 +275,39 @@
       }
       ctx.stroke()
     }
+    ctx.globalAlpha = 1
+  }
+
+  // Alfa della schermata passata k-esima (k = 1 la più recente): da 0.4 a 0.05.
+  function ghostAlpha(k: number): number {
+    const steps = PERSIST_DEPTH - 2
+    return GHOST_ALPHA_NEAR + ((GHOST_ALPHA_FAR - GHOST_ALPHA_NEAR) * (k - 1)) / steps
+  }
+
+  function drawCursors(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+    if (!showTime && !showVolt) return
+    ctx.setLineDash([4, 5])
+    ctx.strokeStyle = CURSOR_COLOR
+    ctx.lineWidth = 1
+    ctx.globalAlpha = 0.85
+    ctx.beginPath()
+    if (showTime) {
+      for (const x of [timeToX(cursors.t1), timeToX(cursors.t2)]) {
+        const px = Math.round(x) + 0.5
+        ctx.moveTo(px, 0)
+        ctx.lineTo(px, h)
+      }
+    }
+    if (showVolt) {
+      for (const v of [cursors.v1, cursors.v2]) {
+        const py = Math.round(voltToY(v, display.cursorChannel)) + 0.5
+        ctx.moveTo(0, py)
+        ctx.lineTo(w, py)
+      }
+    }
+    ctx.stroke()
+    ctx.setLineDash([])
+    ctx.globalAlpha = 1
   }
 
   function draw(): void {
@@ -200,15 +324,25 @@
     ctx.fillStyle = '#06080a'
     ctx.fillRect(0, 0, w, h)
     drawGrid(ctx, w, h)
-    if (frame) drawTraces(ctx, frame, w, h)
+    if (frame) {
+      if (display.persistence) {
+        // Le schermate passate sotto la corrente, dalla più vecchia alla più recente.
+        const ghosts = history.filter((g) => g !== frame)
+        ghosts.forEach((g, i) => drawTraces(ctx, g, w, h, ghostAlpha(ghosts.length - i)))
+      }
+      drawTraces(ctx, frame, w, h, 1)
+      drawCursors(ctx, w, h)
+    }
   }
 
-  // Ridisegno con requestAnimationFrame solo quando cambiano frame, view o dimensioni.
+  // Ridisegno con requestAnimationFrame solo quando cambiano frame, view, display, cursori o dimensioni.
   // Un ridisegno già programmato non viene annullato: legge lo stato più recente quando parte.
   // Annullarlo a ogni aggiornamento lo rinvierebbe all'infinito con frame più frequenti del refresh.
   $effect(() => {
     void frame
     void viewKey
+    void displayKey
+    void cursorsKey
     void width
     void height
     if (raf === 0) raf = requestAnimationFrame(draw)
@@ -231,7 +365,28 @@
       {#if tmX !== null}
         <div style="position:absolute;top:0;left:{tmX}px;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:11px solid {CH_COLORS[0]}" title="Istante del trigger (t = 0)"></div>
       {/if}
-      <div style="position:absolute;left:36px;bottom:10px;font-size:12px;color:#7f8996">Trascina 1, 2 e T per regolarli</div>
+
+      {#if showTime}
+        <div class="mono" role="slider" aria-label="Cursore t1" aria-valuenow={cursors.t1} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 't1')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;top:0;bottom:0;left:{timeToX(cursors.t1) - 5}px;width:10px;cursor:ew-resize;touch-action:none"></div>
+        <div class="mono" role="slider" aria-label="Cursore t2" aria-valuenow={cursors.t2} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 't2')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;top:0;bottom:0;left:{timeToX(cursors.t2) - 5}px;width:10px;cursor:ew-resize;touch-action:none"></div>
+      {/if}
+      {#if showVolt}
+        <div class="mono" role="slider" aria-label="Cursore V1" aria-valuenow={cursors.v1} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 'v1')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;left:0;right:0;top:{voltToY(cursors.v1, display.cursorChannel) - 5}px;height:10px;cursor:ns-resize;touch-action:none"></div>
+        <div class="mono" role="slider" aria-label="Cursore V2" aria-valuenow={cursors.v2} tabindex="-1" onpointerdown={(e) => startCursorDrag(e, 'v2')} onpointermove={moveCursorDrag} onpointerup={endCursorDrag} onpointercancel={endCursorDrag} style="position:absolute;left:0;right:0;top:{voltToY(cursors.v2, display.cursorChannel) - 5}px;height:10px;cursor:ns-resize;touch-action:none"></div>
+      {/if}
+      {#if readout.length > 0}
+        <div style="position:absolute;left:12px;top:14px;min-width:150px">
+          <Tip id="cursors">
+            <div class="mono" style="padding:8px 10px;border-radius:8px;background:#0b0d10ee;border:1px solid #333b47;font-size:12px;line-height:1.55;color:#dde2e8">
+              {#each readout as row (row.k)}
+                <div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#9aa3af">{row.k}</span><span>{row.v}</span></div>
+              {/each}
+            </div>
+          </Tip>
+        </div>
+      {/if}
+
+      <div style="position:absolute;left:36px;bottom:10px;font-size:12px;color:#7f8996">{display.cursors === 'off' ? 'Trascina 1, 2 e T per regolarli' : 'Trascina 1, 2, T e i cursori per regolarli'}</div>
     {:else}
       <div style="position:absolute;left:0;top:0;right:0;bottom:0;background:#06080af2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:24px">
         <div style="font-size:18px;font-weight:600">In attesa di dati</div>

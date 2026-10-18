@@ -6,4 +6,5 @@ pub mod analysis;
 pub mod measures;
 pub mod settings;
 pub mod timebase;
+pub mod tools;
 pub mod trace;

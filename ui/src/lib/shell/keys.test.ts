@@ -49,3 +49,15 @@ describe('shortcutFor', () => {
     expect(shortcutFor({ key: 'a', target: null }, 'stopped')).toBeNull()
   })
 })
+
+describe('tasti I, M e P', () => {
+  const none = { target: null }
+  it('restituiscono spiegazioni, matematica e immagine', () => {
+    expect(shortcutFor({ key: 'i', ...none }, 'stopped')).toBe('explain')
+    expect(shortcutFor({ key: 'M', ...none }, 'stopped')).toBe('math')
+    expect(shortcutFor({ key: 'p', ...none }, 'running')).toBe('screenshot')
+  })
+  it('sono ignorati con Cmd', () => {
+    expect(shortcutFor({ key: 'p', metaKey: true, target: null }, 'running')).toBeNull()
+  })
+})

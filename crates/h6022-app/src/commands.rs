@@ -14,6 +14,7 @@ use h6022_view::acquisition::AcquisitionSettings;
 use h6022_view::analysis::{SpectrumView, WindowName, XyView, spectrum_view, xy_view};
 use h6022_view::measures::{MeasureSnapshot, snapshot};
 use h6022_view::settings::ViewSettings;
+use h6022_view::tools::{ToolSettings, filtered, math_trace};
 use h6022_view::trace::encode_display;
 
 use h6022_server::api::{RecordParams, RecordSummaryView, RecordingView};
@@ -31,6 +32,8 @@ pub const DISPLAY_INTERVAL_MS: u64 = 16;
 pub struct Status {
     /// "hardware" o "simulator".
     pub source: &'static str,
+    /// Versione del firmware, per esempio 0x0210; `None` con il simulatore.
+    pub firmware: Option<u16>,
     /// "running", "armed" o "stopped".
     pub run_state: &'static str,
     /// "auto", "normal", "single" o "roll".
@@ -48,6 +51,7 @@ pub fn status(state: State<'_, AppState>) -> Status {
     let stats = state.engine.stats();
     Status {
         source: state.source,
+        firmware: state.firmware,
         run_state: match state.engine.state() {
             RunState::Running => "running",
             RunState::Armed => "armed",
@@ -122,6 +126,7 @@ pub fn subscribe_display(state: State<'_, AppState>, channel: Channel<InvokeResp
     let current = state.display_generation.clone();
     let frames = state.engine.subscribe();
     let view = state.view.clone();
+    let tools = state.tools.clone();
     let columns = state.columns.clone();
     thread::spawn(move || {
         let interval = Duration::from_millis(DISPLAY_INTERVAL_MS);
@@ -144,7 +149,11 @@ pub fn subscribe_display(state: State<'_, AppState>, channel: Channel<InvokeResp
             last = Instant::now();
             let settings = *view.lock().unwrap();
             let enabled = [settings.channels[0].enabled, settings.channels[1].enabled];
-            let bytes = encode_display(&frame, enabled, &settings.viewport(columns.load(Ordering::Relaxed)));
+            let tool = *tools.lock().unwrap();
+            let frame = filtered(&frame, &tool.filter);
+            let math = math_trace(&frame, tool.math, settings.channels[0].volts_per_div);
+            let viewport = settings.viewport(columns.load(Ordering::Relaxed));
+            let bytes = encode_display(&frame, enabled, math.as_ref(), &viewport);
             if channel.send(InvokeResponseBody::Raw(bytes)).is_err() {
                 break;
             }
@@ -260,4 +269,50 @@ pub fn recording_status(state: State<'_, AppState>) -> Option<RecordingView> {
 pub fn export_logic(state: State<'_, AppState>, params: ExportParams) -> Result<ExportView, String> {
     let frame = state.engine.latest_frame().ok_or("nessun frame da esportare")?;
     export_view(&frame, params).map_err(|e| e.message.to_string())
+}
+
+#[tauri::command]
+pub fn get_tools(state: State<'_, AppState>) -> ToolSettings {
+    *state.tools.lock().unwrap()
+}
+
+/// Errore se il canale del filtro o la frequenza di taglio non sono validi.
+#[tauri::command]
+pub fn set_tools(state: State<'_, AppState>, tools: ToolSettings) -> Result<(), String> {
+    tools.validate()?;
+    *state.tools.lock().unwrap() = tools;
+    Ok(())
+}
+
+/// Classifica un canale (1 o 2) del frame più recente. `None` se non c'è un frame o il canale manca.
+#[tauri::command]
+pub fn classify(
+    state: State<'_, AppState>,
+    channel: u8,
+) -> Result<Option<h6022_server::api_decode::ClassificationView>, String> {
+    let Some(frame) = state.engine.latest_frame() else { return Ok(None) };
+    let wave = match channel {
+        1 => Some(&frame.ch1),
+        2 => frame.ch2.as_ref(),
+        _ => return Err("canale non valido: usa 1 o 2".to_string()),
+    };
+    Ok(wave.map(h6022_server::decode_tools::classification_view))
+}
+
+/// Salva in `$HOME/h6022-recordings` l'immagine PNG del display (tasto P) e ne restituisce il percorso.
+#[tauri::command]
+pub fn save_png(png: Vec<u8>) -> Result<String, String> {
+    if !png.starts_with(b"\x89PNG\r\n\x1a\n") {
+        return Err("i dati ricevuti non sono un PNG".into());
+    }
+    let home = std::env::var_os("HOME").ok_or("HOME non impostata")?;
+    let dir = std::path::PathBuf::from(home).join("h6022-recordings");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let path = dir.join(format!("h6022-display-{secs}.png"));
+    std::fs::write(&path, &png).map_err(|e| e.to_string())?;
+    Ok(path.display().to_string())
 }

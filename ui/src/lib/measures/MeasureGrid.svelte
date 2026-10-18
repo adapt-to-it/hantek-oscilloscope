@@ -1,18 +1,36 @@
 <script lang="ts">
   // Griglia delle misure: una card per gruppo, poi Fase e Ritardo CH1–CH2. Nessuna chiamata di rete.
-  import type { MeasureSnapshot } from '../types'
+  import type { ChannelMeasures, MeasureSnapshot } from '../types'
   import { CH_COLORS } from '../types'
   import { formatTime } from '../shell/format'
-  import { measureGroups } from './rows'
+  import type { MeasureHistory } from './history'
+  import { measureGroups, type MeasureRow } from './rows'
+  import TrendModal from './TrendModal.svelte'
 
   interface Props {
     snapshot: MeasureSnapshot | null
     enabled: [boolean, boolean]
+    history: MeasureHistory
+    /** Cresce a ogni push nello storico. */
+    version: number
+    ontrend?: (field: keyof ChannelMeasures, label: string) => void
   }
 
-  let { snapshot, enabled }: Props = $props()
+  let { snapshot, enabled, history, version, ontrend }: Props = $props()
 
   const groups = $derived(measureGroups(snapshot, enabled))
+
+  let trend = $state<{ field: keyof ChannelMeasures; label: string } | null>(null)
+
+  /** Il pulsante grafico compare solo se almeno un canale attivo ha un valore numerico. */
+  function hasNumber(row: MeasureRow): boolean {
+    return enabled.some((on, ch) => on && Number.isFinite(snapshot?.channels[ch]?.[row.field]))
+  }
+
+  function openTrend(row: MeasureRow) {
+    trend = { field: row.field, label: row.label }
+    ontrend?.(row.field, row.label)
+  }
 
   function phaseText(deg: number | null | undefined): string {
     return deg != null && Number.isFinite(deg) ? `${deg.toFixed(1)} °` : '—'
@@ -41,7 +59,13 @@
           <span style="white-space:nowrap">{row.label}</span>
           <span class="mono" style="text-align:right;color:{cellColor(row.ch1, 0)}">{row.ch1}</span>
           <span class="mono" style="text-align:right;color:{cellColor(row.ch2, 1)}">{row.ch2}</span>
-          <span></span>
+          {#if hasNumber(row)}
+            <button class="ibtn" onclick={() => openTrend(row)} aria-label="Mostra l’andamento di {row.label} nel tempo" title="Andamento nel tempo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v16h18"></path><path d="M7 15l4-5 3 3 5-7"></path></svg>
+            </button>
+          {:else}
+            <span></span>
+          {/if}
         </div>
       {/each}
     </div>
@@ -52,3 +76,13 @@
   <span>Ritardo CH1–CH2 <span class="mono" style="color:#8a94a1;margin-left:6px">{delayText(snapshot?.delayS)}</span></span>
   <span style="color:#8a94a1">— = non calcolabile nella finestra attuale</span>
 </div>
+
+{#if trend}
+  <TrendModal
+    {history}
+    {version}
+    field={trend.field}
+    label={trend.label}
+    onclose={() => (trend = null)}
+  />
+{/if}

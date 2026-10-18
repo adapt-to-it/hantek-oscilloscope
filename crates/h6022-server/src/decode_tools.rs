@@ -37,15 +37,7 @@ impl H6022Mcp {
     ) -> Result<Json<ClassificationView>, ErrorData> {
         let ch = channel(params.0.channel)?;
         let frame = self.latest()?;
-        let wave = wave_of(&frame, ch)?;
-        let c = classify(wave);
-        Ok(Json(ClassificationView {
-            class: class_name(&c.class).to_string(),
-            confidence: c.confidence,
-            summary: c.summary,
-            baud_estimate: c.baud_estimate,
-            suggested_decoders: c.suggested_decoders.into_iter().map(str::to_string).collect(),
-        }))
+        Ok(Json(classification_view(wave_of(&frame, ch)?)))
     }
 
     #[tool(description = "Trova i pacchetti di un canale sull'ultimo frame, separati da pause di linea costante.")]
@@ -95,6 +87,18 @@ impl H6022Mcp {
 }
 
 /// Esporta in vcd o sr i canali del frame digitalizzati; la usano lo strumento MCP e l'app desktop.
+/// Classificazione di una forma d'onda, condivisa con l'app desktop.
+pub fn classification_view(wave: &Waveform) -> ClassificationView {
+    let c = classify(wave);
+    ClassificationView {
+        class: class_name(&c.class).to_string(),
+        confidence: c.confidence,
+        summary: c.summary,
+        baud_estimate: c.baud_estimate,
+        suggested_decoders: c.suggested_decoders.into_iter().map(str::to_string).collect(),
+    }
+}
+
 pub fn export_view(frame: &Frame, p: ExportParams) -> Result<ExportView, ErrorData> {
     {
         let path = export_target(&p.path, p.format)?;

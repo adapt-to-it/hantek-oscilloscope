@@ -34,6 +34,7 @@ describe('decodeDisplay', () => {
     expect(Array.from(ch1!.max)).toEqual([1, 2])
     expect(Array.from(ch2!.min)).toEqual([3, 4])
     expect(Array.from(ch2!.max)).toEqual([5, 6])
+    expect(frame.math).toBeNull()
   })
 
   it('decodifica un solo canale CH1', () => {
@@ -43,6 +44,7 @@ describe('decodeDisplay', () => {
     expect(frame.traces[1]).toBeNull()
     expect(Array.from(frame.traces[0]!.min)).toEqual([0.5, 2])
     expect(Array.from(frame.traces[0]!.max)).toEqual([1, 3])
+    expect(frame.math).toBeNull()
   })
 
   it('decodifica un solo canale CH2', () => {
@@ -51,6 +53,24 @@ describe('decodeDisplay', () => {
     expect(frame.traces[0]).toBeNull()
     expect(Array.from(frame.traces[1]!.min)).toEqual([7, 9])
     expect(Array.from(frame.traces[1]!.max)).toEqual([8, 10])
+  })
+
+  it('decodifica la traccia M dopo CH2 quando il bit 2 è acceso', () => {
+    // CH1: min [-1, 0.5], max [1, 2]; CH2: min [3, 4], max [5, 6]; M: min [10, 11], max [12, 13]
+    const frame = decodeDisplay(build(7, 2, [-1, 0.5, 1, 2, 3, 4, 5, 6, 10, 11, 12, 13]))
+    expect(Array.from(frame.traces[0]!.min)).toEqual([-1, 0.5])
+    expect(Array.from(frame.traces[1]!.max)).toEqual([5, 6])
+    expect(frame.math).not.toBeNull()
+    expect(Array.from(frame.math!.min)).toEqual([10, 11])
+    expect(Array.from(frame.math!.max)).toEqual([12, 13])
+  })
+
+  it('decodifica la sola traccia M senza canali (maschera 4)', () => {
+    // M: min [2, 3], max [4, 5]
+    const frame = decodeDisplay(build(4, 2, [2, 3, 4, 5]))
+    expect(frame.traces).toEqual([null, null])
+    expect(Array.from(frame.math!.min)).toEqual([2, 3])
+    expect(Array.from(frame.math!.max)).toEqual([4, 5])
   })
 
   it('conserva NaN per le colonne senza dati', () => {
@@ -71,6 +91,12 @@ describe('decodeDisplay', () => {
   it('lancia Error se il buffer è troncato rispetto alle tracce dichiarate', () => {
     const full = build(3, 2, [-1, 0.5, 1, 2, 3, 4, 5, 6])
     const truncated = full.slice(0, full.byteLength - 1)
+    expect(() => decodeDisplay(truncated)).toThrow(Error)
+  })
+
+  it('lancia Error se il buffer è troncato rispetto alla traccia M dichiarata', () => {
+    const full = build(7, 2, [-1, 0.5, 1, 2, 3, 4, 5, 6, 10, 11, 12, 13])
+    const truncated = full.slice(0, full.byteLength - 4)
     expect(() => decodeDisplay(truncated)).toThrow(Error)
   })
 

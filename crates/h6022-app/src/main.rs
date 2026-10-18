@@ -26,14 +26,17 @@ fn main() {
         .ok()
         .and_then(|p| p.parse().ok())
         .unwrap_or(h6022_server::DEFAULT_PORT);
-    let (source, name): (Box<dyn SampleSource>, &'static str) = if simulated {
-        (Box::new(SimulatedSource::bench_default()), "simulator")
+    let (source, name, firmware): (Box<dyn SampleSource>, &'static str, Option<u16>) = if simulated {
+        (Box::new(SimulatedSource::bench_default()), "simulator", None)
     } else {
         match HardwareSource::open() {
-            Ok(source) => (Box::new(source), "hardware"),
+            Ok(source) => {
+                let firmware = source.firmware_version();
+                (Box::new(source), "hardware", Some(firmware))
+            }
             Err(e) => {
                 eprintln!("dispositivo non disponibile ({e}): uso il simulatore");
-                (Box::new(SimulatedSource::bench_default()), "simulator")
+                (Box::new(SimulatedSource::bench_default()), "simulator", None)
             }
         }
     };
@@ -56,7 +59,9 @@ fn main() {
     let state = AppState {
         engine,
         source: name,
+        firmware,
         view: Arc::new(Mutex::new(view)),
+        tools: Arc::new(Mutex::new(Default::default())),
         columns: Arc::new(AtomicUsize::new(1000)),
         display_generation: Arc::new(AtomicU64::new(0)),
         previous_mode: Mutex::new(None),
@@ -87,6 +92,10 @@ fn main() {
             commands::stop_recording,
             commands::recording_status,
             commands::export_logic,
+            commands::get_tools,
+            commands::set_tools,
+            commands::classify,
+            commands::save_png,
         ])
         .setup(|app| {
             // SIGINT e SIGTERM chiudono l'app con la stessa sequenza della chiusura della finestra.

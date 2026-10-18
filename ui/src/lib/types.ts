@@ -17,6 +17,8 @@ export interface ViewSettings {
 
 export interface Status {
   source: 'hardware' | 'simulator'
+  /** Versione del firmware (es. 0x0210); null con il simulatore. */
+  firmware: number | null
   runState: 'running' | 'armed' | 'stopped'
   triggerMode: 'auto' | 'normal' | 'single' | 'roll'
   frames: number
@@ -36,6 +38,8 @@ export interface DisplayFrame {
   columns: number
   /** Indice 0 = CH1, 1 = CH2; null se il canale manca nel frame. NaN = colonna senza dati. */
   traces: [ChannelTrace | null, ChannelTrace | null]
+  /** Traccia matematica M (bit 2 della maschera), in volt sulla scala di CH1. */
+  math: ChannelTrace | null
 }
 
 export interface ChannelTrace {
@@ -133,6 +137,19 @@ export interface DisplayOptions {
   mode: ViewMode
   window: WindowName
   logFrequency: boolean
+  /** Ultime schermate del display Tempo mostrate in trasparenza. */
+  persistence: boolean
+  cursors: CursorMode
+  /** Canale a cui si riferiscono i cursori di tensione: 0 = CH1, 1 = CH2. */
+  cursorChannel: 0 | 1
+}
+export type CursorMode = 'off' | 'time' | 'voltage' | 'both'
+/** Posizione dei cursori: tempi in secondi relativi al trigger, tensioni in volt del canale scelto. */
+export interface CursorPositions {
+  t1: number
+  t2: number
+  v1: number
+  v2: number
 }
 
 // Decoder: parametri e risposta dello strumento MCP `decode` (nomi snake_case come in Rust).
@@ -207,4 +224,26 @@ export interface ExportParams {
 export interface ExportView {
   path: string
   bytes: number
+}
+
+// Strumenti: tipi di crates/h6022-view/src/tools.rs (camelCase).
+export type MathOp = 'off' | 'add' | 'sub' | 'mul' | 'derivative' | 'integral'
+export type FilterType = 'none' | 'lowPass' | 'highPass' | 'bandPass'
+export interface FilterSettings {
+  channel: 0 | 1
+  kind: FilterType
+  cutoffHz: number
+}
+export interface ToolSettings {
+  math: MathOp
+  filter: FilterSettings
+}
+/** Risposta del comando `classify` (snake_case, da crates/h6022-server/src/api_decode.rs). */
+export interface ClassificationView {
+  /** dc, noise, analog, clock, pwm, serial, burst, other. */
+  class: string
+  confidence: number
+  summary: string
+  baud_estimate: number | null
+  suggested_decoders: string[]
 }
