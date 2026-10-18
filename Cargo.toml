@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/h6022-usb", "crates/h6022-dsp", "crates/h6022-core", "crates/h6022-cli", "crates/h6022-gui", "crates/h6022-record", "crates/h6022-server"]
+members = ["crates/h6022-usb", "crates/h6022-dsp", "crates/h6022-core", "crates/h6022-cli", "crates/h6022-gui", "crates/h6022-record", "crates/h6022-server", "crates/h6022-decode"]
 
 [workspace.package]
 version = "0.1.0"

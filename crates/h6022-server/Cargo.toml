@@ -10,6 +10,7 @@ h6022-usb = { path = "../h6022-usb" }
 h6022-core = { path = "../h6022-core" }
 h6022-dsp = { path = "../h6022-dsp" }
 h6022-record = { path = "../h6022-record" }
+h6022-decode = { path = "../h6022-decode" }
 tokio.workspace = true
 tokio-util.workspace = true
 axum.workspace = true

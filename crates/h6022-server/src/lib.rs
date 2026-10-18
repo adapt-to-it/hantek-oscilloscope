@@ -13,6 +13,8 @@ use h6022_core::EngineHandle;
 use h6022_record::Recorder;
 
 pub mod api;
+pub mod api_decode;
+pub mod decode_tools;
 pub mod http;
 pub mod tools;
 pub mod ws;

@@ -1538,6 +1538,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "h6022-decode"
+version = "0.1.0"
+dependencies = [
+ "h6022-dsp",
+ "rustfft",
+]
+
+[[package]]
 name = "h6022-dsp"
 version = "0.1.0"
 dependencies = [
@@ -1551,6 +1559,7 @@ dependencies = [
  "ctrlc",
  "eframe",
  "h6022-core",
+ "h6022-decode",
  "h6022-dsp",
  "h6022-server",
  "h6022-usb",
@@ -1574,6 +1583,7 @@ dependencies = [
  "anyhow",
  "axum",
  "h6022-core",
+ "h6022-decode",
  "h6022-dsp",
  "h6022-record",
  "h6022-usb",

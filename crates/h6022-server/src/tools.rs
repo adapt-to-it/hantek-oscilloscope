@@ -31,7 +31,7 @@ pub struct H6022Mcp {
 
 impl H6022Mcp {
     pub fn new(state: AppState) -> H6022Mcp {
-        H6022Mcp { state, tool_router: Self::tool_router() }
+        H6022Mcp { state, tool_router: Self::tool_router() + Self::decode_router() }
     }
 }
 
@@ -285,7 +285,7 @@ impl H6022Mcp {
         })
     }
 
-    fn latest(&self) -> Result<Arc<Frame>, ErrorData> {
+    pub(crate) fn latest(&self) -> Result<Arc<Frame>, ErrorData> {
         self.state.engine.latest_frame().ok_or_else(|| internal("nessun frame disponibile"))
     }
 
@@ -313,15 +313,15 @@ impl H6022Mcp {
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for H6022Mcp {}
 
-fn invalid(msg: impl Into<String>) -> ErrorData {
+pub(crate) fn invalid(msg: impl Into<String>) -> ErrorData {
     ErrorData::invalid_params(msg.into(), None)
 }
 
-fn internal(msg: impl Into<String>) -> ErrorData {
+pub(crate) fn internal(msg: impl Into<String>) -> ErrorData {
     ErrorData::internal_error(msg.into(), None)
 }
 
-fn channel(number: u8) -> Result<Channel, ErrorData> {
+pub(crate) fn channel(number: u8) -> Result<Channel, ErrorData> {
     match number {
         1 => Ok(Channel::Ch1),
         2 => Ok(Channel::Ch2),
@@ -344,7 +344,7 @@ fn range_from_volts(volts: f32) -> Result<VoltageRange, ErrorData> {
         .ok_or_else(|| invalid("portata non valida: usa 5, 2.5, 1 o 0.5 V"))
 }
 
-fn wave_of(frame: &Frame, ch: Channel) -> Result<&Waveform, ErrorData> {
+pub(crate) fn wave_of(frame: &Frame, ch: Channel) -> Result<&Waveform, ErrorData> {
     match ch {
         Channel::Ch1 => Ok(&frame.ch1),
         Channel::Ch2 => frame.ch2.as_ref().ok_or_else(|| invalid("CH2 non attivo: la modalità ha un solo canale")),

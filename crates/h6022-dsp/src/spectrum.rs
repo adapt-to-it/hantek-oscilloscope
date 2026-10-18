@@ -185,6 +185,11 @@ impl Spectrum {
         if fundamental_hz > nyquist {
             return None;
         }
+        // Con pochi periodi nella finestra la seconda armonica cade nel lobo principale
+        // della fondamentale (FlatTop: ±5 bin) e la THD conterebbe la fondamentale stessa.
+        if fundamental_hz / self.bin_hz < MIN_FUNDAMENTAL_BINS {
+            return None;
+        }
         let v1 = self.amplitude_near(fundamental_hz);
         if v1 == 0.0 {
             return None;
@@ -209,9 +214,22 @@ impl Spectrum {
     }
 }
 
+/// Distanza minima in bin tra fondamentale e seconda armonica per calcolare la THD.
+const MIN_FUNDAMENTAL_BINS: f64 = 8.0;
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn thd_is_none_with_too_few_periods() {
+        // 1000 campioni a 100 kS/s: FFT di 512 punti, bin di 195 Hz, fondamentale al bin 5.
+        let samples = (0..1000)
+            .map(|i| (2.0 * std::f64::consts::PI * 1000.0 * i as f64 / 100_000.0).sin() as f32)
+            .collect();
+        let wave = Waveform { samples, sample_rate: 100_000.0, t0: 0.0 };
+        assert_eq!(spectrum(&wave, Window::FlatTop).thd_pct(1000.0), None);
+    }
 
     const FS: f64 = 1_000_000.0;
     const N: usize = 65_536;

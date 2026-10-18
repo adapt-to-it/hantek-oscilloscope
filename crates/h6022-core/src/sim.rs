@@ -4,7 +4,9 @@ use std::f64::consts::TAU;
 use std::thread;
 use std::time::Duration;
 
-use h6022_usb::{AcquisitionConfig, Calibration, Channel, ChannelMode, VoltageRange};
+use h6022_usb::{AcquisitionConfig, Calibration, Channel, ChannelMode};
+#[cfg(test)]
+use h6022_usb::VoltageRange;
 
 use crate::source::{SampleSource, VoltBlock};
 use crate::types::{CoreError, CoreResult};

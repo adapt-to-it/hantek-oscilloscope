@@ -38,6 +38,13 @@ pub enum HelpId {
     Phase,
     SampleRate,
     RecordLength,
+    DecodeProtocol,
+    DecodeChannel,
+    DecodeThreshold,
+    DecodeUartBaud,
+    DecodeUartFormat,
+    DecodeInverted,
+    DecodeCanBitrate,
 }
 
 const ALL: &[HelpId] = &[
@@ -73,6 +80,13 @@ const ALL: &[HelpId] = &[
     HelpId::Phase,
     HelpId::SampleRate,
     HelpId::RecordLength,
+    HelpId::DecodeProtocol,
+    HelpId::DecodeChannel,
+    HelpId::DecodeThreshold,
+    HelpId::DecodeUartBaud,
+    HelpId::DecodeUartFormat,
+    HelpId::DecodeInverted,
+    HelpId::DecodeCanBitrate,
 ];
 
 impl HelpId {
@@ -115,6 +129,13 @@ impl HelpId {
             HelpId::Phase => "Fase",
             HelpId::SampleRate => "Frequenza di campionamento",
             HelpId::RecordLength => "Lunghezza della registrazione",
+            HelpId::DecodeProtocol => "Protocollo del decoder",
+            HelpId::DecodeChannel => "Canale del decoder",
+            HelpId::DecodeThreshold => "Soglia del decoder",
+            HelpId::DecodeUartBaud => "Velocità UART",
+            HelpId::DecodeUartFormat => "Formato UART",
+            HelpId::DecodeInverted => "Linea invertita",
+            HelpId::DecodeCanBitrate => "Bitrate CAN",
         }
     }
 
@@ -280,6 +301,41 @@ impl HelpId {
                  Un record lungo copre più tempo con più dettaglio, ma richiede più elaborazione. \
                  Lo strumento lo calcola in base alla base dei tempi e alla frequenza di campionamento."
             }
+            HelpId::DecodeProtocol => {
+                "Sceglie il protocollo da cercare nel segnale, come UART, I2C o CAN. \
+                 Con Attiva le annotazioni compaiono sotto il display. \
+                 Con un protocollo sbagliato le annotazioni risultano errate o assenti, quindi cambialo finché i dati hanno senso."
+            }
+            HelpId::DecodeChannel => {
+                "Sceglie il canale da decodificare. Con I2C il canale scelto è SCL e l'altro è SDA. \
+                 Con un protocollo a un solo filo, usa il canale su cui arriva il segnale. \
+                 Un canale spento non può essere decodificato."
+            }
+            HelpId::DecodeThreshold => {
+                "Imposta la tensione che separa il livello alto da quello basso. \
+                 Con la soglia automatica il decoder la stima dal segnale. \
+                 Con un segnale rumoroso o di ampiezza ridotta, indica tu il valore in volt."
+            }
+            HelpId::DecodeUartBaud => {
+                "Imposta la velocità della linea in bit al secondo. \
+                 Con il baud automatico il decoder la stima dalla durata degli impulsi più brevi. \
+                 Se conosci la velocità del dispositivo, indicala: i bit vengono campionati nel punto giusto."
+            }
+            HelpId::DecodeUartFormat => {
+                "Descrive come è composto ogni carattere: bit dati, parità e bit di stop. \
+                 Valori sbagliati producono errori di framing o di parità. \
+                 Il formato più comune è 8 bit dati, nessuna parità e 1 bit di stop."
+            }
+            HelpId::DecodeInverted => {
+                "Inverte il livello logico della linea, così il riposo risulta basso invece che alto. \
+                 Serve con segnali RS-232 o con linee passate attraverso un transistor. \
+                 Se tutti i byte risultano errati, prova a invertire la linea."
+            }
+            HelpId::DecodeCanBitrate => {
+                "Imposta la velocità del bus CAN in bit al secondo, per esempio 500 kbit/s. \
+                 Deve essere uguale a quella di tutti i nodi della rete. \
+                 Con una velocità sbagliata il decoder non trova frame validi."
+            }
         }
     }
 }
@@ -303,7 +359,7 @@ mod tests {
     #[test]
     fn all_contains_every_variant_once() {
         let all = HelpId::all();
-        assert_eq!(all.len(), 32);
+        assert_eq!(all.len(), 39);
         for (i, id) in all.iter().enumerate() {
             assert!(!all[i + 1..].contains(id), "duplicato: {id:?}");
         }

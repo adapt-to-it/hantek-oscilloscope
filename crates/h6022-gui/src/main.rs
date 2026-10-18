@@ -2,6 +2,7 @@
 
 mod app;
 mod controls;
+mod decode_panel;
 mod help;
 mod measure_panel;
 mod scope_view;

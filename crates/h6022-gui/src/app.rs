@@ -10,6 +10,7 @@ use h6022_core::{Engine, EngineConfig, EngineHandle, Frame, RunState, SampleSour
 use h6022_usb::{AcquisitionConfig, Channel, ChannelMode, Coupling, SampleRate, VoltageRange};
 
 use crate::controls::{self, RunCommand};
+use crate::decode_panel::{self, DecodeState};
 use crate::measure_panel::{self, MeasureCache};
 use crate::scope_view;
 use crate::spectrum_view::{self, SpectrumCache};
@@ -29,6 +30,8 @@ pub struct App {
     frame: Option<Arc<Frame>>,
     measures: MeasureCache,
     spectra: SpectrumCache,
+    /// Decoder dei protocolli: scelta e annotazioni sotto il display.
+    decode: DecodeState,
     /// Contatori di frame con l'istante di lettura, per i frame al secondo.
     fps_samples: VecDeque<(Instant, u64)>,
     /// Ultimo errore di configurazione, con l'istante in cui è apparso.
@@ -83,6 +86,7 @@ impl App {
             frame: None,
             measures: MeasureCache::default(),
             spectra: SpectrumCache::default(),
+            decode: DecodeState::default(),
             fps_samples: VecDeque::new(),
             error: None,
             previous_mode: None,
@@ -175,6 +179,12 @@ impl App {
 
         let mut command = None;
         egui::Panel::right("controls").default_size(300.0).show_inside(ui, |ui| {
+            // Il pannello dei decoder sta in basso: i controlli esistenti occupano il resto.
+            egui::Panel::bottom("decode_controls").resizable(true).default_size(260.0).show_inside(ui, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    decode_panel::controls(ui, &self.state, &mut self.decode);
+                });
+            });
             command = controls::show(ui, &mut self.state, &mut self.config, run_state, &stats);
         });
 
@@ -189,14 +199,22 @@ impl App {
                     ui.label("Spiegazioni attive (i)");
                 });
             }
-            match self.state.view {
+            // Con il decoder attivo, sotto il display resta lo spazio della striscia.
+            let reserved = if self.decode.enabled { decode_panel::RESERVED_HEIGHT } else { 0.0 };
+            let size = egui::vec2(ui.available_width(), (ui.available_height() - reserved).max(0.0));
+            let display = ui.allocate_ui(size, |ui| match self.state.view {
                 View::Spectrum => {
                     spectrum_view::show(ui, self.frame.as_deref(), &mut self.state, &mut self.spectra);
+                    None
                 }
                 View::Time | View::Xy => {
                     let response = scope_view::show(ui, self.frame.as_deref(), &mut self.state, &self.config.trigger);
-                    trigger_level = response.trigger_level;
+                    response.trigger_level
                 }
+            });
+            trigger_level = display.inner;
+            if self.decode.enabled {
+                decode_panel::strip(ui, display.response.rect, self.frame.as_deref(), &mut self.decode, &self.state);
             }
         });
         if let Some(level) = trigger_level {
@@ -327,6 +345,11 @@ mod tests {
 
         app.state.view = View::Time;
         app.state.help = true;
+        draw_frames(&ctx, &mut app, 20);
+
+        // Decoder attivo su PWM: la striscia e le annotazioni vengono disegnate.
+        app.decode.enabled = true;
+        app.decode.selected = decode_panel::protocol_templates().iter().position(|p| p.name() == "pwm").expect("pwm");
         draw_frames(&ctx, &mut app, 20);
 
         app.engine.shutdown().expect("arresto del motore");
