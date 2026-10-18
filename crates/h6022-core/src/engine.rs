@@ -266,18 +266,19 @@ impl Worker {
             return false;
         }
         let [probe1, probe2] = self.config.probe;
-        let s1: Vec<f32> = self.block.ch1.iter().map(|v| v * probe1).collect();
-        let s2: Vec<f32> = if dual {
-            self.block.ch2.iter().map(|v| v * probe2).collect()
-        } else {
-            Vec::new()
-        };
-
-        let triggers = self.trigger.feed(&s1, &s2, self.received);
-        let cap = RING_RECORDS * self.config.record_length;
-        push_capped(&mut self.ring[0], &s1, cap);
+        // Il fattore di sonda si applica sul posto: la sorgente riscrive il blocco a ogni lettura.
+        scale(&mut self.block.ch1, probe1);
         if dual {
-            push_capped(&mut self.ring[1], &s2, cap);
+            scale(&mut self.block.ch2, probe2);
+        }
+        let s1 = &self.block.ch1[..];
+        let s2: &[f32] = if dual { &self.block.ch2 } else { &[] };
+
+        let triggers = self.trigger.feed(s1, s2, self.received);
+        let cap = RING_RECORDS * self.config.record_length;
+        push_capped(&mut self.ring[0], s1, cap);
+        if dual {
+            push_capped(&mut self.ring[1], s2, cap);
         }
         self.received += n as u64;
 
@@ -441,11 +442,18 @@ impl Worker {
     }
 }
 
-fn push_capped(ring: &mut VecDeque<f32>, samples: &[f32], cap: usize) {
-    ring.extend(samples.iter().copied());
-    while ring.len() > cap {
-        ring.pop_front();
+fn scale(samples: &mut [f32], factor: f32) {
+    if factor != 1.0 {
+        samples.iter_mut().for_each(|v| *v *= factor);
     }
+}
+
+fn push_capped(ring: &mut VecDeque<f32>, samples: &[f32], cap: usize) {
+    // Scarta prima i campioni in eccesso: se il blocco supera cap, solo la sua coda entra nel buffer.
+    let samples = &samples[samples.len().saturating_sub(cap)..];
+    let excess = (ring.len() + samples.len()).saturating_sub(cap);
+    ring.drain(..excess.min(ring.len()));
+    ring.extend(samples.iter().copied());
 }
 
 fn state_for(mode: TriggerMode, paused: bool, single_done: bool) -> RunState {

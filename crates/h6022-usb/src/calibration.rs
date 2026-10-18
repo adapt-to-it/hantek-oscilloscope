@@ -93,9 +93,10 @@ impl Calibration {
 
     /// Converte un blocco di campioni grezzi in volt, scrivendo in `out` (che viene svuotato).
     pub fn to_volts_slice(&self, channel: Channel, range: VoltageRange, raw: &[u8], out: &mut Vec<f32>) {
+        // Una tabella dei 256 codici costa meno della conversione per campione sui blocchi lunghi.
+        let table: [f32; 256] = std::array::from_fn(|r| self.to_volts(channel, range, r as u8));
         out.clear();
-        out.reserve(raw.len());
-        out.extend(raw.iter().map(|&r| self.to_volts(channel, range, r)));
+        out.extend(raw.iter().map(|&r| table[usize::from(r)]));
     }
 }
 

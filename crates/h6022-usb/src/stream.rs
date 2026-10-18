@@ -92,17 +92,25 @@ impl<B: BulkSource> Stream<B> {
             ChannelMode::Single => block.ch1.extend_from_slice(&self.raw),
             ChannelMode::Dual => {
                 // Coppie CH1, CH2 interleaved; un CH1 senza CH2 passa al trasferimento successivo.
-                let mut pending = self.carry.take();
-                for &byte in &self.raw {
-                    match pending.take() {
-                        Some(ch1) => {
+                let mut raw = &self.raw[..];
+                if let Some(ch1) = self.carry.take() {
+                    match raw.split_first() {
+                        Some((&ch2, rest)) => {
                             block.ch1.push(ch1);
-                            block.ch2.push(byte);
+                            block.ch2.push(ch2);
+                            raw = rest;
                         }
-                        None => pending = Some(byte),
+                        None => self.carry = Some(ch1),
                     }
                 }
-                self.carry = pending;
+                let pairs = raw.chunks_exact(2);
+                self.carry = self.carry.or(pairs.remainder().first().copied());
+                block.ch1.reserve(pairs.len());
+                block.ch2.reserve(pairs.len());
+                for pair in pairs {
+                    block.ch1.push(pair[0]);
+                    block.ch2.push(pair[1]);
+                }
             }
         }
         self.samples += block.ch1.len() as u64;

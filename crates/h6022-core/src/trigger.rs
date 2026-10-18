@@ -88,6 +88,18 @@ impl Trigger {
             Channel::Ch1 => ch1,
             Channel::Ch2 => ch2,
         };
+        // Percorso diretto per il fronte, il caso più comune: niente match per campione.
+        if let TriggerKind::Edge { slope } = self.config.kind {
+            let level = self.config.level;
+            let half = self.config.hysteresis.max(0.0) / 2.0;
+            for (i, &v) in src.iter().enumerate() {
+                if let Some(ev) = self.state.crossing.step(v, level, half)
+                    && slope_matches(slope, ev) {
+                        self.emit(first_sample + i as u64, &mut out);
+                    }
+            }
+            return out;
+        }
         for (i, &v) in src.iter().enumerate() {
             self.step(first_sample + i as u64, v, &mut out);
         }
