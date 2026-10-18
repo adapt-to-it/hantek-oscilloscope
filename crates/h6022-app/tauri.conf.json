@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Hantek 6022BE",
+  "productName": "Hantek Oscilloscope",
   "version": "0.1.0",
   "identifier": "dev.h6022.oscilloscope",
   "build": {
@@ -18,7 +18,7 @@
   "app": {
     "windows": [
       {
-        "title": "Hantek 6022BE",
+        "title": "Hantek Oscilloscope",
         "width": 1280,
         "height": 800,
         "minWidth": 1024,
