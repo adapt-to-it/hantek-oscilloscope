@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Windows and Linux are not tested with a real device yet. A report helps even when
+        Linux is not tested with a real device yet. On Windows only the desktop app is. A report helps even when
         everything works. Open one report for each system you try.
   - type: input
     id: version
