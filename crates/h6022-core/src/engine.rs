@@ -271,24 +271,47 @@ impl Worker {
         if dual {
             scale(&mut self.block.ch2, probe2);
         }
-        let s1 = &self.block.ch1[..];
-        let s2: &[f32] = if dual { &self.block.ch2 } else { &[] };
+        // Ogni tratto tra due interruzioni è continuo: trigger e frame non le attraversano.
+        let block = std::mem::take(&mut self.block);
+        let ch2 = |from: usize, to: usize| -> &[f32] { if dual { &block.ch2[from..to] } else { &[] } };
+        let mut triggers = 0;
+        let mut from = 0;
+        for &at in &block.breaks {
+            let at = at.clamp(from, n);
+            triggers += self.feed(&block.ch1[from..at], ch2(from, at));
+            self.begin_segment();
+            from = at;
+        }
+        triggers += self.feed(&block.ch1[from..], ch2(from, n));
+        self.block = block;
+        self.account(n, triggers, Instant::now());
+        true
+    }
 
+    /// Campioni consecutivi: trigger, buffer e frame pronti. Restituisce i trigger trovati.
+    fn feed(&mut self, s1: &[f32], s2: &[f32]) -> usize {
         let triggers = self.trigger.feed(s1, s2, self.received);
         let cap = RING_RECORDS * self.config.record_length;
         push_capped(&mut self.ring[0], s1, cap);
-        if dual {
+        if !s2.is_empty() {
             push_capped(&mut self.ring[1], s2, cap);
         }
-        self.received += n as u64;
+        self.received += s1.len() as u64;
 
         if self.collects_triggers() {
             self.pending.extend(triggers.iter().copied());
         }
-        let now = Instant::now();
-        self.drain_pending(now);
-        self.account(n, triggers.len(), now);
-        true
+        self.drain_pending(Instant::now());
+        triggers.len()
+    }
+
+    /// Dopo un'interruzione i campioni precedenti non sono più contigui ai successivi:
+    /// il buffer e i trigger pendenti ripartono da zero, il trigger si riarma.
+    fn begin_segment(&mut self) {
+        self.ring[0].clear();
+        self.ring[1].clear();
+        self.pending.clear();
+        self.trigger.reset();
     }
 
     /// Genera i frame dei trigger pendenti il cui record è completo.

@@ -216,3 +216,63 @@ fn start_rejects_record_length_below_minimum() {
         Err(CoreError::InvalidConfig(_))
     ));
 }
+
+/// Sorgente che restituisce blocchi preparati, poi solo timeout.
+struct Scripted {
+    blocks: std::collections::VecDeque<h6022_core::VoltBlock>,
+}
+
+impl h6022_core::SampleSource for Scripted {
+    fn configure(&mut self, _config: &AcquisitionConfig) -> h6022_core::types::CoreResult<()> {
+        Ok(())
+    }
+
+    fn read(&mut self, out: &mut h6022_core::VoltBlock) -> h6022_core::types::CoreResult<()> {
+        // Il primo blocco arriva dopo la sottoscrizione del test.
+        thread::sleep(Duration::from_millis(50));
+        match self.blocks.pop_front() {
+            Some(block) => {
+                *out = block;
+                Ok(())
+            }
+            None => {
+                Err(CoreError::Device(h6022_usb::Error::Timeout))
+            }
+        }
+    }
+
+    fn calibration(&self) -> h6022_usb::Calibration {
+        h6022_usb::Calibration::default()
+    }
+
+    fn stop(&mut self) -> h6022_core::types::CoreResult<()> {
+        Ok(())
+    }
+}
+
+#[test]
+fn triggers_and_records_stay_inside_one_segment() {
+    // Segmento 1: 600 campioni a 0 V. Segmento 2 dal campione 600: 3 V, poi 0 V,
+    // fronti di salita veri a 700 (troppo vicino all'interruzione per il pretrigger) e a 1400.
+    let mut ch1 = vec![0.0f32; 3000];
+    ch1[600..650].fill(3.0);
+    ch1[700..800].fill(3.0);
+    ch1[1400..1600].fill(3.0);
+    let block = h6022_core::VoltBlock {
+        first_sample: 0,
+        ch2: vec![0.0; ch1.len()],
+        ch1,
+        breaks: vec![600],
+    };
+    let source = Scripted { blocks: [block].into() };
+    let engine = Engine::start(Box::new(source), config(TriggerMode::Normal, SampleRate(1))).expect("avvio");
+    let rx = engine.subscribe();
+    let frame = next_frame(&rx);
+    engine.shutdown().unwrap();
+
+    // Il salto a 600 attraversa l'interruzione e il fronte a 700 non ha il pretrigger nel segmento.
+    assert_eq!(frame.trigger_sample, Some(1400));
+    assert!(rx.try_recv().is_err());
+    assert_eq!(frame.ch1.samples.len(), RECORD_LENGTH);
+    assert_eq!(frame.ch1.samples[PRE], 3.0);
+}

@@ -12,6 +12,8 @@ pub struct VoltBlock {
     pub ch1: Vec<f32>,
     /// Vuoto in modalità a un canale.
     pub ch2: Vec<f32>,
+    /// Indici dove inizia un nuovo segmento: prima e dopo l'indice mancano campioni.
+    pub breaks: Vec<usize>,
 }
 
 pub trait SampleSource: Send {

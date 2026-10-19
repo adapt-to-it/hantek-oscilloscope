@@ -37,6 +37,18 @@ impl SampleRate {
         &ALL
     }
 
+    /// Campioni non validi all'inizio di ogni segmento.
+    ///
+    /// Fino a 24 MS/s il GPIF genera il clock dell'ADC e lo ferma con l'acquisizione:
+    /// alla ripartenza la pipeline dell'ADC restituisce 5 valori vecchi.
+    /// A 30 e 48 MS/s l'ADC usa IFCLK, che non si ferma.
+    pub fn stale_samples_after_restart(self) -> usize {
+        match self.0 {
+            30 | 48 => 0,
+            _ => 5,
+        }
+    }
+
     /// `None` se il firmware non conosce l'id.
     pub fn from_id(id: u8) -> Option<SampleRate> {
         ALL.iter().copied().find(|r| r.0 == id)

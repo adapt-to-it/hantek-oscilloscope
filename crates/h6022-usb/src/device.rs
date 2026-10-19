@@ -257,7 +257,8 @@ impl<T: Transport> Hantek6022<T> {
         // spesso di lunghezza dispari, sfaserebbe CH1 e CH2.
         bulk.discard_stale(STALE_QUIET)?;
         self.transport.control_out(req::START_STOP, 0, 0, &[1])?;
-        Ok(Stream::new(bulk, self.config.mode, config.timeout))
+        let head = self.config.sample_rate.stale_samples_after_restart();
+        Ok(Stream::new(bulk, self.config.mode, head, config.timeout))
     }
 
     pub fn stop(&mut self) -> Result<()> {

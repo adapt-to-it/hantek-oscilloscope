@@ -51,6 +51,7 @@ impl SampleSource for HardwareSource {
         let config = self.device.config();
         let calibration = self.device.calibration();
         out.first_sample = self.raw.first_sample;
+        out.breaks.clone_from(&self.raw.breaks);
         calibration.to_volts_slice(Channel::Ch1, config.range[0], &self.raw.ch1, &mut out.ch1);
         calibration.to_volts_slice(Channel::Ch2, config.range[1], &self.raw.ch2, &mut out.ch2);
         Ok(())

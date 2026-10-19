@@ -37,7 +37,7 @@ pub mod req {
 }
 
 /// Versione del firmware incorporato, come in `bcdDevice`.
-pub const FIRMWARE_VERSION: u16 = 0x0300;
+pub const FIRMWARE_VERSION: u16 = 0x0301;
 
 /// Capacità dichiarate dal firmware con la richiesta `req::INFO`.
 pub mod cap {

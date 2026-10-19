@@ -307,8 +307,11 @@ fn bench(rate: SampleRate, mode: ChannelMode, seconds: f64) -> Result<()> {
     println!("MB/s attesi: {expected_mbs:.2}");
     println!("Rapporto: {:.1} %", measured_mbs / expected_mbs * 100.0);
     match overflows {
-        Some(0) => println!("FIFO piena: mai, nessun campione perso rilevato"),
-        Some(n) => println!("FIFO piena: {n} volte, campioni persi (contatore modulo 65536)"),
+        Some(0) => println!("FIFO piena: mai, flusso continuo"),
+        Some(n) => println!(
+            "FIFO piena: {n} volte (contatore modulo 65536); segmenti ricevuti: {}, ognuno senza perdite",
+            stats.segments
+        ),
         None => println!("FIFO piena: non rilevabile con il firmware {:#06x}", dev.firmware_version()),
     }
     Ok(())
@@ -332,6 +335,8 @@ fn measure(dev: &mut Hantek6022, limit: Duration) -> Result<(StreamStats, Option
 
 /// Timeout massimo per ricevere un frame dal motore.
 const FRAME_TIMEOUT: Duration = Duration::from_secs(5);
+/// Portata USB oltre la quale il firmware divide il flusso in segmenti continui.
+const USB_BYTES_PER_SECOND: f64 = 45e6;
 /// Isteresi del trigger in volt.
 const TRIGGER_HYSTERESIS: f32 = 0.1;
 /// Frazione del frame prima del trigger.
@@ -418,7 +423,20 @@ fn run_measure(args: &MeasureArgs) -> Result<()> {
         Box::new(HardwareSource::open().context("apertura dell'Hantek 6022BE")?)
     };
     let engine = Engine::start(source, config)?;
-    let collected = collect_frames(&engine, args.frames);
+    let collected = collect_frames(&engine, args.frames).map_err(|err| {
+        let channels = if dual { 2.0 } else { 1.0 };
+        if f64::from(args.rate.hz()) * channels > USB_BYTES_PER_SECOND {
+            // Il motore non costruisce un record a cavallo di due segmenti.
+            err.context(format!(
+                "a {} con {} il flusso supera i 45 MB/s dell'USB e arriva in segmenti \
+                 continui di poche migliaia di campioni: riduci --record, per esempio a 2000",
+                args.rate.label(),
+                if dual { "due canali" } else { "un canale" }
+            ))
+        } else {
+            err
+        }
+    });
     let stopped = engine.shutdown();
     let frames = collected?;
     stopped?;

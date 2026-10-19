@@ -47,14 +47,18 @@ static volatile __bit dosud = FALSE;
 static volatile __bit dosuspend = FALSE;
 
 // Firmware version, keep in sync with FIRMWARE_VERSION in descriptor.inc
-#define FW_VERSION 0x0300
+#define FW_VERSION 0x0301
 // Capability bits returned by the info request 0xe7
 #define CAP_OVERFLOW_COUNTER 0x01
 
 // TRUE while the GPIF streams samples into the endpoint FIFO
 static __bit sampling = FALSE;
 // State of the FIFO full flag at the previous poll
-static __bit fifo_was_full = FALSE;
+/* Segment state in bulk mode, see check_overflow(). */
+#define SEGMENT_RUNNING 0 /* GPIF acquiring */
+#define SEGMENT_STOPPED 1 /* GPIF stopped on a full FIFO, marker not sent yet */
+#define SEGMENT_MARKED 2  /* marker committed, GPIF waiting for a free buffer */
+static BYTE segment_state = SEGMENT_RUNNING;
 // Number of FIFO full events since start of sampling, wraps at 65536
 static __xdata WORD overflows = 0;
 
@@ -163,6 +167,23 @@ static void stop_sampling( void ) {
 }
 
 
+/*
+ * A fast waveform branches to Idle when the FIFO is full.
+ * With a count of 1 the first pass through Idle ends the transaction:
+ * the GPIF stops instead of pausing, so a segment never contains a gap.
+ * The slow waveforms never reach Idle and ignore the count.
+ */
+static void set_transaction_count( void ) {
+    GPIFTCB3 = 0;
+    SYNCDELAY;
+    GPIFTCB2 = 0;
+    SYNCDELAY;
+    GPIFTCB1 = 0;
+    SYNCDELAY;
+    GPIFTCB0 = 1;
+}
+
+
 static void start_sampling( void ) {
     int i;
 
@@ -177,28 +198,65 @@ static void start_sampling( void ) {
         ;
 
     SYNCDELAY;
-    GPIFTCB1 = 0x28;
-    SYNCDELAY;
-    GPIFTCB0 = 0;
+    set_transaction_count();
     GPIFTRIG = ( altiface == 0 ) ? 6 : 4;
 
     overflows = 0;
-    fifo_was_full = FALSE;
+    segment_state = SEGMENT_RUNNING;
     sampling = TRUE;
 }
 
 
 /*
- * Count the transitions of the endpoint FIFO to full while sampling.
- * A full FIFO means that the host does not read fast enough:
- * the GPIF has no free buffer and samples are lost.
- * The main loop polls the flag, so a very short full state can be missed.
+ * Segmented acquisition in bulk mode.
+ * The fast waveforms (24, 30, 48 MS/s) branch to Idle on a full FIFO, and the transaction
+ * count of 1 ends the transaction there: the GPIF stops instead of losing samples.
+ * Slower rates stop only if the host stalls. After a stop the firmware sends a
+ * full-size marker packet and restarts the GPIF, so every segment is gap-free and the
+ * host knows where it ends. `overflows` counts the stops.
  */
 static void check_overflow( void ) {
-    BYTE full = EP2468STAT & ( ( altiface == 0 ) ? bmEP6FULL : bmEP2FULL );
-    if ( full && !fifo_was_full && sampling )
+    if ( !sampling || altiface != 0 )
+        return;
+    if ( segment_state == SEGMENT_RUNNING ) {
+        if ( !( GPIFTRIG & 0x80 ) )
+            return; /* GPIF running */
+        /* GPIF stopped on a full FIFO: every packet is complete, the segment ends here. */
         ++overflows;
-    fifo_was_full = full ? TRUE : FALSE;
+        segment_state = SEGMENT_STOPPED;
+    }
+    /* Never wait here: the host may stop reading, and EP0 must stay responsive. */
+    if ( EP2468STAT & bmEP6FULL )
+        return;
+    if ( segment_state == SEGMENT_STOPPED ) {
+        /* Full-size marker packet: the host finds the boundary without a short packet. */
+        EP6FIFOCFG = fifocfg & ~bmAUTOIN;
+        SYNCDELAY;
+        EP6FIFOBUF[ 0 ] = 'H';
+        EP6FIFOBUF[ 1 ] = '6';
+        EP6FIFOBUF[ 2 ] = '0';
+        EP6FIFOBUF[ 3 ] = '2';
+        EP6FIFOBUF[ 4 ] = '2';
+        EP6FIFOBUF[ 5 ] = 'S';
+        EP6FIFOBUF[ 6 ] = 'E';
+        EP6FIFOBUF[ 7 ] = 'G';
+        EP6FIFOBUF[ 8 ] = overflows & 0xff;
+        EP6FIFOBUF[ 9 ] = overflows >> 8;
+        EP6BCH = 2;
+        SYNCDELAY;
+        EP6BCL = 0;
+        SYNCDELAY;
+        EP6FIFOCFG = fifocfg;
+        SYNCDELAY;
+        segment_state = SEGMENT_MARKED;
+        if ( EP2468STAT & bmEP6FULL )
+            return; /* the GPIF needs a free buffer too */
+    }
+    set_transaction_count();
+    SYNCDELAY;
+    GPIFTRIG = 6;
+    SYNCDELAY;
+    segment_state = SEGMENT_RUNNING;
 }
 
 
@@ -242,7 +300,7 @@ static void select_interface( BYTE alt ) {
         /* Bulk on EP6. */
         EP2CFG = 0x00;
         EP6CFG = 0xe0;
-        EP6GPIFFLGSEL = 1;
+        EP6GPIFFLGSEL = 2; /* full flag, tested by the decision point of the fast waveforms */
         EP6AUTOINLENL = pPacketSize[ 0 ];
         EP6AUTOINLENH = pPacketSize[ 1 ];
     } else {
@@ -515,6 +573,9 @@ static void init( void ) {
     GPIFCTLCFG = 0x80;  /* TRICTL=1. CTL0-2: CMOS outputs, tri-statable. */
     GPIFWFSELECT = 0x00;
     GPIFREADYSTAT = 0x00;
+    /* A firmware loaded before may have left these set: the FX2 keeps them across a CPU reset. */
+    EP2GPIFPFSTOP = 0x00;
+    EP6GPIFPFSTOP = 0x00;
 
     stop_sampling();
 

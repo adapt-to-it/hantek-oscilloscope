@@ -344,6 +344,7 @@ fn megabytes_per_second_is_zero_without_elapsed_time() {
     let stats = StreamStats {
         bytes: 1_000_000,
         transfers: 1,
+        segments: 0,
         elapsed: Duration::ZERO,
     };
     assert_eq!(stats.megabytes_per_second(), 0.0);
@@ -354,6 +355,7 @@ fn megabytes_per_second_divides_by_decimal_megabytes() {
     let stats = StreamStats {
         bytes: 2_000_000,
         transfers: 1,
+        segments: 0,
         elapsed: Duration::from_secs(2),
     };
     assert_eq!(stats.megabytes_per_second(), 1.0);
@@ -362,6 +364,8 @@ fn megabytes_per_second_divides_by_decimal_megabytes() {
 #[test]
 fn dual_mode_splits_interleaved_bytes_with_carry() {
     let (mut dev, shared) = device();
+    // A 48 MS/s l'inizio dello stream non ha campioni da scartare.
+    dev.set_sample_rate(SampleRate(48)).expect("set_sample_rate");
     shared.chunks.borrow_mut().push_back(vec![1, 2, 3]);
     shared.chunks.borrow_mut().push_back(vec![4, 5, 6]);
     let mut stream = dev.start_stream(StreamConfig::default()).expect("start_stream");
@@ -385,6 +389,7 @@ fn dual_mode_splits_interleaved_bytes_with_carry() {
 #[test]
 fn single_mode_puts_all_bytes_in_ch1() {
     let (mut dev, shared) = device();
+    dev.set_sample_rate(SampleRate(48)).expect("set_sample_rate");
     dev.set_channel_mode(ChannelMode::Single).expect("set_channel_mode");
     shared.chunks.borrow_mut().push_back(vec![1, 2, 3]);
     shared.chunks.borrow_mut().push_back(vec![4, 5]);
@@ -451,4 +456,73 @@ fn firmware_info_and_overflow_count_parse_little_endian_replies() {
             },
         ]
     );
+}
+
+/// Pacchetto marcatore del firmware 3.01 con numero di sequenza.
+fn marker(seq: u16) -> Vec<u8> {
+    let mut packet = vec![0u8; 512];
+    packet[..8].copy_from_slice(b"H6022SEG");
+    packet[8..10].copy_from_slice(&seq.to_le_bytes());
+    packet
+}
+
+/// Pacchetto di dati: coppie CH1, CH2 con CH1 = indice della coppia, CH2 = 255 - indice.
+fn data_packet() -> Vec<u8> {
+    (0..256u16).flat_map(|i| [i as u8, 255 - i as u8]).collect()
+}
+
+#[test]
+fn marker_packet_becomes_a_break_at_48_msps() {
+    let (mut dev, shared) = device();
+    dev.set_sample_rate(SampleRate(48)).expect("set_sample_rate");
+    let transfer = [data_packet(), marker(1), data_packet()].concat();
+    shared.chunks.borrow_mut().push_back(transfer);
+    let mut stream = dev.start_stream(StreamConfig::default()).expect("start_stream");
+    let mut block = Block::default();
+
+    stream.next_block(&mut block).expect("block");
+    assert_eq!(block.ch1.len(), 512);
+    assert_eq!(block.ch2.len(), 512);
+    assert_eq!(block.breaks, vec![256]);
+    assert_eq!(block.ch1[256], 0);
+    assert_eq!(block.ch2[256], 255);
+    assert_eq!(stream.stats().segments, 1);
+}
+
+#[test]
+fn segment_start_drops_stale_samples_at_24_msps_and_below() {
+    let (mut dev, shared) = device();
+    dev.set_sample_rate(SampleRate(24)).expect("set_sample_rate");
+    // Il marcatore chiude il primo trasferimento: lo scarto continua nel successivo.
+    shared.chunks.borrow_mut().push_back([data_packet(), marker(1)].concat());
+    shared.chunks.borrow_mut().push_back(data_packet());
+    let mut stream = dev.start_stream(StreamConfig::default()).expect("start_stream");
+    let mut block = Block::default();
+
+    // Anche l'inizio dello stream è un inizio di segmento.
+    stream.next_block(&mut block).expect("first block");
+    assert_eq!(block.ch1.len(), 251);
+    assert_eq!((block.ch1[0], block.ch2[0]), (5, 250));
+    assert_eq!(block.breaks, vec![251]);
+
+    stream.next_block(&mut block).expect("second block");
+    assert!(block.breaks.is_empty());
+    assert_eq!(block.ch1.len(), 251);
+    assert_eq!((block.ch1[0], block.ch2[0]), (5, 250));
+    assert_eq!(block.first_sample, 251);
+}
+
+#[test]
+fn consecutive_markers_give_a_single_break() {
+    let (mut dev, shared) = device();
+    dev.set_sample_rate(SampleRate(48)).expect("set_sample_rate");
+    let transfer = [data_packet(), marker(1), marker(2), data_packet()].concat();
+    shared.chunks.borrow_mut().push_back(transfer);
+    let mut stream = dev.start_stream(StreamConfig::default()).expect("start_stream");
+    let mut block = Block::default();
+
+    stream.next_block(&mut block).expect("block");
+    assert_eq!(block.breaks, vec![256]);
+    assert_eq!(block.ch1.len(), 512);
+    assert_eq!(stream.stats().segments, 2);
 }

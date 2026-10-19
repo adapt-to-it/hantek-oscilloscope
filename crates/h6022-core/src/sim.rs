@@ -188,6 +188,7 @@ impl SampleSource for SimulatedSource {
         }
 
         out.first_sample = self.sample;
+        out.breaks.clear();
         self.fill(Channel::Ch1, config, &mut out.ch1);
         match config.mode {
             ChannelMode::Single => out.ch2.clear(),
