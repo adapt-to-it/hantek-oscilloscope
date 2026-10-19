@@ -37,7 +37,7 @@ pub mod req {
 }
 
 /// Versione del firmware incorporato, come in `bcdDevice`.
-pub const FIRMWARE_VERSION: u16 = 0x0302;
+pub const FIRMWARE_VERSION: u16 = 0x0303;
 
 /// Capacità dichiarate dal firmware con la richiesta `req::INFO`.
 pub mod cap {
@@ -51,6 +51,28 @@ pub struct FirmwareInfo {
     pub version: u16,
     /// Bit definiti in `cap`.
     pub capabilities: u8,
+    /// Prima attesa del firmware scaduta dall'accensione, 0 se nessuna. Vedi `fault`.
+    pub fault: u8,
+}
+
+/// Codici di `FirmwareInfo::fault`. Dal firmware 3.03 un'attesa del GPIF non blocca più la CPU:
+/// scade dopo circa 50 ms e lascia il codice.
+pub mod fault {
+    pub const NONE: u8 = 0;
+    /// Il GPIF non torna in idle dopo l'abort che precede lo svuotamento della FIFO.
+    pub const ABORT_TIMEOUT: u8 = 1;
+    /// Il GPIF non è in idle prima dell'avvio del campionamento.
+    pub const START_TIMEOUT: u8 = 2;
+
+    /// Descrizione leggibile del codice.
+    pub fn describe(code: u8) -> &'static str {
+        match code {
+            NONE => "nessuno",
+            ABORT_TIMEOUT => "GPIF non in idle dopo l'abort",
+            START_TIMEOUT => "GPIF non in idle prima dell'avvio",
+            _ => "codice sconosciuto",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -20,7 +20,7 @@ use h6022_core::{
 use h6022_dsp::{Measurements, Waveform, Window};
 use h6022_usb::{
     AcquisitionConfig, Block, Channel, ChannelMode, Coupling, Hantek6022, SampleRate,
-    StreamConfig, StreamStats, VoltageRange,
+    StreamConfig, StreamStats, VoltageRange, fault,
 };
 
 use parse::{
@@ -169,6 +169,9 @@ fn open_with(rate: SampleRate, mode: ChannelMode) -> Result<Hantek6022> {
 fn info() -> Result<()> {
     let dev = Hantek6022::open().context("apertura dell'Hantek 6022BE")?;
     println!("Firmware: 0x{:04X}", dev.firmware_version());
+    if let Some(info) = dev.firmware_info()? {
+        println!("Errore del firmware: {}", fault::describe(info.fault));
+    }
 
     let cfg = dev.config();
     println!("Frequenza di campionamento: {}", cfg.sample_rate.label());
@@ -313,6 +316,11 @@ fn bench(rate: SampleRate, mode: ChannelMode, seconds: f64) -> Result<()> {
             stats.segments
         ),
         None => println!("FIFO piena: non rilevabile con il firmware {:#06x}", dev.firmware_version()),
+    }
+    if let Some(info) = dev.firmware_info()?
+        && info.fault != fault::NONE
+    {
+        println!("Errore del firmware: {}", fault::describe(info.fault));
     }
     Ok(())
 }

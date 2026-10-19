@@ -449,6 +449,7 @@ fn firmware_info_and_overflow_count_parse_little_endian_replies() {
         Some(FirmwareInfo {
             version: 0x8080,
             capabilities: 0x80,
+            fault: 0x80,
         })
     );
     assert_eq!(dev.overflow_count().expect("overflow_count"), Some(0x8080));

@@ -47,7 +47,7 @@ static volatile __bit dosud = FALSE;
 static volatile __bit dosuspend = FALSE;
 
 // Firmware version, keep in sync with FIRMWARE_VERSION in descriptor.inc
-#define FW_VERSION 0x0302
+#define FW_VERSION 0x0303
 // Capability bits returned by the info request 0xe7
 #define CAP_OVERFLOW_COUNTER 0x01
 
@@ -61,6 +61,14 @@ static __bit sampling = FALSE;
 static BYTE segment_state = SEGMENT_RUNNING;
 // Number of FIFO full events since start of sampling, wraps at 65536
 static __xdata WORD overflows = 0;
+/*
+ * First wait that timed out since power-up, 0 if none. The host reads it with the
+ * info request 0xe7. A timed-out wait no longer hangs the CPU, so EP0 stays responsive.
+ */
+#define FAULT_NONE 0
+#define FAULT_ABORT_TIMEOUT 1 /* GPIF not idle after GPIFABORT in clear_fifo() */
+#define FAULT_START_TIMEOUT 2 /* GPIF not idle before the start in start_sampling() */
+static BYTE fault = FAULT_NONE;
 
 extern __code BYTE highspd_dscr;
 extern __code BYTE fullspd_dscr;
@@ -136,11 +144,23 @@ static BOOL set_numchannels( BYTE num ) {
 }
 
 
+/* Wait until the GPIF is idle, at most about 50 ms. Record `code` on a timeout. */
+static void wait_gpif_idle( BYTE code ) {
+    WORD n = 0xffff;
+    while ( !( GPIFTRIG & 0x80 ) ) {
+        if ( --n == 0 ) {
+            if ( fault == FAULT_NONE )
+                fault = code;
+            return;
+        }
+    }
+}
+
+
 static void clear_fifo( void ) {
     GPIFABORT = 0xff;
     SYNCDELAY;
-    while ( !( GPIFTRIG & 0x80 ) )
-        ;
+    wait_gpif_idle( FAULT_ABORT_TIMEOUT );
     FIFORESET = 0x80;
     SYNCDELAY;
     EP2FIFOCFG = 0;
@@ -221,8 +241,7 @@ static void start_sampling( void ) {
     for ( i = 0; i < 1000; i++ )
         ;
 
-    while ( !( GPIFTRIG & 0x80 ) )
-        ;
+    wait_gpif_idle( FAULT_START_TIMEOUT );
 
     overflows = 0;
     /*
@@ -285,14 +304,14 @@ static BOOL send_ep0( BYTE len ) {
 }
 
 
-// 0xe7: version (little endian), capability bits, reserved byte
+// 0xe7: version (little endian), capability bits, fault code
 static BOOL send_info( void ) {
     while ( EP0CS & bmEPBUSY )
         ;
     EP0BUF[ 0 ] = FW_VERSION & 0xff;
     EP0BUF[ 1 ] = FW_VERSION >> 8;
     EP0BUF[ 2 ] = CAP_OVERFLOW_COUNTER;
-    EP0BUF[ 3 ] = 0;
+    EP0BUF[ 3 ] = fault;
     return send_ep0( 4 );
 }
 

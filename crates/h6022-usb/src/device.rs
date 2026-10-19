@@ -166,9 +166,10 @@ impl<T: Transport> Hantek6022<T> {
         }
         let data = self.transport.control_in(req::INFO, 0, 0, 4)?;
         match data[..] {
-            [lo, hi, capabilities, ..] => Ok(Some(FirmwareInfo {
+            [lo, hi, capabilities, fault] => Ok(Some(FirmwareInfo {
                 version: u16::from_le_bytes([lo, hi]),
                 capabilities,
+                fault,
             })),
             _ => Err(Error::Protocol(format!("risposta INFO di {} byte", data.len()))),
         }
