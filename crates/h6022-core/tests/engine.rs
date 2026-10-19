@@ -276,3 +276,32 @@ fn triggers_and_records_stay_inside_one_segment() {
     assert_eq!(frame.ch1.samples.len(), RECORD_LENGTH);
     assert_eq!(frame.ch1.samples[PRE], 3.0);
 }
+
+#[test]
+fn records_longer_than_segments_are_counted_as_cut() {
+    // Quattro segmenti di 500 campioni, ognuno con un fronte a +300: il pretrigger (250) entra,
+    // il resto del record (750) no. Il quarto segmento non si chiude e non conta.
+    let mut ch1 = vec![0.0f32; 2000];
+    for start in [0, 500, 1000, 1500] {
+        ch1[start + 300..start + 400].fill(3.0);
+    }
+    let block = h6022_core::VoltBlock {
+        first_sample: 0,
+        ch2: vec![0.0; ch1.len()],
+        ch1,
+        breaks: vec![500, 1000, 1500],
+    };
+    let source = Scripted { blocks: [block].into() };
+    let engine = Engine::start(Box::new(source), config(TriggerMode::Normal, SampleRate(1))).expect("avvio");
+    let deadline = Instant::now() + WAIT;
+    while engine.stats().segments < 3 {
+        assert!(Instant::now() < deadline, "segmenti non contati");
+        thread::sleep(Duration::from_millis(5));
+    }
+    let stats = engine.stats();
+    engine.shutdown().unwrap();
+
+    assert_eq!(stats.frames, 0);
+    assert_eq!(stats.last_segment_samples, 500);
+    assert_eq!(stats.triggers_cut, 3);
+}

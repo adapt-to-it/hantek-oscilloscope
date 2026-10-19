@@ -114,6 +114,10 @@ pub struct ConfigView {
     pub trigger_level_v: f32,
     pub trigger_hysteresis_v: f32,
     pub trigger_holdoff_s: f64,
+    /// Presente sopra i 45 MB/s: il flusso arriva a segmenti e un record più lungo di un
+    /// segmento non produce frame.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub warning: Option<String>,
 }
 
 /// Modifica parziale: i campi assenti restano invariati.
@@ -167,6 +171,15 @@ pub struct StatusView {
     pub triggers: u64,
     pub samples: u64,
     pub sample_rate_measured_hz: f64,
+    /// Interruzioni del flusso dall'avvio.
+    pub segments: u64,
+    /// Campioni dell'ultimo segmento continuo; 0 se il flusso non si è interrotto.
+    pub last_segment_samples: u64,
+    /// Trigger scartati perché il record attraversava un'interruzione.
+    pub triggers_cut: u64,
+    /// Presente quando i segmenti sono più corti del record: il motore non pubblica frame.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub warning: Option<String>,
     pub config: ConfigView,
     pub recording: Option<RecordingView>,
     /// Per esempio "ws://127.0.0.1:6022/ws".

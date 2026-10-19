@@ -2,6 +2,9 @@
 
 use crate::types::{ChannelMode, SampleRate, VoltageRange};
 
+/// Portata USB che il firmware sostiene senza interruzioni.
+pub const USB_CONTINUOUS_BYTES_PER_SECOND: u64 = 45_000_000;
+
 /// Id firmware in ordine di frequenza crescente.
 const ALL: [SampleRate; 25] = [
     SampleRate(102),
@@ -101,6 +104,12 @@ impl SampleRate {
         u64::from(self.hz()) * mode as u64
     }
 
+    /// Vero se il flusso supera la portata USB continua: il firmware lo divide in segmenti
+    /// continui di poche migliaia di campioni, separati da interruzioni.
+    pub fn is_segmented(self, mode: ChannelMode) -> bool {
+        self.bytes_per_second(mode) > USB_CONTINUOUS_BYTES_PER_SECOND
+    }
+
     /// Etichetta leggibile, per esempio "48 MS/s" o "640 kS/s".
     pub fn label(self) -> String {
         let hz = self.hz();
@@ -180,6 +189,14 @@ mod tests {
     fn bytes_per_second_scales_with_channels() {
         assert_eq!(SampleRate(48).bytes_per_second(ChannelMode::Single), 48_000_000);
         assert_eq!(SampleRate(48).bytes_per_second(ChannelMode::Dual), 96_000_000);
+    }
+
+    #[test]
+    fn segmented_above_45_mb_per_second() {
+        assert!(!SampleRate(16).is_segmented(ChannelMode::Dual));
+        assert!(!SampleRate(30).is_segmented(ChannelMode::Single));
+        assert!(SampleRate(24).is_segmented(ChannelMode::Dual));
+        assert!(SampleRate(48).is_segmented(ChannelMode::Single));
     }
 
     #[test]

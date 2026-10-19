@@ -343,8 +343,6 @@ fn measure(dev: &mut Hantek6022, limit: Duration) -> Result<(StreamStats, Option
 
 /// Timeout massimo per ricevere un frame dal motore.
 const FRAME_TIMEOUT: Duration = Duration::from_secs(5);
-/// Portata USB oltre la quale il firmware divide il flusso in segmenti continui.
-const USB_BYTES_PER_SECOND: f64 = 45e6;
 /// Isteresi del trigger in volt.
 const TRIGGER_HYSTERESIS: f32 = 0.1;
 /// Frazione del frame prima del trigger.
@@ -432,8 +430,7 @@ fn run_measure(args: &MeasureArgs) -> Result<()> {
     };
     let engine = Engine::start(source, config)?;
     let collected = collect_frames(&engine, args.frames).map_err(|err| {
-        let channels = if dual { 2.0 } else { 1.0 };
-        if f64::from(args.rate.hz()) * channels > USB_BYTES_PER_SECOND {
+        if args.rate.is_segmented(args.channels) {
             // Il motore non costruisce un record a cavallo di due segmenti.
             err.context(format!(
                 "a {} con {} il flusso supera i 45 MB/s dell'USB e arriva in segmenti \

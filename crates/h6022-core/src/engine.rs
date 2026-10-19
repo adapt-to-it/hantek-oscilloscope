@@ -149,6 +149,8 @@ struct Worker {
     ring: [VecDeque<f32>; 2],
     /// Campioni ricevuti dall'ultima configurazione: indice del prossimo campione.
     received: u64,
+    /// Indice assoluto del primo campione del segmento corrente.
+    segment_start: u64,
     /// Trigger in attesa che il buffer contenga il record completo.
     pending: VecDeque<u64>,
     paused: bool,
@@ -179,6 +181,7 @@ impl Worker {
             trigger: Trigger::new(config.trigger, hz_of(&config)),
             ring: [VecDeque::new(), VecDeque::new()],
             received: 0,
+            segment_start: 0,
             pending: VecDeque::new(),
             paused: false,
             single_done: false,
@@ -246,8 +249,10 @@ impl Worker {
             self.ring[0].clear();
             self.ring[1].clear();
             self.received = 0;
+            self.segment_start = 0;
             self.pending.clear();
             self.trigger = Trigger::new(config.trigger, hz_of(&config));
+            lock(&self.shared).stats.last_segment_samples = 0;
         } else if config.trigger != self.config.trigger {
             self.pending.clear();
             self.trigger = Trigger::new(config.trigger, hz_of(&config));
@@ -307,7 +312,17 @@ impl Worker {
 
     /// Dopo un'interruzione i campioni precedenti non sono più contigui ai successivi:
     /// il buffer e i trigger pendenti ripartono da zero, il trigger si riarma.
+    /// I trigger pendenti contano come tagliati: il loro record non può più completarsi.
     fn begin_segment(&mut self) {
+        let length = self.received - self.segment_start;
+        self.segment_start = self.received;
+        let mut shared = lock(&self.shared);
+        shared.stats.segments += 1;
+        shared.stats.triggers_cut += self.pending.len() as u64;
+        if length > 0 {
+            shared.stats.last_segment_samples = length;
+        }
+        drop(shared);
         self.ring[0].clear();
         self.ring[1].clear();
         self.pending.clear();

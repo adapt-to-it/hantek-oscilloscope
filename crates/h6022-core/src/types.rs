@@ -150,4 +150,10 @@ pub struct EngineStats {
     pub samples: u64,
     /// Campioni al secondo ricevuti, media sull'ultimo secondo.
     pub sample_rate_measured: f64,
+    /// Interruzioni del flusso dall'avvio: ognuna chiude un segmento continuo.
+    pub segments: u64,
+    /// Campioni dell'ultimo segmento chiuso dall'ultima configurazione; 0 se nessuno.
+    pub last_segment_samples: u64,
+    /// Trigger scartati perché il loro record attraversava un'interruzione.
+    pub triggers_cut: u64,
 }

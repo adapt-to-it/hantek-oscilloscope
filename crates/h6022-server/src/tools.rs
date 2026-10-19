@@ -50,7 +50,8 @@ impl H6022Mcp {
         Ok(Json(config_view(&self.state.engine.config())))
     }
 
-    #[tool(description = "Modifica la configurazione; i campi assenti restano invariati.")]
+    #[tool(description = "Modifica la configurazione; i campi assenti restano invariati. \
+        Sopra i 45 MB/s la risposta contiene warning: il record deve stare in un segmento continuo.")]
     pub async fn set_config(&self, params: Parameters<ConfigPatch>) -> Result<Json<ConfigView>, ErrorData> {
         let patch = params.0;
         let mut cfg = self.state.engine.config();
@@ -284,6 +285,14 @@ impl H6022Mcp {
         };
         let guard = self.recorder()?;
         let recording = guard.as_ref().map(|r| recording_view(r.status()));
+        let record = engine.config().record_length as u64;
+        let short = stats.last_segment_samples;
+        let warning = (short > 0 && record > short).then(|| {
+            format!(
+                "record di {record} campioni più lungo dei segmenti continui ({short}): \
+                 il motore non pubblica frame; riduci record_length sotto {short}"
+            )
+        });
         Ok(StatusView {
             source: self.state.source.to_string(),
             state: state.to_string(),
@@ -291,6 +300,10 @@ impl H6022Mcp {
             triggers: stats.triggers,
             samples: stats.samples,
             sample_rate_measured_hz: stats.sample_rate_measured,
+            segments: stats.segments,
+            last_segment_samples: short,
+            triggers_cut: stats.triggers_cut,
+            warning,
             config: config_view(&engine.config()),
             recording,
             websocket_url: format!("ws://{}/ws", self.state.addr),
@@ -720,6 +733,12 @@ fn config_view(c: &EngineConfig) -> ConfigView {
         trigger_level_v: c.trigger.level,
         trigger_hysteresis_v: c.trigger.hysteresis,
         trigger_holdoff_s: c.trigger.holdoff,
+        warning: a.sample_rate.is_segmented(a.mode).then(|| {
+            "sopra i 45 MB/s il flusso arriva in segmenti continui di poche migliaia di campioni: \
+             un record più lungo di un segmento non produce frame; controlla \
+             last_segment_samples in device_status"
+                .to_string()
+        }),
     }
 }
 
@@ -890,6 +909,17 @@ mod tests {
         assert_eq!(set.sample_rate_hz, 2e6);
         let got = block_on(mcp.get_config()).unwrap().0;
         assert_eq!(got, set);
+    }
+
+    #[test]
+    fn set_config_avvisa_sopra_45_mb_al_secondo() {
+        let mcp = H6022Mcp::new(state());
+        let patch = ConfigPatch { sample_rate_hz: Some(24e6), channels: Some(2), ..Default::default() };
+        let set = block_on(mcp.set_config(Parameters(patch))).unwrap().0;
+        assert!(set.warning.is_some());
+        let patch = ConfigPatch { sample_rate_hz: Some(16e6), ..Default::default() };
+        let set = block_on(mcp.set_config(Parameters(patch))).unwrap().0;
+        assert_eq!(set.warning, None);
     }
 
     fn logic(ch1: CondName, ch2: CondName, other_level_v: f32) -> LogicTrigger {
