@@ -35,6 +35,9 @@ struct Shared {
     fail: Cell<Option<u8>>,
     /// Trasferimenti bulk da restituire, in ordine.
     chunks: RefCell<VecDeque<Vec<u8>>>,
+    /// Se vero, START non mette il marcatore di avvio in testa a `chunks`:
+    /// il test lo inserisce da sé.
+    manual_start_marker: Cell<bool>,
 }
 
 struct Fake {
@@ -57,6 +60,15 @@ impl Transport for Fake {
         });
         if self.shared.fail.get() == Some(request) {
             return Err(Error::Usb("guasto simulato".to_string()));
+        }
+        // Come il firmware 3.02: ogni START apre lo stream con il marcatore di sequenza 0.
+        // Il marcatore entra nel primo trasferimento; senza trasferimenti non arriva nulla.
+        if request == req::START_STOP
+            && data == [1]
+            && !self.shared.manual_start_marker.get()
+            && let Some(first) = self.shared.chunks.borrow_mut().front_mut()
+        {
+            first.splice(0..0, marker(0));
         }
         Ok(())
     }
@@ -382,7 +394,8 @@ fn dual_mode_splits_interleaved_bytes_with_carry() {
     assert_eq!(block.ch2, vec![4, 6]);
 
     let stats = stream.stats();
-    assert_eq!(stats.bytes, 6);
+    // I byte contano anche il marcatore di avvio, che passa sull'USB.
+    assert_eq!(stats.bytes, 512 + 6);
     assert_eq!(stats.transfers, 2);
 }
 
@@ -458,7 +471,7 @@ fn firmware_info_and_overflow_count_parse_little_endian_replies() {
     );
 }
 
-/// Pacchetto marcatore del firmware 3.01 con numero di sequenza.
+/// Pacchetto marcatore del firmware con numero di sequenza.
 fn marker(seq: u16) -> Vec<u8> {
     let mut packet = vec![0u8; 512];
     packet[..8].copy_from_slice(b"H6022SEG");
@@ -525,4 +538,43 @@ fn consecutive_markers_give_a_single_break() {
     assert_eq!(block.breaks, vec![256]);
     assert_eq!(block.ch1.len(), 512);
     assert_eq!(stream.stats().segments, 2);
+}
+
+#[test]
+fn data_before_the_start_marker_is_dropped() {
+    let (mut dev, shared) = device();
+    dev.set_sample_rate(SampleRate(48)).expect("set_sample_rate");
+    shared.manual_start_marker.set(true);
+    // Un trasferimento rimasto in coda: pacchetti vecchi, poi il marcatore di avvio.
+    let stale = vec![0xaa; 2048];
+    shared
+        .chunks
+        .borrow_mut()
+        .push_back([stale, marker(0), data_packet()].concat());
+    let mut stream = dev.start_stream(StreamConfig::default()).expect("start_stream");
+    let mut block = Block::default();
+
+    stream.next_block(&mut block).expect("block");
+    assert_eq!(block.ch1.len(), 256);
+    assert_eq!((block.ch1[0], block.ch2[0]), (0, 255));
+    assert!(block.breaks.is_empty());
+    assert_eq!(stream.stats().segments, 0);
+    assert_eq!(block.first_sample, 0);
+}
+
+#[test]
+fn transfers_before_the_start_marker_give_empty_blocks() {
+    let (mut dev, shared) = device();
+    dev.set_sample_rate(SampleRate(48)).expect("set_sample_rate");
+    shared.manual_start_marker.set(true);
+    shared.chunks.borrow_mut().push_back(vec![0xaa; 1024]);
+    shared.chunks.borrow_mut().push_back([marker(0), data_packet()].concat());
+    let mut stream = dev.start_stream(StreamConfig::default()).expect("start_stream");
+    let mut block = Block::default();
+
+    stream.next_block(&mut block).expect("stale block");
+    assert!(block.ch1.is_empty());
+    stream.next_block(&mut block).expect("block");
+    assert_eq!(block.ch1.len(), 256);
+    assert_eq!(block.first_sample, 0);
 }

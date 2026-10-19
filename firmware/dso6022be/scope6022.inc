@@ -47,7 +47,7 @@ static volatile __bit dosud = FALSE;
 static volatile __bit dosuspend = FALSE;
 
 // Firmware version, keep in sync with FIRMWARE_VERSION in descriptor.inc
-#define FW_VERSION 0x0301
+#define FW_VERSION 0x0302
 // Capability bits returned by the info request 0xe7
 #define CAP_OVERFLOW_COUNTER 0x01
 
@@ -184,6 +184,33 @@ static void set_transaction_count( void ) {
 }
 
 
+/*
+ * Full-size marker packet with the sequence number `overflows`, committed to EP6.
+ * The host finds the boundary without a short packet. The caller checks that EP6
+ * has a free buffer.
+ */
+static void send_marker( void ) {
+    EP6FIFOCFG = fifocfg & ~bmAUTOIN;
+    SYNCDELAY;
+    EP6FIFOBUF[ 0 ] = 'H';
+    EP6FIFOBUF[ 1 ] = '6';
+    EP6FIFOBUF[ 2 ] = '0';
+    EP6FIFOBUF[ 3 ] = '2';
+    EP6FIFOBUF[ 4 ] = '2';
+    EP6FIFOBUF[ 5 ] = 'S';
+    EP6FIFOBUF[ 6 ] = 'E';
+    EP6FIFOBUF[ 7 ] = 'G';
+    EP6FIFOBUF[ 8 ] = overflows & 0xff;
+    EP6FIFOBUF[ 9 ] = overflows >> 8;
+    EP6BCH = 2;
+    SYNCDELAY;
+    EP6BCL = 0;
+    SYNCDELAY;
+    EP6FIFOCFG = fifocfg;
+    SYNCDELAY;
+}
+
+
 static void start_sampling( void ) {
     int i;
 
@@ -197,11 +224,18 @@ static void start_sampling( void ) {
     while ( !( GPIFTRIG & 0x80 ) )
         ;
 
+    overflows = 0;
+    /*
+     * Start marker with sequence 0. A transfer that was pending on the host may already
+     * hold packets of the previous acquisition: the host drops everything before it.
+     */
+    if ( altiface == 0 )
+        send_marker();
+
     SYNCDELAY;
     set_transaction_count();
     GPIFTRIG = ( altiface == 0 ) ? 6 : 4;
 
-    overflows = 0;
     segment_state = SEGMENT_RUNNING;
     sampling = TRUE;
 }
@@ -229,25 +263,7 @@ static void check_overflow( void ) {
     if ( EP2468STAT & bmEP6FULL )
         return;
     if ( segment_state == SEGMENT_STOPPED ) {
-        /* Full-size marker packet: the host finds the boundary without a short packet. */
-        EP6FIFOCFG = fifocfg & ~bmAUTOIN;
-        SYNCDELAY;
-        EP6FIFOBUF[ 0 ] = 'H';
-        EP6FIFOBUF[ 1 ] = '6';
-        EP6FIFOBUF[ 2 ] = '0';
-        EP6FIFOBUF[ 3 ] = '2';
-        EP6FIFOBUF[ 4 ] = '2';
-        EP6FIFOBUF[ 5 ] = 'S';
-        EP6FIFOBUF[ 6 ] = 'E';
-        EP6FIFOBUF[ 7 ] = 'G';
-        EP6FIFOBUF[ 8 ] = overflows & 0xff;
-        EP6FIFOBUF[ 9 ] = overflows >> 8;
-        EP6BCH = 2;
-        SYNCDELAY;
-        EP6BCL = 0;
-        SYNCDELAY;
-        EP6FIFOCFG = fifocfg;
-        SYNCDELAY;
+        send_marker();
         segment_state = SEGMENT_MARKED;
         if ( EP2468STAT & bmEP6FULL )
             return; /* the GPIF needs a free buffer too */

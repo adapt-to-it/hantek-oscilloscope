@@ -11,7 +11,8 @@ const TRANSFER_DURATION: Duration = Duration::from_millis(40);
 /// Pacchetto bulk High Speed: il firmware invia solo pacchetti pieni.
 const PACKET_SIZE: usize = 512;
 const MAX_TRANSFER_SIZE: usize = 256 * 1024;
-/// Firma del pacchetto marcatore: il firmware lo invia quando il GPIF riparte dopo una FIFO piena.
+/// Firma del pacchetto marcatore: il firmware lo invia all'avvio e quando il GPIF riparte
+/// dopo una FIFO piena.
 const SEGMENT_MAGIC: &[u8; 8] = b"H6022SEG";
 
 #[derive(Debug, Clone, Copy)]
@@ -91,6 +92,9 @@ pub struct Stream<B: BulkSource> {
     segment_head: usize,
     /// Campioni ancora da scartare nel segmento corrente.
     skip: usize,
+    /// Falso finché non arriva il marcatore di avvio. Un trasferimento rimasto in coda
+    /// sull'host può contenere prima i pacchetti dell'acquisizione precedente.
+    started_marker: bool,
     samples: u64,
     stats: StreamStats,
     started: Instant,
@@ -108,6 +112,7 @@ impl<B: BulkSource> Stream<B> {
             segment_head,
             // Anche il primo segmento parte da un ADC fermo.
             skip: segment_head,
+            started_marker: false,
             samples: 0,
             stats: StreamStats::default(),
             started: Instant::now(),
@@ -131,12 +136,19 @@ impl<B: BulkSource> Stream<B> {
         let mut data_start = 0;
         for at in (0..raw.len()).step_by(PACKET_SIZE) {
             if raw[at..].len() >= PACKET_SIZE && raw[at..].starts_with(SEGMENT_MAGIC) {
-                self.push_samples(block, &raw[data_start..at]);
-                self.begin_segment(block);
+                if self.started_marker {
+                    self.push_samples(block, &raw[data_start..at]);
+                    self.begin_segment(block);
+                } else {
+                    // Il marcatore di avvio apre lo stream: i dati prima sono vecchi.
+                    self.started_marker = true;
+                }
                 data_start = at + PACKET_SIZE;
             }
         }
-        self.push_samples(block, &raw[data_start..]);
+        if self.started_marker {
+            self.push_samples(block, &raw[data_start..]);
+        }
         self.raw = raw;
         self.samples += block.ch1.len() as u64;
         Ok(())
