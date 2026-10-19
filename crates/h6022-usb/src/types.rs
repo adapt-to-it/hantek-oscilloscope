@@ -30,6 +30,27 @@ pub mod req {
     /// data = [bit0: CH1 DC, bit4: CH2 DC].
     pub const COUPLING: u8 = 0xe5;
     pub const CAL_FREQ: u8 = 0xe6;
+    /// IN, 4 byte: versione (little endian), bit di capacità, riservato. Dal firmware 3.00.
+    pub const INFO: u8 = 0xe7;
+    /// IN, 2 byte: contatore di FIFO piena (little endian). Non ferma il campionamento.
+    pub const OVERFLOWS: u8 = 0xe8;
+}
+
+/// Versione del firmware incorporato, come in `bcdDevice`.
+pub const FIRMWARE_VERSION: u16 = 0x0300;
+
+/// Capacità dichiarate dal firmware con la richiesta `req::INFO`.
+pub mod cap {
+    /// Il firmware conta le volte in cui la FIFO si riempie durante il campionamento.
+    pub const OVERFLOW_COUNTER: u8 = 0x01;
+}
+
+/// Risposta alla richiesta `req::INFO`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FirmwareInfo {
+    pub version: u16,
+    /// Bit definiti in `cap`.
+    pub capabilities: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

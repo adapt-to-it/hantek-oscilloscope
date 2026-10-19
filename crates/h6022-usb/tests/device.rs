@@ -8,7 +8,7 @@ use std::time::Duration;
 use h6022_usb::{
     AcquisitionConfig, BulkSource, Block, Channel, ChannelMode, Coupling, Error, Hantek6022,
     Result, SampleRate, StreamConfig, StreamStats, Transport, VoltageRange, BULK_EP_IN,
-    CALIBRATION_EEPROM_LEN, CALIBRATION_EEPROM_OFFSET, req,
+    CALIBRATION_EEPROM_LEN, CALIBRATION_EEPROM_OFFSET, FIRMWARE_VERSION, FirmwareInfo, req,
 };
 
 /// Operazione registrata dal trasporto simulato, nell'ordine di esecuzione.
@@ -98,12 +98,16 @@ impl BulkSource for FakeBulk {
 
 /// Dispositivo con la sequenza di inizializzazione già registrata e svuotata.
 fn device() -> (Hantek6022<Fake>, Rc<Shared>) {
+    device_with_version(0x0100)
+}
+
+fn device_with_version(firmware_version: u16) -> (Hantek6022<Fake>, Rc<Shared>) {
     let shared = Rc::new(Shared::default());
     let dev = Hantek6022::with_transport(
         Fake {
             shared: Rc::clone(&shared),
         },
-        0x0100,
+        firmware_version,
     )
     .expect("with_transport");
     shared.log.borrow_mut().clear();
@@ -321,6 +325,21 @@ fn stream_config_default_values() {
 }
 
 #[test]
+fn stream_config_for_rate_lasts_about_40_ms_in_whole_packets() {
+    // 100 kS/s, due canali: 200 kB/s × 40 ms = 8000 byte → 16 pacchetti.
+    let config = StreamConfig::for_rate(SampleRate(110), ChannelMode::Dual);
+    assert_eq!(config.transfer_size, 16 * 512);
+    // 20 kS/s, un canale: 800 byte → 2 pacchetti.
+    let config = StreamConfig::for_rate(SampleRate(102), ChannelMode::Single);
+    assert_eq!(config.transfer_size, 2 * 512);
+    // 48 MS/s: limitato a 256 KB.
+    let config = StreamConfig::for_rate(SampleRate(48), ChannelMode::Single);
+    assert_eq!(config.transfer_size, 256 * 1024);
+    assert_eq!(config.queue_depth, StreamConfig::default().queue_depth);
+    assert_eq!(config.timeout, StreamConfig::default().timeout);
+}
+
+#[test]
 fn megabytes_per_second_is_zero_without_elapsed_time() {
     let stats = StreamStats {
         bytes: 1_000_000,
@@ -393,4 +412,43 @@ fn next_block_reports_timeout_when_no_transfer_arrives() {
         stream.next_block(&mut block),
         Err(Error::Timeout)
     ));
+}
+
+#[test]
+fn old_firmware_has_no_info_and_no_overflow_counter() {
+    let (dev, shared) = device_with_version(0x0210);
+    assert_eq!(dev.firmware_info().expect("firmware_info"), None);
+    assert_eq!(dev.overflow_count().expect("overflow_count"), None);
+    assert!(shared.log.borrow().is_empty());
+}
+
+#[test]
+fn firmware_info_and_overflow_count_parse_little_endian_replies() {
+    let (dev, shared) = device_with_version(FIRMWARE_VERSION);
+    // Il trasporto simulato risponde con byte 0x80.
+    assert_eq!(
+        dev.firmware_info().expect("firmware_info"),
+        Some(FirmwareInfo {
+            version: 0x8080,
+            capabilities: 0x80,
+        })
+    );
+    assert_eq!(dev.overflow_count().expect("overflow_count"), Some(0x8080));
+    assert_eq!(
+        *shared.log.borrow(),
+        vec![
+            Event::ControlIn {
+                request: req::INFO,
+                value: 0,
+                index: 0,
+                len: 4,
+            },
+            Event::ControlIn {
+                request: req::OVERFLOWS,
+                value: 0,
+                index: 0,
+                len: 2,
+            },
+        ]
+    );
 }

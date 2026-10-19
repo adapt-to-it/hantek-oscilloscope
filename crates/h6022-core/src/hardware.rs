@@ -10,7 +10,6 @@ pub struct HardwareSource {
     device: Hantek6022<NusbTransport>,
     stream: Option<Stream<NusbBulk>>,
     raw: Block,
-    stream_config: StreamConfig,
 }
 
 impl HardwareSource {
@@ -20,7 +19,6 @@ impl HardwareSource {
             device: Hantek6022::open()?,
             stream: None,
             raw: Block::default(),
-            stream_config: StreamConfig::default(),
         })
     }
 
@@ -40,7 +38,8 @@ impl SampleSource for HardwareSource {
         self.device.set_voltage_range(Channel::Ch2, config.range[1])?;
         self.device.set_coupling(Channel::Ch1, config.coupling[0])?;
         self.device.set_coupling(Channel::Ch2, config.coupling[1])?;
-        self.stream = Some(self.device.start_stream(self.stream_config)?);
+        let stream_config = StreamConfig::for_rate(config.sample_rate, config.mode);
+        self.stream = Some(self.device.start_stream(stream_config)?);
         Ok(())
     }
 
@@ -65,5 +64,38 @@ impl SampleSource for HardwareSource {
         self.stream = None;
         self.device.stop()?;
         Ok(())
+    }
+}
+
+/// Richiedono l'Hantek collegato: `cargo test -p h6022-core --lib -- --ignored device_tests`.
+#[cfg(test)]
+mod device_tests {
+    use std::time::{Duration, Instant};
+
+    use h6022_usb::{ChannelMode, Coupling, SampleRate, VoltageRange};
+
+    use super::*;
+
+    #[test]
+    #[ignore]
+    fn hardware_reads_blocks_at_slow_rates() {
+        let mut source = HardwareSource::open().expect("apertura");
+        for rate in [SampleRate(102), SampleRate(110)] {
+            source
+                .configure(&AcquisitionConfig {
+                    sample_rate: rate,
+                    mode: ChannelMode::Dual,
+                    range: [VoltageRange::V5; 2],
+                    coupling: [Coupling::Dc; 2],
+                })
+                .expect("configure");
+            let mut block = VoltBlock::default();
+            let started = Instant::now();
+            source.read(&mut block).expect("read");
+            assert!(!block.ch1.is_empty() && block.ch1.len() == block.ch2.len());
+            // Un trasferimento dura circa 40 ms: il primo blocco arriva ben prima del timeout.
+            assert!(started.elapsed() < Duration::from_millis(500), "{rate:?}: {:?}", started.elapsed());
+        }
+        source.stop().expect("stop");
     }
 }

@@ -257,9 +257,15 @@ fn capture(
     Ok(())
 }
 
+/// Trasferimenti dimensionati sulla frequenza e sui canali correnti del dispositivo.
+fn stream_config(dev: &Hantek6022) -> StreamConfig {
+    let config = dev.config();
+    StreamConfig::for_rate(config.sample_rate, config.mode)
+}
+
 /// Legge blocchi finché ogni canale attivo ha almeno `samples` campioni, poi tronca.
 fn acquire(dev: &mut Hantek6022, dual: bool, samples: usize) -> Result<(Vec<u8>, Vec<u8>)> {
-    let mut stream = dev.start_stream(StreamConfig::default())?;
+    let mut stream = dev.start_stream(stream_config(dev))?;
     let mut block = Block::default();
     let mut ch1 = Vec::with_capacity(samples);
     let mut ch2 = Vec::with_capacity(if dual { samples } else { 0 });
@@ -284,7 +290,7 @@ fn bench(rate: SampleRate, mode: ChannelMode, seconds: f64) -> Result<()> {
     let mut dev = open_with(rate, mode)?;
     let measured = measure(&mut dev, limit);
     let stopped = dev.stop();
-    let stats = measured?;
+    let (stats, overflows) = measured?;
     stopped?;
 
     let measured_mbs = stats.megabytes_per_second();
@@ -300,12 +306,18 @@ fn bench(rate: SampleRate, mode: ChannelMode, seconds: f64) -> Result<()> {
     println!("MB/s misurati: {measured_mbs:.2}");
     println!("MB/s attesi: {expected_mbs:.2}");
     println!("Rapporto: {:.1} %", measured_mbs / expected_mbs * 100.0);
+    match overflows {
+        Some(0) => println!("FIFO piena: mai, nessun campione perso rilevato"),
+        Some(n) => println!("FIFO piena: {n} volte, campioni persi (contatore modulo 65536)"),
+        None => println!("FIFO piena: non rilevabile con il firmware {:#06x}", dev.firmware_version()),
+    }
     Ok(())
 }
 
-/// Riceve blocchi per la durata indicata e restituisce le statistiche dello stream.
-fn measure(dev: &mut Hantek6022, limit: Duration) -> Result<StreamStats> {
-    let mut stream = dev.start_stream(StreamConfig::default())?;
+/// Riceve blocchi per la durata indicata e restituisce le statistiche dello stream
+/// e il contatore di FIFO piena.
+fn measure(dev: &mut Hantek6022, limit: Duration) -> Result<(StreamStats, Option<u16>)> {
+    let mut stream = dev.start_stream(stream_config(dev))?;
     let mut block = Block::default();
     let started = Instant::now();
     while started.elapsed() < limit {
@@ -313,7 +325,9 @@ fn measure(dev: &mut Hantek6022, limit: Duration) -> Result<StreamStats> {
         block.ch2.clear();
         stream.next_block(&mut block)?;
     }
-    Ok(stream.stats())
+    // Letto con lo stream ancora aperto: dopo la chiusura della coda la FIFO si riempie.
+    let overflows = dev.overflow_count()?;
+    Ok((stream.stats(), overflows))
 }
 
 /// Timeout massimo per ricevere un frame dal motore.

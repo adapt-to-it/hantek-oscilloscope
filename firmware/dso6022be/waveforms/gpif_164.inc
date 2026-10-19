@@ -1,4 +1,4 @@
-#define ifconfig_164 0x8a
+#define ifconfig_164 0xca
 
 static const unsigned char waveform_164[ 32 ] =
 {

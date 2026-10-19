@@ -10,7 +10,7 @@ use crate::stream::{Stream, StreamConfig};
 use crate::transport::{BulkSource, Transport};
 use crate::types::{
     BULK_EP_IN, CALIBRATION_EEPROM_LEN, CALIBRATION_EEPROM_OFFSET, Channel, ChannelMode, Coupling,
-    PID_6022BE, SampleRate, VID_FIRMWARE, VID_NO_FIRMWARE, VoltageRange, req,
+    FIRMWARE_VERSION, FirmwareInfo, PID_6022BE, SampleRate, VID_FIRMWARE, VID_NO_FIRMWARE, VoltageRange, req,
 };
 use crate::{Error, Result};
 
@@ -47,10 +47,15 @@ impl Hantek6022<NusbTransport> {
     /// Un processo terminato a metà di uno streaming può lasciare il firmware senza risposta.
     /// In quel caso `open` prova un reset della porta USB e, se non basta, ricarica il firmware:
     /// la richiesta 0xA0 la gestisce il core del FX2, non il firmware.
+    /// Se il dispositivo esegue un'altra versione del firmware, `open` carica quella incorporata.
     pub fn open_with_timeout(renumeration_timeout: Duration) -> Result<Self> {
         if !nusb_transport::list(VID_FIRMWARE, PID_6022BE)?.is_empty() {
             let first = match open_firmware_device() {
-                Ok(dev) => return Ok(dev),
+                Ok(dev) if dev.firmware_version() == FIRMWARE_VERSION => return Ok(dev),
+                Ok(dev) => {
+                    drop(dev);
+                    return reload_firmware(VID_FIRMWARE, renumeration_timeout);
+                }
                 Err(e) => e,
             };
             if let Ok(dev) = recover_by_reset() {
@@ -152,6 +157,37 @@ impl<T: Transport> Hantek6022<T> {
 
     pub fn firmware_version(&self) -> u16 {
         self.firmware_version
+    }
+
+    /// Versione e capacità dichiarate dal firmware. `None` con un firmware precedente alla 3.00.
+    pub fn firmware_info(&self) -> Result<Option<FirmwareInfo>> {
+        if self.firmware_version < FIRMWARE_VERSION {
+            return Ok(None);
+        }
+        let data = self.transport.control_in(req::INFO, 0, 0, 4)?;
+        match data[..] {
+            [lo, hi, capabilities, ..] => Ok(Some(FirmwareInfo {
+                version: u16::from_le_bytes([lo, hi]),
+                capabilities,
+            })),
+            _ => Err(Error::Protocol(format!("risposta INFO di {} byte", data.len()))),
+        }
+    }
+
+    /// Volte in cui la FIFO del dispositivo si è riempita dall'ultimo avvio, modulo 65536.
+    ///
+    /// Ogni evento indica campioni persi: l'host non ha letto abbastanza in fretta.
+    /// Il firmware controlla la FIFO a polling, quindi un evento molto breve può sfuggire.
+    /// La lettura non ferma lo streaming. `None` con un firmware precedente alla 3.00.
+    pub fn overflow_count(&self) -> Result<Option<u16>> {
+        if self.firmware_version < FIRMWARE_VERSION {
+            return Ok(None);
+        }
+        let data = self.transport.control_in(req::OVERFLOWS, 0, 0, 2)?;
+        match data[..] {
+            [lo, hi] => Ok(Some(u16::from_le_bytes([lo, hi]))),
+            _ => Err(Error::Protocol(format!("risposta OVERFLOWS di {} byte", data.len()))),
+        }
     }
 
     pub fn calibration(&self) -> &Calibration {
@@ -274,9 +310,9 @@ mod hardware {
     fn hardware_recovery_paths_reopen_the_device() {
         drop(Hantek6022::open().expect("apertura"));
         let dev = recover_by_reset().expect("recupero con reset");
-        assert_eq!(dev.firmware_version(), 0x0210);
+        assert_eq!(dev.firmware_version(), FIRMWARE_VERSION);
         drop(dev);
         let dev = reload_firmware(VID_FIRMWARE, RENUMERATION_TIMEOUT).expect("ricarico del firmware");
-        assert_eq!(dev.firmware_version(), 0x0210);
+        assert_eq!(dev.firmware_version(), FIRMWARE_VERSION);
     }
 }

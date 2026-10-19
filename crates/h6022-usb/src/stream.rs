@@ -4,7 +4,13 @@ use std::time::{Duration, Instant};
 
 use crate::Result;
 use crate::transport::BulkSource;
-use crate::types::ChannelMode;
+use crate::types::{ChannelMode, SampleRate};
+
+/// Durata di un trasferimento bulk con `StreamConfig::for_rate`.
+const TRANSFER_DURATION: Duration = Duration::from_millis(40);
+/// Pacchetto bulk High Speed: il firmware invia solo pacchetti pieni.
+const PACKET_SIZE: usize = 512;
+const MAX_TRANSFER_SIZE: usize = 256 * 1024;
 
 #[derive(Debug, Clone, Copy)]
 pub struct StreamConfig {
@@ -22,6 +28,22 @@ impl Default for StreamConfig {
             transfer_size: 256 * 1024,
             queue_depth: 8,
             timeout: Duration::from_secs(1),
+        }
+    }
+}
+
+impl StreamConfig {
+    /// Trasferimenti di circa `TRANSFER_DURATION` alla frequenza indicata.
+    ///
+    /// Il firmware non chiude i trasferimenti con pacchetti corti: a frequenze basse un
+    /// trasferimento da 256 KB dura più del timeout. Trasferimenti più piccoli evitano
+    /// il timeout e riducono la latenza. Sopra 6,5 MB/s resta il massimo di 256 KB.
+    pub fn for_rate(rate: SampleRate, mode: ChannelMode) -> Self {
+        let bytes = rate.bytes_per_second(mode) as f64 * TRANSFER_DURATION.as_secs_f64();
+        let packets = (bytes / PACKET_SIZE as f64).ceil().max(1.0) as usize;
+        StreamConfig {
+            transfer_size: (packets * PACKET_SIZE).min(MAX_TRANSFER_SIZE),
+            ..StreamConfig::default()
         }
     }
 }

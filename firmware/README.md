@@ -15,3 +15,12 @@ repository does not apply to this folder.
 
 The Rust driver embeds `dso6022be/dso6022be-firmware.hex` as a separate binary and sends it to
 the device. To rebuild the firmware, install SDCC and run `make` in `dso6022be/`.
+
+## Changes from upstream
+
+- Version 3.00 (`bcdDevice` 0x0300).
+- Request 0xe7 (IN, 4 bytes) returns the version and the capability bits.
+- Request 0xe8 (IN, 2 bytes) returns how many times the endpoint FIFO became full since
+  sampling started. A full FIFO means lost samples. Requests 0xe7 and 0xe8 do not stop sampling.
+- The 640 kS/s waveform (id 164) now runs the GPIF at 48 MHz. Upstream ran it at 30 MHz,
+  so it sampled at 400 kS/s.

@@ -37,7 +37,7 @@
 ;;
 
 ; Firmware version, sync with "__version__" in "setup.py" and "FIRMWARE_VERSION" in "PyHT6022/LibUsbScope.py"
-FIRMWARE_VERSION = 0x1002	; FW version '2.10' (byte swapped)
+FIRMWARE_VERSION = 0x0003	; FW version '3.00' (byte swapped), keep in sync with FW_VERSION in scope6022.inc
 
 ; USB power requirement
 USB_POWER = 500/2		; Max 500 mA (1=2mA)

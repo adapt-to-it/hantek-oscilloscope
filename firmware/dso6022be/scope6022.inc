@@ -46,6 +46,18 @@ static volatile WORD ledcounter = 500;
 static volatile __bit dosud = FALSE;
 static volatile __bit dosuspend = FALSE;
 
+// Firmware version, keep in sync with FIRMWARE_VERSION in descriptor.inc
+#define FW_VERSION 0x0300
+// Capability bits returned by the info request 0xe7
+#define CAP_OVERFLOW_COUNTER 0x01
+
+// TRUE while the GPIF streams samples into the endpoint FIFO
+static __bit sampling = FALSE;
+// State of the FIFO full flag at the previous poll
+static __bit fifo_was_full = FALSE;
+// Number of FIFO full events since start of sampling, wraps at 65536
+static __xdata WORD overflows = 0;
+
 extern __code BYTE highspd_dscr;
 extern __code BYTE fullspd_dscr;
 
@@ -144,6 +156,7 @@ static void clear_fifo( void ) {
 
 
 static void stop_sampling( void ) {
+    sampling = FALSE;
     GPIFABORT = 0xff;
     SYNCDELAY;
     INPKTEND = ( altiface == 0 ) ? 6 : 2;
@@ -168,6 +181,55 @@ static void start_sampling( void ) {
     SYNCDELAY;
     GPIFTCB0 = 0;
     GPIFTRIG = ( altiface == 0 ) ? 6 : 4;
+
+    overflows = 0;
+    fifo_was_full = FALSE;
+    sampling = TRUE;
+}
+
+
+/*
+ * Count the transitions of the endpoint FIFO to full while sampling.
+ * A full FIFO means that the host does not read fast enough:
+ * the GPIF has no free buffer and samples are lost.
+ * The main loop polls the flag, so a very short full state can be missed.
+ */
+static void check_overflow( void ) {
+    BYTE full = EP2468STAT & ( ( altiface == 0 ) ? bmEP6FULL : bmEP2FULL );
+    if ( full && !fifo_was_full && sampling )
+        ++overflows;
+    fifo_was_full = full ? TRUE : FALSE;
+}
+
+
+// Send len bytes already written to EP0BUF to the host
+static BOOL send_ep0( BYTE len ) {
+    EP0BCH = 0;
+    SYNCDELAY;
+    EP0BCL = len;
+    return TRUE;
+}
+
+
+// 0xe7: version (little endian), capability bits, reserved byte
+static BOOL send_info( void ) {
+    while ( EP0CS & bmEPBUSY )
+        ;
+    EP0BUF[ 0 ] = FW_VERSION & 0xff;
+    EP0BUF[ 1 ] = FW_VERSION >> 8;
+    EP0BUF[ 2 ] = CAP_OVERFLOW_COUNTER;
+    EP0BUF[ 3 ] = 0;
+    return send_ep0( 4 );
+}
+
+
+// 0xe8: overflow counter (little endian)
+static BOOL send_overflows( void ) {
+    while ( EP0CS & bmEPBUSY )
+        ;
+    EP0BUF[ 0 ] = overflows & 0xff;
+    EP0BUF[ 1 ] = overflows >> 8;
+    return send_ep0( 2 );
 }
 
 
@@ -385,6 +447,14 @@ BOOL handle_get_descriptor() { return FALSE; }
 
 
 BOOL handle_vendorcommand( BYTE cmd ) {
+    /* Read-only requests do not stop the acquisition. */
+    switch ( cmd ) {
+    case 0xe7:
+        return send_info();
+    case 0xe8:
+        return send_overflows();
+    }
+
     stop_sampling();
 
     /* Set red LED, toggle after timeout. */
@@ -539,6 +609,8 @@ void main( void ) {
     LED_RED();
 
     while ( TRUE ) {
+        check_overflow();
+
         if ( dosud ) {
             dosud = FALSE;
             handle_setupdata();
