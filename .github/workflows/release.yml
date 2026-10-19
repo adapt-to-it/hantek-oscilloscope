@@ -124,6 +124,22 @@ jobs:
           releaseDraft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
 
+      # tauri-action notarizza solo l'app. Il DMG viene notarizzato qui e sostituisce
+      # nella release quello caricato da tauri-action.
+      - name: Notarizza il DMG
+        if: runner.os == 'macOS' && env.APPLE_ID != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dmg=$(ls target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$dmg"
+          # GitHub sostituisce gli spazi con punti nel nome degli asset.
+          asset="$RUNNER_TEMP/$(basename "$dmg" | tr ' ' '.')"
+          cp "$dmg" "$asset"
+          gh release upload "$GITHUB_REF_NAME" "$asset" --clobber
+
       - name: CLI (macOS universale)
         if: runner.os == 'macOS'
         run: |

@@ -75,12 +75,8 @@ Each release also contains the `h6022` command-line tool for every platform.
 
 ### macOS
 
-If the release is not notarized, macOS blocks the first launch:
-
-1. Open the app once and close the warning.
-2. Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
-
-On macOS 14 and earlier, right-click the app and choose **Open** instead.
+The app and the `.dmg` are signed with a Developer ID certificate and notarized by Apple.
+Open the `.dmg` and drag the app to **Applications**.
 
 ### Windows
 
@@ -242,7 +238,7 @@ To run only the tests without a release, open **Actions → CI → Run workflow*
 suffix, such as `0.2.0-beta.1`, becomes a pre-release.
 
 The macOS build is ad-hoc signed by default. To sign it with a Developer ID certificate and
-notarize it, add these repository secrets: `APPLE_CERTIFICATE` (base64 `.p12`),
+notarize the app and the `.dmg`, add these repository secrets: `APPLE_CERTIFICATE` (base64 `.p12`),
 `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`
 (app-specific password) and `APPLE_TEAM_ID`.
 
