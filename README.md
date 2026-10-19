@@ -75,8 +75,12 @@ Each release also contains the `h6022` command-line tool for every platform.
 
 ### macOS
 
-If the release is not notarized, macOS blocks the first launch. Right-click the app, choose
-**Open**, then confirm.
+If the release is not notarized, macOS blocks the first launch:
+
+1. Open the app once and close the warning.
+2. Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
+
+On macOS 14 and earlier, right-click the app and choose **Open** instead.
 
 ### Windows
 
