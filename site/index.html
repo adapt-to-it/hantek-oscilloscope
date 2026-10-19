@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hantek Oscilloscope — open-source software for the Hantek 6022BE on macOS, Windows and Linux</title>
+<meta name="description" content="Open-source oscilloscope software for the Hantek 6022BE USB oscilloscope. Native on macOS, with Windows and Linux builds. Software trigger, FFT, protocol decoders, MCP server for AI agents and a Python API. An alternative to OpenHantek.">
+<link rel="canonical" href="https://adapt-to-it.github.io/hantek-oscilloscope/">
+<link rel="icon" href="assets/icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Hantek Oscilloscope — open-source software for the Hantek 6022BE">
+<meta property="og:description" content="Native macOS app for the Hantek 6022BE, with Windows and Linux builds. Trigger, FFT, decoders, MCP server, Python API.">
+<meta property="og:url" content="https://adapt-to-it.github.io/hantek-oscilloscope/">
+<meta property="og:image" content="https://adapt-to-it.github.io/hantek-oscilloscope/assets/tauri-tempo.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Hantek Oscilloscope",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Windows, Linux",
+  "description": "Open-source oscilloscope software for the Hantek 6022BE USB oscilloscope.",
+  "url": "https://adapt-to-it.github.io/hantek-oscilloscope/",
+  "downloadUrl": "https://github.com/adapt-to-it/hantek-oscilloscope/releases",
+  "codeRepository": "https://github.com/adapt-to-it/hantek-oscilloscope",
+  "license": "https://opensource.org/licenses/MIT",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+}
+</script>
+<style>
+  :root {
+    --bg: #0c0d0f; --panel: #15171b; --line: #262a31; --text: #e6e8eb; --muted: #9aa1ab;
+    --ch1: #f2c94c; --ch2: #74b9e8; --warn: #e8a33d;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  a { color: var(--ch2); }
+  main, header, footer { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+  header { padding-top: 64px; }
+  h1 { font-size: 40px; line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.02em; }
+  h1 span { color: var(--ch1); }
+  h2 { font-size: 26px; margin: 64px 0 16px; letter-spacing: -0.01em; }
+  h3 { font-size: 18px; margin: 0 0 8px; }
+  p.lead { font-size: 19px; color: var(--muted); max-width: 760px; }
+  .buttons { display: flex; gap: 12px; flex-wrap: wrap; margin: 28px 0; }
+  .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; text-decoration: none;
+         font-weight: 600; border: 1px solid var(--line); color: var(--text); background: var(--panel); }
+  .btn.primary { background: var(--ch1); color: #111; border-color: var(--ch1); }
+  img.shot { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+  .card p, .card ul { margin: 0; color: var(--muted); }
+  .card ul { padding-left: 18px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td:first-child { white-space: nowrap; }
+  .warn { border-left: 4px solid var(--warn); background: #1c1710; padding: 16px 20px; border-radius: 6px; }
+  pre, code { font-family: var(--mono); font-size: 14px; }
+  pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px;
+        overflow-x: auto; line-height: 1.5; }
+  .ch1 { color: var(--ch1); } .ch2 { color: var(--ch2); }
+  footer { color: var(--muted); font-size: 14px; padding-top: 48px; padding-bottom: 48px;
+           border-top: 1px solid var(--line); margin-top: 72px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Open-source software for the <span>Hantek 6022BE</span> oscilloscope</h1>
+  <p class="lead">
+    A native macOS app for the Hantek 6022BE USB oscilloscope, with builds for Windows and Linux.
+    One Rust engine drives the device. A desktop app, a command-line tool, an MCP server for AI
+    agents and a Python API all use that engine.
+  </p>
+  <div class="buttons">
+    <a class="btn primary" href="https://github.com/adapt-to-it/hantek-oscilloscope/releases/latest">Download</a>
+    <a class="btn" href="https://github.com/adapt-to-it/hantek-oscilloscope">Source code on GitHub</a>
+    <a class="btn" href="https://github.com/adapt-to-it/hantek-oscilloscope/discussions">Discussions</a>
+  </div>
+  <img class="shot" src="assets/tauri-tempo.png" width="1280" height="800"
+       alt="Hantek Oscilloscope main window: two channels in the time domain with automatic measurements">
+</header>
+
+<main>
+
+<h2>Why a new project instead of OpenHantek</h2>
+<p>
+  OpenHantek has been the reference open-source software for Hantek USB oscilloscopes for years.
+  Its history explains why this project exists.
+</p>
+<table>
+  <tr><th>Project</th><th>Status</th><th>Platform support</th></tr>
+  <tr>
+    <td><a href="https://github.com/OpenHantek/openhantek">OpenHantek</a></td>
+    <td>Unmaintained since December 2018. The maintainer
+      <a href="https://github.com/OpenHantek/openhantek/issues/277">stopped development</a>,
+      and the repository has received only documentation fixes since then.</td>
+    <td>Linux, macOS, Windows, Android, with old Qt and libusb builds.</td>
+  </tr>
+  <tr>
+    <td><a href="https://github.com/OpenHantek/OpenHantek6022">OpenHantek6022</a></td>
+    <td>The active successor, focused on the 6022BE/BL. It is developed on Debian Linux.</td>
+    <td>Its README describes Windows as "mostly untested" and macOS as "completely untested",
+      and gives no support for non-Linux issues unless a volunteer steps in.</td>
+  </tr>
+  <tr>
+    <td><strong>Hantek Oscilloscope</strong></td>
+    <td>This project. Written from scratch in Rust, developed and tested on macOS with a real 6022BE.</td>
+    <td>macOS tested with the device. Windows and Linux compile and pass the unit tests in CI.</td>
+  </tr>
+</table>
+<p>
+  On macOS the gap was the platform itself: no maintained project treats it as a first-class
+  target. This project starts from macOS and keeps the same code base for the other two systems.
+  It also adds functions that the OpenHantek6022 README does not list: serial protocol decoders,
+  pattern recognition, an MCP server for AI agents and a live streaming API for Python.
+</p>
+<p>
+  The firmware that runs on the oscilloscope derives from the one in
+  <a href="https://github.com/Ho-Ro/Hantek6022API">Ho-Ro/Hantek6022API</a>, the same base used
+  by OpenHantek6022. The host software shares no code with OpenHantek.
+</p>
+
+<h2>Features</h2>
+<div class="grid">
+  <div class="card"><h3>Acquisition</h3><p>Two channels, 8 bit. Continuous streaming, block
+    capture and roll mode for slow time bases. Offset and gain calibration from the device EEPROM.</p></div>
+  <div class="card"><h3>Software trigger</h3><p>Edge, pulse width, runt, window, slope, timeout,
+    two-channel pattern, logical AND/OR and A → B sequence. Auto, normal and single modes.</p></div>
+  <div class="card"><h3>Measurements</h3><p>Vpp, Vmax, Vmin, mean, RMS, frequency, period, duty
+    cycle, rise and fall time, overshoot, phase between channels, with statistics.</p></div>
+  <div class="card"><h3>Analysis</h3><p>Cursors, FFT with Hann, Blackman-Harris and flat-top
+    windows, spectrogram, math channels, filters, XY mode, color persistence, sin(x)/x.</p></div>
+  <div class="card"><h3>Protocol decoders</h3><p>UART with automatic baud-rate detection, I2C,
+    CAN, 1-Wire, PWM and servo, IR (NEC, RC5), Manchester.</p></div>
+  <div class="card"><h3>Recording and automation</h3><p>Export to CSV, NumPy, WAV and VCD. MCP
+    server for AI agents, binary WebSocket for Python and numpy.</p></div>
+</div>
+
+<div class="grid" style="margin-top:16px">
+  <img class="shot" src="assets/tauri-spettro.png" width="1280" height="800" loading="lazy"
+       alt="FFT spectrum view of the Hantek 6022BE signal">
+  <img class="shot" src="assets/tauri-xy.png" width="1280" height="800" loading="lazy"
+       alt="XY mode with a Lissajous figure">
+</div>
+
+<h2>How it works</h2>
+<p>
+  The 6022BE is a Cypress FX2LP USB microcontroller connected to a dual 8-bit ADC. It keeps no
+  firmware: at every connection the host loads it into the FX2LP RAM. The device then
+  re-enumerates with a new USB ID and streams the samples over bulk transfers. The 6022BE has no
+  hardware trigger, so the software finds the trigger point in the sample stream.
+</p>
+<pre>
+ Hantek 6022BE                    Host
+ +--------------+   USB 2.0 HS   +------------------------------------------------+
+ | FX2LP + ADC  |&lt;-- firmware -- | h6022-usb     firmware loader, vendor commands |
+ | <span class="ch1">CH1</span>  <span class="ch2">CH2</span>     | -- bulk data -&gt;| h6022-core    trigger, time base, roll mode    |
+ +--------------+                | h6022-dsp     measurements, FFT, filters       |
+                                 | h6022-decode  decoders, pattern search         |
+                                 +---------------+---------------+----------------+
+                                 | desktop app   | CLI (h6022)   | MCP / WebSocket|
+                                 +---------------+---------------+----------------+
+</pre>
+<div class="grid">
+  <div class="card"><h3>No libusb</h3><p>The USB layer uses <a href="https://github.com/kevinmehall/nusb">nusb</a>,
+    a pure Rust library that talks to IOKit on macOS, usbfs on Linux and WinUSB on Windows.</p></div>
+  <div class="card"><h3>One device owner</h3><p>A single process owns the USB device. The app, the
+    MCP server and the Python clients read the same acquisition at the same time.</p></div>
+  <div class="card"><h3>Native app</h3><p>The desktop app uses Tauri with a Svelte interface. The
+    installer is a few megabytes and needs no Qt runtime.</p></div>
+</div>
+
+<h2>Platforms</h2>
+<div class="warn">
+  <strong>Windows and Linux are not tested with the device yet.</strong> The author develops and
+  tests on macOS. On Windows and Linux the CI only checks that the code compiles and that the
+  unit tests pass. If you try them, please send a
+  <a href="https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=6-platform-report.yml">platform test report</a>.
+</div>
+<table style="margin-top:16px">
+  <tr><th>System</th><th>Package</th><th>USB access</th></tr>
+  <tr><td>macOS 11 or later</td><td><code>.dmg</code>, universal for Apple Silicon and Intel</td><td>No driver needed.</td></tr>
+  <tr><td>Windows 10 and 11</td><td><code>.msi</code> or <code>-setup.exe</code></td><td>WinUSB driver, installed once with Zadig.</td></tr>
+  <tr><td>Linux</td><td><code>.deb</code>, <code>.rpm</code>, <code>.AppImage</code></td><td>The <code>.deb</code> and <code>.rpm</code> install a udev rule.</td></tr>
+</table>
+<p>The <a href="https://github.com/adapt-to-it/hantek-oscilloscope#install">installation guide</a>
+  describes the driver setup for each system.</p>
+
+<h2>For developers and AI agents</h2>
+<p>The command-line tool runs without the graphical interface:</p>
+<pre>h6022 info
+h6022 capture --rate 1M --channels 2 --range1 5 --range2 5 --samples 100000 --out capture.csv
+h6022 serve</pre>
+<p>
+  <code>h6022 serve</code> and the desktop app start an MCP server on <code>127.0.0.1</code>. An AI
+  agent can configure the oscilloscope, capture, measure, decode protocols and record to disk. The
+  Python client in <code>python/h6022.py</code> receives the samples as numpy arrays.
+</p>
+
+<h2>Contribute</h2>
+<p>
+  Report bugs, crashes and test results, or ask for new decoders and new Hantek models, through
+  the <a href="https://github.com/adapt-to-it/hantek-oscilloscope/issues/new/choose">issue forms</a>.
+  Ask questions in <a href="https://github.com/adapt-to-it/hantek-oscilloscope/discussions">Discussions</a>.
+</p>
+
+</main>
+
+<footer>
+  Hantek Oscilloscope is free software under the MIT or Apache-2.0 license. The firmware is
+  under LGPL-2.1-or-later. This project is not affiliated with or endorsed by Hantek. Hantek is a
+  trademark of its owner.
+</footer>
+
+</body>
+</html>

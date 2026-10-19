@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://adapt-to-it.github.io/hantek-oscilloscope/sitemap.xml

@@ -3,6 +3,8 @@
 Open-source software for Hantek USB oscilloscopes. It currently supports the Hantek 6022BE.
 It runs on macOS, Windows and Linux.
 
+Project website: **[adapt-to-it.github.io/hantek-oscilloscope](https://adapt-to-it.github.io/hantek-oscilloscope/)**
+
 > [!WARNING]
 > **Windows and Linux are not tested yet.** The author develops and tests the software on macOS
 > with a real Hantek 6022BE. On Windows and Linux the CI only checks that the code compiles and
