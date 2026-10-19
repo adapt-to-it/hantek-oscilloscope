@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/h6022-usb", "crates/h6022-dsp", "crates/h6022-core", "crates/h6022-cli", "crates/h6022-record", "crates/h6022-server", "crates/h6022-decode", "crates/h6022-view", "crates/h6022-app"]
 
 [workspace.package]
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.88"

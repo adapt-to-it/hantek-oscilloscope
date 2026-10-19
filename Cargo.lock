@@ -1407,7 +1407,7 @@ dependencies = [
 
 [[package]]
 name = "h6022-app"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "ctrlc",
  "h6022-core",
@@ -1423,7 +1423,7 @@ dependencies = [
 
 [[package]]
 name = "h6022-cli"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1436,7 +1436,7 @@ dependencies = [
 
 [[package]]
 name = "h6022-core"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "h6022-dsp",
  "h6022-usb",
@@ -1445,7 +1445,7 @@ dependencies = [
 
 [[package]]
 name = "h6022-decode"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "h6022-dsp",
  "rustfft",
@@ -1453,14 +1453,14 @@ dependencies = [
 
 [[package]]
 name = "h6022-dsp"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "rustfft",
 ]
 
 [[package]]
 name = "h6022-record"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "h6022-core",
  "h6022-dsp",
@@ -1470,7 +1470,7 @@ dependencies = [
 
 [[package]]
 name = "h6022-server"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -1489,7 +1489,7 @@ dependencies = [
 
 [[package]]
 name = "h6022-usb"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "nusb",
  "thiserror 2.0.21",
@@ -1497,7 +1497,7 @@ dependencies = [
 
 [[package]]
 name = "h6022-view"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "h6022-core",
  "h6022-dsp",
