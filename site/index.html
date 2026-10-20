@@ -7,24 +7,49 @@
 <meta name="description" content="Open-source oscilloscope software for the Hantek 6022BE USB oscilloscope. Native on macOS, with Windows and Linux builds. Software trigger, FFT, protocol decoders, MCP server for AI agents and a Python API. An alternative to OpenHantek.">
 <link rel="canonical" href="https://adapt-to-it.github.io/hantek-oscilloscope/">
 <link rel="icon" href="assets/icon.png">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Marco Abbattista">
+<meta name="theme-color" content="#0c0d0f">
+<link rel="apple-touch-icon" href="assets/icon.png">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Hantek Oscilloscope">
+<meta property="og:locale" content="en_US">
 <meta property="og:title" content="Hantek Oscilloscope — open-source software for the Hantek 6022BE">
 <meta property="og:description" content="Native macOS app for the Hantek 6022BE, with Windows and Linux builds. Trigger, FFT, decoders, MCP server, Python API.">
 <meta property="og:url" content="https://adapt-to-it.github.io/hantek-oscilloscope/">
-<meta property="og:image" content="https://adapt-to-it.github.io/hantek-oscilloscope/assets/tauri-tempo.png">
+<meta property="og:image" content="https://adapt-to-it.github.io/hantek-oscilloscope/assets/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Hantek Oscilloscope app showing two channels of a Hantek 6022BE in the time domain">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hantek Oscilloscope — open-source software for the Hantek 6022BE">
+<meta name="twitter:description" content="Native macOS app for the Hantek 6022BE, with Windows and Linux builds. Trigger, FFT, decoders, MCP server, Python API.">
+<meta name="twitter:image" content="https://adapt-to-it.github.io/hantek-oscilloscope/assets/social-preview.png">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "Hantek Oscilloscope",
+  "alternateName": "h6022",
   "applicationCategory": "DeveloperApplication",
+  "applicationSubCategory": "Oscilloscope software",
   "operatingSystem": "macOS, Windows, Linux",
+  "softwareVersion": "0.2.0",
+  "keywords": "Hantek 6022BE, USB oscilloscope, OpenHantek alternative, macOS oscilloscope software, protocol decoder, MCP server",
   "description": "Open-source oscilloscope software for the Hantek 6022BE USB oscilloscope.",
   "url": "https://adapt-to-it.github.io/hantek-oscilloscope/",
   "downloadUrl": "https://github.com/adapt-to-it/hantek-oscilloscope/releases",
   "codeRepository": "https://github.com/adapt-to-it/hantek-oscilloscope",
-  "license": "https://opensource.org/licenses/MIT",
+  "license": ["https://opensource.org/licenses/MIT", "https://www.apache.org/licenses/LICENSE-2.0"],
+  "isAccessibleForFree": true,
+  "image": "https://adapt-to-it.github.io/hantek-oscilloscope/assets/social-preview.png",
+  "screenshot": [
+    "https://adapt-to-it.github.io/hantek-oscilloscope/assets/tauri-tempo.png",
+    "https://adapt-to-it.github.io/hantek-oscilloscope/assets/tauri-spettro.png",
+    "https://adapt-to-it.github.io/hantek-oscilloscope/assets/tauri-xy.png"
+  ],
+  "featureList": "Two-channel acquisition up to 48 MS/s; software trigger; measurements with statistics; FFT and spectrogram; XY mode; UART, I2C, CAN, 1-Wire, PWM, IR and Manchester decoders; CSV, NPY, WAV and VCD export; MCP server; Python API",
+  "author": { "@type": "Person", "name": "Marco Abbattista", "url": "https://github.com/maxabba" },
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
 }
 </script>
