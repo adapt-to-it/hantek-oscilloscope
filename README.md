@@ -68,8 +68,9 @@ Download the installer for your system from the
 | OS | File |
 |---|---|
 | macOS | `.dmg`, universal build for Apple Silicon and Intel |
-| Windows | `.msi` or `-setup.exe` |
-| Linux | `.deb`, `.rpm` or `.AppImage` |
+| Windows x64 | `.msi` or `-setup.exe` |
+| Windows ARM64 | `arm64-setup.exe` |
+| Linux x64 and ARM64 | `.deb`, `.rpm` or `.AppImage` |
 
 Each release also contains the `h6022` command-line tool for every platform.
 
