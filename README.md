@@ -6,10 +6,11 @@ It runs on macOS, Windows and Linux.
 Project website: **[adapt-to-it.github.io/hantek-oscilloscope](https://adapt-to-it.github.io/hantek-oscilloscope/)**
 
 > [!WARNING]
-> **Linux is not tested yet, and Windows only partly.** The author develops and tests the software
+> **Windows and Linux are only partly tested.** The author develops and tests the software
 > on macOS with a real Hantek 6022BE. On Windows the desktop app works with the device; the CLI and
-> the MCP server have not been tried there yet. On Linux the CI only checks that the code compiles
-> and that the unit tests pass. If you try them, report the result with the
+> the MCP server have not been tried there yet. On Linux ARM64 the CLI and the MCP server work with
+> the device; the desktop app has not been tried there yet. On Linux x64 the CI only checks that the
+> code compiles and that the unit tests pass. If you try them, report the result with the
 > [platform test report](https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=6-platform-report.yml).
 
 It is a modern alternative to the original Hantek software and to OpenHantek. A single Rust
@@ -56,7 +57,8 @@ firmware, so unplugging it restores the original state.
 |---|---|
 | macOS (Apple Silicon and Intel) | Tested with the device |
 | Windows | Desktop app tested with the device. CLI and MCP server not tested |
-| Linux | **Not tested.** Compiles and passes unit tests in CI only |
+| Linux ARM64 | CLI and MCP server tested with the device. Desktop app not tested |
+| Linux x64 | **Not tested.** Compiles and passes unit tests in CI only |
 
 The USB layer uses [nusb](https://github.com/kevinmehall/nusb) and does not depend on libusb.
 

@@ -135,7 +135,7 @@
   <tr>
     <td><strong>Hantek Oscilloscope</strong></td>
     <td>This project. Written from scratch in Rust, developed and tested on macOS with a real 6022BE.</td>
-    <td>macOS tested with the device. Windows desktop app tested with the device. Linux compiles and passes the unit tests in CI.</td>
+    <td>macOS tested with the device. Windows desktop app tested with the device. Linux ARM64 CLI and MCP server tested with the device. Linux x64 compiles and passes the unit tests in CI.</td>
   </tr>
 </table>
 <p>
@@ -202,10 +202,11 @@
 
 <h2>Platforms</h2>
 <div class="warn">
-  <strong>Linux is not tested with the device yet, and Windows only partly.</strong> The author
+  <strong>Windows and Linux are only partly tested.</strong> The author
   develops and tests on macOS. On Windows the desktop app works with the device; the CLI and the
-  MCP server have not been tried there yet. On Linux the CI only checks that the code compiles and
-  that the unit tests pass. If you try them, please send a
+  MCP server have not been tried there yet. On Linux ARM64 the CLI and the MCP server work with the
+  device; the desktop app has not been tried there yet. On Linux x64 the CI only checks that the
+  code compiles and that the unit tests pass. If you try them, please send a
   <a href="https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=6-platform-report.yml">platform test report</a>.
 </div>
 <table style="margin-top:16px">
