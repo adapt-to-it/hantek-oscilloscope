@@ -142,7 +142,8 @@
   On macOS the gap was the platform itself: no maintained project treats it as a first-class
   target. This project starts from macOS and keeps the same code base for the other two systems.
   It also adds functions that the OpenHantek6022 README does not list: serial protocol decoders,
-  pattern recognition, an MCP server for AI agents and a live streaming API for Python.
+  pattern recognition, an MCP server for AI agents and a live streaming API for Python. The
+  decoders and the pattern recognition are not tested yet with real signals.
 </p>
 <p>
   The firmware that runs on the oscilloscope derives from the one in
@@ -161,7 +162,7 @@
   <div class="card"><h3>Analysis</h3><p>Cursors, FFT with Hann, Blackman-Harris and flat-top
     windows, spectrogram, math channels, filters, XY mode, color persistence, sin(x)/x.</p></div>
   <div class="card"><h3>Protocol decoders</h3><p>UART with automatic baud-rate detection, I2C,
-    CAN, 1-Wire, PWM and servo, IR (NEC, RC5), Manchester.</p></div>
+    CAN, 1-Wire, PWM and servo, IR (NEC, RC5), Manchester. Not tested yet with real signals.</p></div>
   <div class="card"><h3>Recording and automation</h3><p>Export to CSV, NumPy, WAV and VCD. MCP
     server for AI agents, binary WebSocket for Python and numpy.</p></div>
 </div>

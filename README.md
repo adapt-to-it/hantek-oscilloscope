@@ -30,8 +30,9 @@ Python API all use that engine.
 - **Analysis**: cursors, FFT with Hann, Blackman-Harris and flat-top windows, spectrogram, math
   channels, filters, XY mode, color persistence, sin(x)/x interpolation.
 - **Protocol decoders**: UART with automatic baud-rate detection, I2C, CAN, 1-Wire, PWM and servo,
-  IR (NEC, RC5), Manchester.
+  IR (NEC, RC5), Manchester. **Not tested yet with real signals.**
 - **Pattern recognition**: signal classification, waveform search, packet segmentation.
+  **Not tested yet with real signals.**
 - **Recording and export**: CSV, NumPy `.npy`, WAV, VCD.
 - **Automation**: MCP server over streamable HTTP, binary WebSocket for Python and numpy.
 - **Interface** in English, Italian, French and Spanish. Press `i` to show an explanation of
