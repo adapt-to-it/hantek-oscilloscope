@@ -74,7 +74,7 @@
   .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; text-decoration: none;
          font-weight: 600; border: 1px solid var(--line); color: var(--text); background: var(--panel); }
   .btn.primary { background: var(--ch1); color: #111; border-color: var(--ch1); }
-  img.shot { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+  img.shot { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); display: block; }
   .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
   .card p, .card ul { margin: 0; color: var(--muted); }
@@ -106,7 +106,7 @@
     <a class="btn" href="https://github.com/adapt-to-it/hantek-oscilloscope">Source code on GitHub</a>
     <a class="btn" href="https://github.com/adapt-to-it/hantek-oscilloscope/discussions">Discussions</a>
   </div>
-  <img class="shot" src="assets/tauri-tempo.png" width="1280" height="800"
+  <img class="shot" src="assets/tauri-tempo.webp" width="1280" height="800" fetchpriority="high"
        alt="Hantek Oscilloscope main window: two channels in the time domain with automatic measurements">
 </header>
 
@@ -168,9 +168,9 @@
 </div>
 
 <div class="grid" style="margin-top:16px">
-  <img class="shot" src="assets/tauri-spettro.png" width="1280" height="800" loading="lazy"
+  <img class="shot" src="assets/tauri-spettro.webp" width="1280" height="800" loading="lazy"
        alt="FFT spectrum view of the Hantek 6022BE signal">
-  <img class="shot" src="assets/tauri-xy.png" width="1280" height="800" loading="lazy"
+  <img class="shot" src="assets/tauri-xy.webp" width="1280" height="800" loading="lazy"
        alt="XY mode with a Lissajous figure">
 </div>
 

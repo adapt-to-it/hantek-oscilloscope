@@ -107,6 +107,8 @@
   th { color: var(--muted); font-weight: 600; }
   td:first-child { white-space: nowrap; }
   td code { overflow-wrap: anywhere; }
+  img.shot { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); display: block; }
+  .shots { margin-top: 16px; }
   .warn { border-left: 4px solid var(--warn); background: #1c1710; padding: 16px 20px; border-radius: 6px; }
   pre, code { font-family: var(--mono); font-size: 14px; }
   pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px;
@@ -129,6 +131,8 @@
     <a class="btn primary" href="https://github.com/adapt-to-it/hantek-oscilloscope/releases/latest">Download for Windows</a>
     <a class="btn" href="../">Project home page</a>
   </div>
+  <img class="shot" src="../assets/tauri-tempo.webp" width="1280" height="800" fetchpriority="high"
+       alt="Hantek Oscilloscope desktop app showing two channels of a Hantek 6022BE in the time domain">
 </header>
 
 <main>
@@ -199,6 +203,13 @@
     <h3>Is this project affiliated with Hantek?</h3>
     <p>No. This project is not affiliated with or endorsed by Hantek. Hantek is a trademark of its owner.</p>
   </div>
+</div>
+
+<div class="grid shots">
+  <img class="shot" src="../assets/tauri-spettro.webp" width="1280" height="800" loading="lazy"
+       alt="FFT spectrum of a Hantek 6022BE signal in the desktop app">
+  <img class="shot" src="../assets/tauri-xy.webp" width="1280" height="800" loading="lazy"
+       alt="XY mode with a Lissajous figure in the desktop app">
 </div>
 
 <h2>What works on Windows</h2>
