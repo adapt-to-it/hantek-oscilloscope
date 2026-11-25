@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hantek 6022BE software and driver for Windows 11 — Hantek Oscilloscope</title>
+<meta name="description" content="Download the open-source Hantek 6022BE oscilloscope software for Windows 11 and Windows 10, and install the WinUSB driver with Zadig. Driver setup and FAQ.">
+<link rel="canonical" href="https://adapt-to-it.github.io/hantek-oscilloscope/windows/">
+<link rel="icon" href="../assets/icon.png">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="author" content="Marco Abbattista">
+<meta name="theme-color" content="#0c0d0f">
+<link rel="apple-touch-icon" href="../assets/icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hantek Oscilloscope">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="Hantek 6022BE software and driver for Windows 11 — Hantek Oscilloscope">
+<meta property="og:description" content="Download the Hantek 6022BE oscilloscope software for Windows 10 and 11, and install the WinUSB driver with Zadig.">
+<meta property="og:url" content="https://adapt-to-it.github.io/hantek-oscilloscope/windows/">
+<meta property="og:image" content="https://adapt-to-it.github.io/hantek-oscilloscope/assets/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Hantek Oscilloscope app showing two channels of a Hantek 6022BE in the time domain">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hantek 6022BE software and driver for Windows 11 — Hantek Oscilloscope">
+<meta name="twitter:description" content="Download the Hantek 6022BE oscilloscope software for Windows 10 and 11, and install the WinUSB driver with Zadig.">
+<meta name="twitter:image" content="https://adapt-to-it.github.io/hantek-oscilloscope/assets/social-preview.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "The computer does not find the oscilloscope. What do I check?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Check the USB cable and the port. Then open Zadig and choose Options → List All Devices. Before the firmware load, the device is listed with ID 04B4 6022."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "The second Zadig step was skipped. What do I do?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "After the app loads the firmware, the device reconnects with ID 04B5 6022 and has no WinUSB driver yet. Open Zadig, select the device 04B5 6022 and install WinUSB again."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it work on Windows 10?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Windows 10 and Windows 11 are both listed as supported systems, and the installation steps are the same. Test reports for either version are welcome."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I use it together with OpenHantek6022?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "OpenHantek6022 also uses WinUSB for the 6022BE, so both projects rely on the same Zadig driver setup. This project shares no code with OpenHantek."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is this project affiliated with Hantek?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. This project is not affiliated with or endorsed by Hantek. Hantek is a trademark of its owner."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+  :root {
+    --bg: #0c0d0f; --panel: #15171b; --line: #262a31; --text: #e6e8eb; --muted: #9aa1ab;
+    --ch1: #f2c94c; --ch2: #74b9e8; --warn: #e8a33d;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  a { color: var(--ch2); }
+  main, header, footer { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+  header { padding-top: 64px; }
+  h1 { font-size: 40px; line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.02em; }
+  h1 span { color: var(--ch1); }
+  h2 { font-size: 26px; margin: 64px 0 16px; letter-spacing: -0.01em; }
+  h3 { font-size: 18px; margin: 0 0 8px; }
+  p.lead { font-size: 19px; color: var(--muted); max-width: 760px; }
+  .buttons { display: flex; gap: 12px; flex-wrap: wrap; margin: 28px 0; }
+  .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; text-decoration: none;
+         font-weight: 600; border: 1px solid var(--line); color: var(--text); background: var(--panel); }
+  .btn.primary { background: var(--ch1); color: #111; border-color: var(--ch1); }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+  .card p, .card ul { margin: 0; color: var(--muted); }
+  .card ul { padding-left: 18px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td:first-child { white-space: nowrap; }
+  td code { overflow-wrap: anywhere; }
+  .warn { border-left: 4px solid var(--warn); background: #1c1710; padding: 16px 20px; border-radius: 6px; }
+  pre, code { font-family: var(--mono); font-size: 14px; }
+  pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px;
+        overflow-x: auto; line-height: 1.5; }
+  .ch1 { color: var(--ch1); } .ch2 { color: var(--ch2); }
+  footer { color: var(--muted); font-size: 14px; padding-top: 48px; padding-bottom: 48px;
+           border-top: 1px solid var(--line); margin-top: 72px; }
+</style>
+</head>
+<body>
+
+<header>
+  <p><a href="../">Hantek Oscilloscope</a> home page</p>
+  <h1>Hantek 6022BE software and driver for Windows 11</h1>
+  <p class="lead">
+    Open-source oscilloscope software for the Hantek 6022BE USB oscilloscope. Download the installer,
+    install the WinUSB driver once with Zadig, and start the app.
+  </p>
+  <div class="buttons">
+    <a class="btn primary" href="https://github.com/adapt-to-it/hantek-oscilloscope/releases/latest">Download for Windows</a>
+    <a class="btn" href="../">Project home page</a>
+  </div>
+</header>
+
+<main>
+
+<h2>Download for Windows</h2>
+<p>
+  The installers and the command-line tool are on the
+  <a href="https://github.com/adapt-to-it/hantek-oscilloscope/releases/latest">latest release</a> page.
+  The file names below are those of release 0.2.1.
+</p>
+<table>
+  <tr><th>Package</th><th>File</th></tr>
+  <tr><td>Windows x64, installer</td><td><code>Hantek.Oscilloscope_0.2.1_x64-setup.exe</code></td></tr>
+  <tr><td>Windows x64, MSI</td><td><code>Hantek.Oscilloscope_0.2.1_x64_en-US.msi</code></td></tr>
+  <tr><td>Windows ARM64, installer</td><td><code>Hantek.Oscilloscope_0.2.1_arm64-setup.exe</code></td></tr>
+  <tr><td>Command-line tool, x64</td><td><code>h6022-cli-v0.2.1-x86_64-pc-windows-msvc.zip</code></td></tr>
+  <tr><td>Command-line tool, ARM64</td><td><code>h6022-cli-v0.2.1-aarch64-pc-windows-msvc.zip</code></td></tr>
+</table>
+<p>
+  On macOS and Linux, follow the <a href="https://github.com/adapt-to-it/hantek-oscilloscope#install">installation guide</a>
+  in the README.
+</p>
+
+<h2>Install the WinUSB driver with Zadig</h2>
+<p>
+  Windows needs the WinUSB driver for the oscilloscope. You install it once with
+  <a href="https://zadig.akeo.ie">Zadig</a>.
+</p>
+<ol>
+  <li>Connect the oscilloscope.</li>
+  <li>In Zadig, choose <strong>Options → List All Devices</strong>.</li>
+  <li>Select the device with ID <code>04B4 6022</code>, choose <strong>WinUSB</strong> and click <strong>Replace Driver</strong>.</li>
+  <li>Start the app. It loads the firmware, and the device reconnects with ID <code>04B5 6022</code>.</li>
+  <li>In Zadig, select the device <code>04B5 6022</code> and install <strong>WinUSB</strong> again.</li>
+</ol>
+<p>
+  The 6022BE keeps no firmware. When the app connects, it loads the firmware into the device RAM, and
+  the device then reconnects with a new USB ID, <code>04B5 6022</code>. Windows sees a new device, so
+  WinUSB is installed twice: once for <code>04B4 6022</code> and once for <code>04B5 6022</code>.
+</p>
+
+<h2>Restore the original Hantek driver</h2>
+<p>
+  The original Hantek software stops working while WinUSB is installed. To restore it, open
+  Device Manager and reinstall the Hantek driver for the oscilloscope. Then the original Hantek
+  software works again.
+</p>
+
+<h2>Troubleshooting and FAQ</h2>
+<div class="grid">
+  <div class="card">
+    <h3>The computer does not find the oscilloscope. What do I check?</h3>
+    <p>Check the USB cable and the port. Then open Zadig and choose Options → List All Devices. Before the firmware load, the device is listed with ID 04B4 6022.</p>
+  </div>
+  <div class="card">
+    <h3>The second Zadig step was skipped. What do I do?</h3>
+    <p>After the app loads the firmware, the device reconnects with ID 04B5 6022 and has no WinUSB driver yet. Open Zadig, select the device 04B5 6022 and install WinUSB again.</p>
+  </div>
+  <div class="card">
+    <h3>Does it work on Windows 10?</h3>
+    <p>Windows 10 and Windows 11 are both listed as supported systems, and the installation steps are the same. Test reports for either version are welcome.</p>
+  </div>
+  <div class="card">
+    <h3>Can I use it together with OpenHantek6022?</h3>
+    <p>OpenHantek6022 also uses WinUSB for the 6022BE, so both projects rely on the same Zadig driver setup. This project shares no code with OpenHantek.</p>
+  </div>
+  <div class="card">
+    <h3>Is this project affiliated with Hantek?</h3>
+    <p>No. This project is not affiliated with or endorsed by Hantek. Hantek is a trademark of its owner.</p>
+  </div>
+</div>
+
+<h2>What works on Windows</h2>
+<p>
+  The desktop app has been tested with the device on Windows. The command-line tool
+  (<code>h6022</code>) and the MCP server have not been tried on Windows yet.
+</p>
+<div class="warn">
+  If you try the CLI or the MCP server on Windows, or if you find a problem with the driver setup,
+  please send a
+  <a href="https://github.com/adapt-to-it/hantek-oscilloscope/issues/new?template=6-platform-report.yml">platform test report</a>.
+  The <a href="../">project home page</a> lists the status of every platform.
+</div>
+
+</main>
+
+<footer>
+  <p>
+    Hantek Oscilloscope is free software under the MIT or Apache-2.0 license. The firmware is
+    under LGPL-2.1-or-later. This project is not affiliated with or endorsed by Hantek. Hantek is a
+    trademark of its owner.
+  </p>
+  <p><a href="../">Back to the Hantek Oscilloscope home page</a></p>
+</footer>
+
+</body>
+</html>
